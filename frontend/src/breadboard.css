@@ -450,3 +450,117 @@
 .bb-panel.is-preview .bb-hole {
   cursor: default;
 }
+
+/* Composants lumineux et réglables : l’état vient du calcul électrique. */
+.bb-led-bulb {
+  stroke: #663f37;
+  stroke-width: 1.5;
+}
+.bb-led-unknown .bb-led-bulb {
+  stroke: #796e64;
+  stroke-dasharray: 3 2;
+}
+.bb-led-flat {
+  stroke: #5d3b33;
+  stroke-width: 2;
+  fill: none;
+}
+.bb-led-reflection {
+  stroke: #fff5e9;
+  stroke-width: 2;
+  opacity: 0.65;
+  fill: none;
+}
+.bb-led-halo {
+  pointer-events: none;
+}
+.bb-led-warning {
+  fill: #9b351f;
+  font:
+    700 22px ui-monospace,
+    monospace;
+  stroke: #fff1df;
+  stroke-width: 3px;
+  paint-order: stroke;
+}
+.bb-led-overcurrent .bb-led-bulb {
+  stroke: #ae3f28;
+  stroke-width: 2.5;
+}
+.bb-pot-case {
+  fill: #6c9eaa;
+  stroke: #365a65;
+  stroke-width: 1.5;
+}
+.bb-pot-knob {
+  fill: #3a4544;
+  stroke: #1c3337;
+  stroke-width: 1.5;
+}
+.bb-pot-pointer {
+  fill: none;
+  stroke: #f1e6ba;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.bb-pot-position {
+  fill: #183e49;
+  font:
+    9px ui-monospace,
+    monospace;
+  font-weight: 650;
+}
+.bb-pot-control {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #c9dac1;
+  font-size: 11px;
+}
+.bb-pot-control input {
+  width: 140px;
+  padding: 0;
+  accent-color: #b4d391;
+}
+.bb-pot-control output {
+  min-width: 42px;
+  font-family: ui-monospace, monospace;
+}
+.bb-keyboard-help {
+  display: block;
+  margin-top: 4px;
+  color: #9cb3a5;
+  font-size: 10px;
+}
+.bb-hole.occupied .bb-hole-dot {
+  stroke: #b4c1b7;
+  stroke-width: 1;
+}
+.bb-board:focus-visible {
+  outline: 2px solid #9ee6c9;
+  outline-offset: -4px;
+}
+.bb-palette-over .bb-flat-surface {
+  stroke: #4b9d65;
+  stroke-width: 3;
+}
+.bb-palette-target {
+  fill: #c0df9c55;
+  stroke: #477e2d;
+  stroke-width: 2;
+  pointer-events: none;
+}
+.bb-board-feedback {
+  min-height: 41px;
+}
+@media (max-width: 760px) {
+  .bb-pot-control {
+    width: 100%;
+    min-height: 44px;
+  }
+  .bb-pot-control input {
+    min-height: 40px;
+    flex: 1;
+  }
+}

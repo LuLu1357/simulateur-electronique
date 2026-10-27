@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "id": "demo_potentiometer",
+  "title": "Potentiomètre · une tension réglable",
+  "revision": 0,
+  "components": [
+    {
+      "id": "V1",
+      "kind": "voltage_source",
+      "label": "V1",
+      "value": 5,
+      "model": null,
+      "pins": {
+        "p": "V1.p",
+        "n": "V1.n"
+      }
+    },
+    {
+      "id": "RV1",
+      "kind": "potentiometer",
+      "label": "RV1",
+      "value": 10000,
+      "model": null,
+      "pins": {
+        "p": "RV1.p",
+        "w": "RV1.w",
+        "n": "RV1.n"
+      },
+      "position": 0.5
+    },
+    {
+      "id": "P1",
+      "kind": "voltage_probe",
+      "label": "P1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "p": "P1.p",
+        "n": "P1.n"
+      }
+    },
+    {
+      "id": "G1",
+      "kind": "ground",
+      "label": "G1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "g": "G1.g"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "W1",
+      "a": "V1.p",
+      "b": "RV1.p"
+    },
+    {
+      "id": "W2",
+      "a": "V1.n",
+      "b": "RV1.n"
+    },
+    {
+      "id": "W3",
+      "a": "V1.n",
+      "b": "P1.n"
+    },
+    {
+      "id": "W4",
+      "a": "V1.n",
+      "b": "G1.g"
+    },
+    {
+      "id": "W5",
+      "a": "RV1.w",
+      "b": "P1.p"
+    }
+  ],
+  "junctions": [],
+  "schematic": {
+    "V1": {
+      "x": 100,
+      "y": 220,
+      "rotation": 0
+    },
+    "RV1": {
+      "x": 350,
+      "y": 200,
+      "rotation": 0
+    },
+    "P1": {
+      "x": 580,
+      "y": 170,
+      "rotation": 0
+    },
+    "G1": {
+      "x": 350,
+      "y": 400,
+      "rotation": 0
+    }
+  },
+  "net_labels": {},
+  "breadboard": {
+    "placements": {
+      "V1.p": "rail_top_p1",
+      "RV1.p": "rail_top_p2",
+      "V1.n": "rail_top_n1",
+      "RV1.n": "rail_top_n2",
+      "P1.n": "rail_top_n3",
+      "G1.g": "rail_top_n4",
+      "RV1.w": "a1",
+      "P1.p": "b1"
+    },
+    "rail_splits": true
+  },
+  "ui": {
+    "selected": [],
+    "view": "split",
+    "highlights": [],
+    "annotations": []
+  },
+  "description": "Une piste linéaire de 10 kΩ partage les 5 V. Position 0 : curseur près de p (+5 V), position 1 : près de n (masse). Au milieu, sans charge, la sortie est à 2,5 V.",
+  "default_analysis": {
+    "kind": "op"
+  }
+}

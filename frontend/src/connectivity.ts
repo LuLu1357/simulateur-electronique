@@ -61,10 +61,62 @@ export function wirePath(
   aId: string,
   bId: string,
   points = pinPoints(p),
+  waypoints?: { x: number; y: number }[],
 ): string {
   const a = points[aId],
     b = points[bId];
-  if (!a || !b) return "";
+  if (!a || !b || ![...a, ...b].every(Number.isFinite)) return "";
+  const custom = Array.isArray(waypoints)
+    ? waypoints
+        .slice(0, 32)
+        .filter(
+          (point) =>
+            point &&
+            typeof point.x === "number" &&
+            typeof point.y === "number" &&
+            Number.isFinite(point.x) &&
+            Number.isFinite(point.y) &&
+            Math.abs(point.x) <= 1e6 &&
+            Math.abs(point.y) <= 1e6,
+        )
+    : [];
+  if (custom.length) {
+    const cardinal = (vector: [number, number]): [number, number] =>
+      Math.abs(vector[0]) > Math.abs(vector[1])
+        ? [Math.sign(vector[0]), 0]
+        : [0, Math.sign(vector[1])];
+    const startDirection = cardinal(direction(p, aId));
+    const endDirection = cardinal(direction(p, bId));
+    const start: [number, number] = [
+      a[0] + startDirection[0] * 24,
+      a[1] + startDirection[1] * 24,
+    ];
+    const end: [number, number] = [
+      b[0] + endDirection[0] * 24,
+      b[1] + endDirection[1] * 24,
+    ];
+    let path = `M${a}`;
+    let previous: [number, number] = [a[0], a[1]];
+    const append = (target: [number, number], horizontalFirst = true) => {
+      if (horizontalFirst) {
+        if (previous[0] !== target[0]) path += `H${target[0]}`;
+        if (previous[1] !== target[1]) path += `V${target[1]}`;
+      } else {
+        if (previous[1] !== target[1]) path += `V${target[1]}`;
+        if (previous[0] !== target[0]) path += `H${target[0]}`;
+      }
+      previous = target;
+    };
+    append(start);
+    custom.forEach((point, index) =>
+      append([point.x, point.y], index !== 0 || startDirection[0] !== 0),
+    );
+    // Reach the last lead perpendicular to its outgoing direction so the
+    // final segment meets the terminal along its local axis.
+    append(end, endDirection[0] === 0);
+    append([b[0], b[1]]);
+    return path;
+  }
   const ad = direction(p, aId),
     bd = direction(p, bId),
     a1 = [a[0] + ad[0] * 24, a[1] + ad[1] * 24],

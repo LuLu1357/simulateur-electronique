@@ -30,6 +30,22 @@ L’installation crée `.venv`, installe les dépendances verrouillées et compi
 
 Pour développer : `npm run dev --prefix frontend` et `.venv/bin/python -m uvicorn backend.server:app --host 127.0.0.1 --port 8765`. Utiliser de préférence la version compilée sur 8765 : le contrôle d’origine protège l’API. Le proxy Vite doit réécrire l’origine vers le service local.
 
+## Manipuler comme sur un établi
+
+La bibliothèque contient **13 types de composants**, dont une DEL à trois modèles de couleur et un potentiomètre à trois bornes. Un clic ajoute le composant au centre de la vue ; un glisser-déposer le place dans le schéma ou directement sur la plaque après validation de toutes ses pattes.
+
+Trace un rectangle dans le fond du schéma pour sélectionner plusieurs éléments. **Maj+clic** complète la sélection, les **flèches** la déplacent de 10 unités (**Maj+flèches** : 1 unité), **⌘/Ctrl+A** sélectionne tout et **⌘/Ctrl+D** duplique les composants avec leurs fils internes. Les connexions externes et les placements sur la plaque ne sont pas copiés. Les masses restent la référence 0 V commune. **Espace+glisser** dans le schéma ou le bouton du milieu déplace la vue ; le zoom garde son point d’ancrage.
+
+Double-clique un fil pour ajouter un point de passage. Ses poignées se déplacent à la souris ou au clavier ; Suppr sur une poignée retire ce point. L’inspecteur permet de changer la couleur ou de revenir au tracé automatique. Les couleurs choisies deviennent visibles lorsque **Couleur = tension** est désactivé. Le tracé et la couleur restent purement visuels ; un déplacement groupé des deux extrémités emporte les points de passage.
+
+Les valeurs acceptent les unités et préfixes : **4,7 kΩ**, **100 nF**, **1 µF**, **5 V**. Les préréglages accélèrent les essais. L’**Assistant de montage** repère les défauts topologiques démontrés et propose une action adaptée. Le **Calcul automatique**, facultatif, recalcule après une modification électrique ; il ne relance pas le moteur pour une sélection, une couleur ou un déplacement du schéma.
+
+## Garder plusieurs circuits
+
+**Mes circuits → Conserver une copie** enregistre un instantané indépendant dans la bibliothèque du service, avec sa date et son nombre de composants. Les **12 copies** survivent au redémarrage du serveur dans le même environnement. La bibliothèque est stockée dans `.runtime/projects.json`, séparément du circuit actif. À la limite, une nouvelle copie est refusée plutôt qu’une ancienne effacée.
+
+Ouvrir une copie remplace le circuit actif et reste annulable. Chaque copie peut être exportée sans l’ouvrir. Supprimer une copie ne modifie pas le circuit ouvert. Ces fichiers résident sur la machine qui exécute l’application : dans une session cloud, ils restent dans cet environnement ; aucune synchronisation GitHub ou publication externe n’est automatique. **Exporter** conserve une copie JSON transportable sur l’appareil de l’utilisateur.
+
 ## Première expérience : vérifier la loi d’Ohm
 
 1. Ouvrir l’exemple **Loi d’Ohm · 5 V / 1 kΩ**. Les deux vues présentent le même modèle électrique.
@@ -58,7 +74,23 @@ Les courants des composants proviennent du calcul ngspice. Pour un **fil idéal 
 
 ## Exemples et mesures
 
-Sept projets importables dans `examples/` : loi d’Ohm, diviseur, diode, NPN, PNP, charge RC, soustracteur 2 bits. L’exemple RC choisit une analyse temporelle ; les courbes peuvent être activées individuellement. Les tensions et les courants ont des graphes avec des échelles distinctes. Les mesures temporelles de l’inspecteur sont celles du dernier instant calculé.
+### Explorer et garder une trace
+
+Le bouton **Explorer les expériences** ouvre dix fiches illustrées : loi d’Ohm, pont diviseur, charge RC, diode, DEL, potentiomètre, créneaux RC, NPN, PNP et soustracteur. Chaque fiche propose une prédiction théorique et une modification à essayer. Les filtres permettent de choisir les premiers pas, les transistors ou la logique. Charger une expérience est annulable avec **Annuler** dans l’atelier.
+
+La bibliothèque possède une recherche insensible aux accents et des filtres **Tous**, **Essentiels** et **Actifs**. Cliquer un composant l’ajoute au circuit.
+
+Le **Carnet de labo**, accessible dans les résultats ou la barre latérale, conserve les tensions et courants d’un calcul réussi avec une note facultative. Capture une référence, change une valeur, recalcule, puis lis les écarts signés. Deux captures enregistrées peuvent aussi être comparées. Les connexions, le type d’analyse et, en temporel, l’instant et les conditions initiales doivent correspondre ; les mesures obsolètes ne peuvent pas être capturées.
+
+Les **12 captures les plus récentes**, tous projets confondus, restent dans ce navigateur. Elles sont distinctes du fichier projet et exportables en JSON. Si le stockage est indisponible, elles restent accessibles pendant la session et un message invite à les exporter. La suppression d’une capture libère sa place.
+
+Dix projets importables dans `examples/` : loi d’Ohm, diviseur, diode, DEL, potentiomètre, NPN, PNP, charge RC, créneaux RC et soustracteur 2 bits. L’exemple RC choisit une analyse temporelle ; les courbes peuvent être activées individuellement. Les tensions et les courants ont des graphes avec des échelles distinctes. Les mesures temporelles de l’inspecteur sont celles du dernier instant calculé.
+
+L’oscilloscope possède un **curseur** à la souris, au toucher et au clavier (flèches, Début, Fin), avec lecture exacte des échantillons. Le zoom se centre sur ce curseur ; Réinitialiser retrouve toute la durée. L’export CSV contient tous les échantillons des courbes sélectionnées, même lorsque le graphe est zoomé. Les tensions et courants conservent des graphes séparés.
+
+La **DEL** utilise un courant calculé par ngspice. La luminosité est symbolique et suspendue lorsque les mesures sont obsolètes. Un dépassement du seuil pédagogique de **20 mA**, y compris un pic transitoire, apparaît dans les diagnostics ; aucun modèle thermique ou de destruction n’est simulé. Le **potentiomètre linéaire** expose les courants entrants P, W et N ; sa valeur affichée est la résistance totale, son curseur va de 0 à 100 %.
+
+Dans l’inspecteur d’une source, **Signal → Créneau** configure niveaux bas/haut, montée, descente, plateau, période et retard. Appliquer le signal modifie le modèle ; choisir **TRAN** permet d’observer ses impulsions réelles. **OP** utilise son niveau bas. Seuls ces paramètres numériques typés sont acceptés, sans directive SPICE libre.
 
 La case Courant montre le **courant conventionnel calculé dans chaque composant**, avec le sens inverse si la valeur est négative. Pour un transistor, la flèche de branche représente le courant collecteur ; les courants C/B/E sont consultables par MCP. Il ne s’agit pas d’un traçage unique des courants dans les fils d’un réseau ramifié.
 
@@ -103,15 +135,15 @@ npm test --prefix frontend
 
 Résultats et preuves : [docs/VALIDATION.md](docs/VALIDATION.md), [rapport électrique](docs/results-electric.json), [rapport MCP](docs/results-mcp.json). Architecture : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Modèles et limites moteur : [docs/ELECTRIQUE.md](docs/ELECTRIQUE.md).
 
-## Limites de cette première version
+## Limites actuelles
 
 - Boîtiers pédagogiques à bornes libres ; pas de contrainte mécanique de pas, d’encombrement ou d’orientation d’un véritable boîtier TO-92. Une seule breadboard, rail coupé uniquement au milieu.
-- Routage orthogonal simple ; un grand schéma reste dense. Pas de routage manuel multisegment, de bibliothèque constructeur importable, de sous-circuits repliables ou de modèle thermique.
-- Sources continues et commutateurs statiques pendant une analyse ; pas encore de générateur de formes d’onde ou de rebonds de bouton. Le transitoire démarre par défaut avec condensateurs déchargés, hypothèse indiquée dans les résultats.
+- Routage orthogonal simple ; un grand schéma reste dense. Pas de bibliothèque constructeur importable, de sous-circuits repliables ou de modèle thermique.
+- Sources continues ou créneaux périodiques ; commutateurs statiques pendant une analyse, sans rebond de bouton ni programme de microcontrôleur. Le transitoire démarre par défaut avec condensateurs déchargés, hypothèse indiquée dans les résultats.
 - Point continu et transitoire ; animation symbolique des charges, sans calcul microscopique des électrons. Pas d’AC, d’analyse de tolérances ou d’oscilloscope déclenché.
 - Synchronisation UI/MCP par interrogation toutes les secondes ; un seul projet actif autorisé, un seul calcul à la fois. L’historique et les résultats ne survivent pas au redémarrage ; le circuit oui.
 - Limites moteur : 300 composants, 12 s par calcul, 8 s CPU, 512 Mio, fichier RAW 24 Mio, 6 000 points conservés, analyse jusqu’à 10 s avec au plus 5 900 intervalles demandés, 32 cas par table.
 
-Prochaines étapes : plusieurs plaques avec contraintes de boîtiers, routage éditable, sous-circuits pédagogiques, modèles constructeur documentés et stimuli temporels. **Une simulation ne valide pas automatiquement un montage physique.**
+Prochaines étapes : plusieurs plaques avec contraintes de boîtiers, sous-circuits pédagogiques, modèles constructeur documentés, autres formes de stimuli et microcontrôleurs. **Une simulation ne valide pas automatiquement un montage physique.**
 
 Documentation officielle consultée pour cette intégration : [ngspice et manuel actuel](https://ngspice.sourceforge.io/docs.html), [mode batch](https://nmg.gitlab.io/ngspice-manual/analysesandoutputcontrol_batchmode.html), [SDK MCP Python et transports](https://py.sdk.modelcontextprotocol.io/run/).

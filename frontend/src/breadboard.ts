@@ -79,9 +79,10 @@ export function boardGroup(hole: string, splitRails = true): string | null {
 }
 
 export function orderedPins(component: Component): [string, string][] {
-  const order =
-    component.kind === "diode"
-      ? ["a", "k"]
+  const order = ["diode", "led"].includes(component.kind)
+    ? ["a", "k"]
+    : component.kind === "potentiometer"
+      ? ["p", "w", "n"]
       : ["npn", "pnp"].includes(component.kind)
         ? ["c", "b", "e"]
         : component.kind === "ground"
@@ -146,6 +147,10 @@ export function componentBodyBounds(
     cy = (minY + maxY) / 2;
   if (["npn", "pnp"].includes(component.kind))
     return { left: cx - 31, right: cx + 31, top: minY - 43, bottom: minY - 16 };
+  if (component.kind === "led")
+    return { left: cx - 16, right: cx + 16, top: minY - 39, bottom: minY - 7 };
+  if (component.kind === "potentiometer")
+    return { left: cx - 30, right: cx + 30, top: minY - 57, bottom: minY - 7 };
   if (component.kind === "capacitor")
     return { left: cx - 17, right: cx + 17, top: cy - 17, bottom: cy + 17 };
   const a = points[0],
@@ -295,7 +300,11 @@ export function defaultFootprint(
       const row = anchor.row.replace(/_[pn]$/, index === 0 ? "_p" : "_n");
       proposed[terminal] = `${row}${anchor.column}`;
     } else {
-      const stride = ["npn", "pnp"].includes(component.kind) ? 1 : 3;
+      const stride = ["npn", "pnp", "potentiometer", "led"].includes(
+        component.kind,
+      )
+        ? 1
+        : 3;
       proposed[terminal] = `${anchor.row}${anchor.column + index * stride}`;
     }
   }
@@ -313,6 +322,40 @@ export function defaultFootprint(
       "Cette position réunirait les bornes du composant dans une même bande métallique. Choisis des colonnes distinctes dans A–E ou F–J.",
     );
   return proposal;
+}
+
+/** Validate a palette drop before the component is added to the shared model.
+ * The caller can commit add_component and these placement operations together. */
+export function insertionFootprint(
+  project: Project,
+  component: Component,
+  anchorHole: string,
+): PlacementProposal {
+  if (project.components.some((existing) => existing.id === component.id))
+    return rejected("Cet identifiant de composant existe déjà.");
+  return defaultFootprint(
+    { ...project, components: [...project.components, component] },
+    component.id,
+    anchorHole,
+  );
+}
+
+/** Symbolic light intensity from measured forward current, never a predicted
+ * current or a cached result from another electrical revision. */
+export function ledVisualState(
+  current: unknown,
+  stale = false,
+): {
+  state: "unknown" | "off" | "on" | "overcurrent";
+  intensity: number;
+} {
+  if (stale || typeof current !== "number" || !Number.isFinite(current))
+    return { state: "unknown", intensity: 0 };
+  if (current <= 1e-6) return { state: "off", intensity: 0 };
+  return {
+    state: current > 0.02 ? "overcurrent" : "on",
+    intensity: Math.min(1, Math.sqrt(current / 0.02)),
+  };
 }
 
 export function adjacentBoardHole(

@@ -1,0 +1,203 @@
+.wire-inspector {
+  min-width: 0;
+  color: #cfdfcc;
+}
+.wire-inspector-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+}
+.wire-inspector-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  background: #293a26;
+  color: #c4e7b2;
+  border: 1px solid #4b5f3d;
+  border-radius: 10px;
+}
+.wire-inspector-heading h3 {
+  color: #e0ebd7;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  overflow-wrap: anywhere;
+}
+.wire-inspector-heading p {
+  color: #a8b89c;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.wire-endpoints {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #111e13;
+  border: 1px solid #35492f;
+  border-radius: 8px;
+  padding: 13px;
+}
+.wire-endpoints > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  color: #c5d7b7;
+  overflow-wrap: anywhere;
+}
+.wire-endpoints > span > i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border: 1px solid #a8d28b;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.wire-endpoints > svg {
+  color: #839b74;
+  margin-left: 2px;
+}
+.wire-inspector-section {
+  margin-top: 24px;
+}
+.wire-inspector .wire-inspector-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #c4d6b5;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+.wire-inspector-section h4 > span {
+  margin-left: auto;
+  color: #a0b38f;
+  font-size: 9px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.wire-color-palette {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.wire-color-palette > button {
+  min-height: 35px;
+  background: #19281b;
+  border: 1px solid #34482e;
+  border-radius: 6px;
+  padding: 8px;
+}
+.wire-color-palette > button > span {
+  display: block;
+  width: 24px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--wire-swatch);
+}
+.wire-color-palette > button[aria-pressed="true"] {
+  border-color: var(--wire-swatch);
+  background: #2c3e28;
+  box-shadow: none;
+}
+.wire-reset-color,
+.wire-reset-route {
+  justify-content: flex-start;
+  min-height: 36px;
+  color: #b1c59e;
+  font-size: 10px;
+  padding: 4px 0;
+}
+.wire-voltage-colors-note {
+  border-left: 2px solid #759c5b;
+  background: #20301c;
+  padding: 10px;
+  margin-top: 9px;
+  border-radius: 0 5px 5px 0;
+}
+.wire-voltage-colors-note p {
+  color: #b7cba7;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.wire-voltage-colors-note > button {
+  margin-top: 5px;
+  padding: 4px 0;
+  font-size: 10px;
+  color: #dcf1c2;
+  justify-content: flex-start;
+  text-align: left;
+}
+.wire-routing-help {
+  color: #a5b79a;
+  font-size: 11px;
+  line-height: 1.75;
+}
+.wire-waypoints {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.wire-waypoints > li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 0;
+  border-bottom: 1px solid #33472c;
+  color: #b2c5a3;
+  font-size: 10px;
+}
+.wire-waypoints code {
+  margin-left: auto;
+  color: #94ab84;
+  font-size: 10px;
+}
+.wire-waypoints button {
+  min-height: 28px;
+  min-width: 28px;
+  border-radius: 4px;
+  padding: 4px;
+  color: #a4bc92;
+}
+.wire-model-note {
+  margin-top: 19px;
+  color: #9fb38f;
+  line-height: 1.75;
+  font-size: 10px;
+}
+.wire-inspector .wire-delete {
+  margin-top: 18px;
+  border: 1px solid #754d3b;
+  border-radius: 6px;
+  background: #34271c;
+  color: #e3b295;
+  padding: 9px 12px;
+  font-size: 11px;
+  width: 100%;
+}
+.wire-inspector .wire-delete:not(:disabled):hover {
+  color: #ffe0c4;
+  background: #4b3021;
+}
+@media (max-width: 760px) {
+  .wire-color-palette > button,
+  .wire-waypoints button {
+    min-height: 40px;
+  }
+  .wire-reset-color,
+  .wire-reset-route,
+  .wire-voltage-colors-note > button {
+    min-height: 40px;
+    font-size: 11px;
+  }
+  .wire-inspector .wire-delete {
+    min-height: 42px;
+  }
+}

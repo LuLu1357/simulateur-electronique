@@ -8,8 +8,22 @@ import threading
 
 import pytest
 
-from backend.domain import new_project, topology
+from backend.domain import new_project, topology, validate_project
 import backend.simulation as engine
+
+
+def test_valid_high_resistance_can_be_compiled_for_simulation():
+    project = new_project()
+    resistor = next(component for component in project['components'] if component['kind'] == 'resistor')
+    resistor['value'] = 1e15
+    validate_project(project)
+    netlist, _ = engine.build_netlist(project)
+    assert '1e+15' in netlist
+
+
+def test_oversized_integer_analysis_has_useful_numeric_error():
+    with pytest.raises(ValueError, match='limites numériques'):
+        engine.build_netlist(new_project(), {'kind': 'tran', 'step': 10 ** 1000})
 
 
 class Clock:

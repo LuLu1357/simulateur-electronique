@@ -1,0 +1,276 @@
+.lab-scope {
+  padding: 19px 0 4px;
+  background: #101a19;
+  color: #d4e1d6;
+  min-width: 0;
+}
+.lab-scope-heading,
+.lab-scope-heading > div,
+.lab-scope-controls,
+.lab-scope-controls > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.lab-scope-heading {
+  justify-content: space-between;
+  padding: 0 16px 16px;
+}
+.lab-scope-heading > div > svg {
+  color: #a8e7bb;
+}
+.lab-scope-heading h3 {
+  font-size: 14px;
+  font-weight: 550;
+  color: #e8ebde;
+}
+.lab-scope-heading > div > span {
+  color: #91a68e;
+  font-size: 8px;
+  letter-spacing: 1.4px;
+}
+.lab-scope-heading > button {
+  border: 1px solid #3b5140;
+  color: #c5dbb8;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 10px;
+}
+.lab-scope-stale {
+  color: #eac06c;
+  background: #302c1e;
+  border: 1px solid #635636;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 0 16px 14px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.lab-scope-curves {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 16px 14px;
+}
+.lab-scope-curves > button {
+  color: #a5b6a6;
+  border: 1px solid #334836;
+  border-radius: 5px;
+  padding: 6px 9px;
+  gap: 6px;
+  font-size: 10px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.lab-scope-curves > button[aria-pressed="true"] {
+  color: #e4ebdc;
+  border-color: var(--scope-curve);
+  background: #243227;
+  box-shadow: none;
+}
+.lab-scope-curves i,
+.lab-scope-readout i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--scope-curve);
+  flex-shrink: 0;
+}
+.lab-scope-curves small {
+  font-size: 9px;
+  opacity: 0.75;
+}
+.lab-scope-controls {
+  justify-content: space-between;
+  border-top: 1px solid #2d3d30;
+  border-bottom: 1px solid #2d3d30;
+  padding: 8px 15px;
+  background: #18251b;
+}
+.lab-scope-controls > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #9db095;
+  font-size: 9px;
+  line-height: 1.6;
+}
+.lab-scope-controls button {
+  padding: 4px 7px;
+  min-height: 29px;
+  border: 1px solid #40543b;
+  border-radius: 5px;
+  font-size: 9px;
+  color: #c4d5b7;
+}
+.lab-scope-chart {
+  padding-top: 13px;
+  min-width: 0;
+  border-bottom: 1px solid #293b2f;
+}
+.lab-scope-unit {
+  display: block;
+  padding: 0 16px;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #b9c59e;
+}
+.lab-scope-chart > svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  outline-offset: -3px;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+.lab-scope-grid {
+  stroke: #2a3d2d;
+  stroke-width: 1;
+}
+.lab-scope-axis {
+  fill: #91a68c;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.lab-scope-cursor {
+  stroke: #eac06c;
+  stroke-width: 1.2;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+.lab-scope-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin: 15px 16px 0;
+  border: 1px solid #344b35;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #344b35;
+}
+.lab-scope-readout > div {
+  flex: 1 1 130px;
+  padding: 12px;
+  background: #1b2a1d;
+  min-width: 0;
+}
+.lab-scope-readout > div:first-child {
+  background: #2b2f1f;
+}
+.lab-scope-readout span {
+  color: #a1b39a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.lab-scope-readout strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--scope-curve, #eac06c);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 450;
+  overflow-wrap: anywhere;
+}
+.lab-scope-readout small {
+  display: block;
+  color: #91a489;
+  font-size: 9px;
+  line-height: 1.6;
+}
+.lab-scope-caption {
+  margin: 12px 16px 0;
+  color: #93a68c;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.lab-scope-export-notice {
+  margin: 8px 16px;
+  color: #b8d6ac;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.lab-scope-export-notice:empty {
+  display: none;
+}
+.lab-scope-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #a2b79b;
+}
+.lab-scope-empty > svg {
+  color: #a8e7bb;
+}
+.lab-scope-empty h4 {
+  color: #dbe5d1;
+  font-size: 16px;
+  font-weight: 500;
+}
+.lab-scope-empty p {
+  font-size: 12px;
+  max-width: 490px;
+  line-height: 1.8;
+}
+.lab-scope-empty.compact {
+  padding: 25px 15px;
+}
+@media (max-width: 760px) {
+  .lab-scope-heading {
+    padding: 0 12px 14px;
+  }
+  .lab-scope-heading > div > span {
+    display: none;
+  }
+  .lab-scope-heading > button {
+    min-height: 40px;
+    font-size: 11px;
+  }
+  .lab-scope-curves {
+    padding: 0 12px 12px;
+  }
+  .lab-scope-curves > button {
+    min-height: 40px;
+    font-size: 11px;
+  }
+  .lab-scope-controls {
+    padding: 9px 12px;
+    gap: 10px;
+  }
+  .lab-scope-controls > span {
+    font-size: 10px;
+  }
+  .lab-scope-controls button {
+    min-height: 38px;
+    min-width: 38px;
+    font-size: 10px;
+  }
+  .lab-scope-axis {
+    font-size: 14px;
+  }
+  .lab-scope-readout {
+    margin: 12px 12px 0;
+  }
+  .lab-scope-readout > div {
+    flex-basis: 43%;
+  }
+  .lab-scope-readout strong {
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-scope button {
+    transition: none;
+  }
+}

@@ -19,7 +19,7 @@ import threading
 import time
 from typing import Any
 
-from .domain import circuit_fingerprint, topology, validate_topology
+from .domain import circuit_fingerprint, topology, validate_topology, validate_source_waveform
 from .spice_worker import MAX_RAW_BYTES
 from .flow import calculate_wire_flows
 
@@ -31,6 +31,9 @@ MODEL_LINES = {
     "generic_diode": ".model gd D(Is=1e-14 N=1 Rs=0.1)",
     "generic_npn": ".model gn NPN(Is=1e-15 Bf=100 Vaf=100)",
     "generic_pnp": ".model gp PNP(Is=1e-15 Bf=100 Vaf=100)",
+    "generic_led_red": ".model glr D(Is=1e-20 N=1.8 Rs=2)",
+    "generic_led_green": ".model glg D(Is=1e-23 N=1.8 Rs=2)",
+    "generic_led_blue": ".model glb D(Is=1e-30 N=1.8 Rs=2)",
 }
 ASSUMPTIONS = [
     "Modèles génériques : diode Is=10 fA, N=1 ; BJT β nominal=100, VAF=100 V ; température 27 °C. Ce ne sont pas des modèles constructeur.",
@@ -40,11 +43,14 @@ ASSUMPTIONS = [
 ]
 
 
-def _finite(value: Any, name: str, positive: bool = False) -> float:
+def _finite(value: Any, name: str, positive: bool = False, maximum: float = 1e12) -> float:
     if isinstance(value, bool) or not isinstance(value, (float, int)):
         raise ValueError(f"{name} doit être un nombre fini en unités SI.")
-    result = float(value)
-    if not math.isfinite(result) or abs(result) > 1e12 or (positive and result <= 0):
+    try:
+        result = float(value)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError(f"{name} dépasse les limites numériques.") from exc
+    if not math.isfinite(result) or abs(result) > maximum or (positive and result <= 0):
         raise ValueError(f"{name} hors limites : valeur finie {'strictement positive ' if positive else ''}requise.")
     return result
 
@@ -67,6 +73,7 @@ def build_netlist(project: dict, analysis: dict | None = None) -> tuple[str, dic
     probe_nodes: dict[str, tuple[str, str]] = {}
     save_vectors = ["all"]
     terminal_current_vectors = {}
+    potentiometer_vectors = {}
     used_models: set[str] = set()
     for i, c in enumerate(project.get("components", [])):
         ck = c["kind"]
@@ -76,26 +83,46 @@ def build_netlist(project: dict, analysis: dict | None = None) -> tuple[str, dic
         dev = ""
         vector = None
         if ck in ("resistor", "switch", "button"):
-            value = _finite(c.get("value", 1000), c["id"], positive=(ck == "resistor"))
+            value = _finite(c.get("value", 1000), c["id"], positive=(ck == "resistor"), maximum=1e15 if ck == "resistor" else 1e12)
             # Interrupteur ouvert : fuite explicite de 1 pS, pas un fil.
             resistance = value if ck == "resistor" else (0.01 if value >= 0.5 else 1e12)
             dev = f"r{i} {node('p')} {node('n')} {resistance:.15g}"
             vector = f"@r{i}[i]"
         elif ck in ("voltage_source", "current_probe"):
             value = 0 if ck == "current_probe" else _finite(c.get("value", 5), c["id"])
+            waveform = validate_source_waveform(c.get("waveform")) if ck == "voltage_source" else None
+            if waveform:
+                value = waveform["low"]
             dev = f"v{i} {node('p')} {node('n')} DC {value:.15g}"
+            if waveform and kind == "tran":
+                pulse = " ".join(f"{waveform[key]:.15g}" for key in ("low", "high", "delay", "rise", "fall", "width", "period"))
+                dev += f" PULSE({pulse})"
             vector = f"v{i}#branch"
         elif ck == "capacitor":
             value = _finite(c.get("value", 1e-6), c["id"], positive=True)
             initial = _finite(c.get("initial_voltage", 0), f"IC {c['id']}")
             dev = f"c{i} {node('p')} {node('n')} {value:.15g} IC={initial:.15g}"
             vector = f"@c{i}[i]"
-        elif ck == "diode":
-            model = c.get("model", "generic_diode")
-            if model != "generic_diode":
-                raise ValueError("Modèle diode non autorisé ; choisir generic_diode.")
+        elif ck == "potentiometer":
+            value = _finite(c.get("value", 10000), c["id"], positive=True)
+            if not 1 <= value <= 1e9:
+                raise ValueError("Résistance totale du potentiomètre hors limites : 1 Ω à 1 GΩ.")
+            position = _finite(c.get("position", 0.5), f"Curseur {c['id']}")
+            if not 0 <= position <= 1:
+                raise ValueError("La position du curseur doit être comprise entre 0 et 1.")
+            upper = max(0.001, value * position)
+            lower = max(0.001, value * (1 - position))
+            dev = f"r{i}p {node('p')} {node('w')} {upper:.15g}\nr{i}n {node('w')} {node('n')} {lower:.15g}"
+            vector = f"@r{i}p[i]"
+            potentiometer_vectors[c["id"]] = (vector, f"@r{i}n[i]")
+            save_vectors.append(f"@r{i}n[i]")
+        elif ck in ("diode", "led"):
+            model = c.get("model") or ("generic_led_red" if ck == "led" else "generic_diode")
+            names = {"generic_diode": "gd"} if ck == "diode" else {"generic_led_red": "glr", "generic_led_green": "glg", "generic_led_blue": "glb"}
+            if model not in names:
+                raise ValueError(f"Modèle {ck} non autorisé ; choisir un modèle du catalogue.")
             used_models.add(model)
-            dev = f"d{i} {node('a')} {node('k')} gd"
+            dev = f"d{i} {node('a')} {node('k')} {names[model]}"
             vector = f"@d{i}[id]"
         elif ck in ("npn", "pnp"):
             model = c.get("model", f"generic_{ck}")
@@ -129,7 +156,7 @@ def build_netlist(project: dict, analysis: dict | None = None) -> tuple[str, dic
         startup = analysis.get("startup", True)
         lines.append(f"tran {step:.15g} {stop:.15g} 0 {step:.15g}{' uic' if startup else ''}")
     lines.extend(["write result.raw all", "quit", ".endc", ".end", ""])
-    return "\n".join(lines), {"topology": topo, "net_to_spice": net_to_spice, "current_vectors": current_vectors, "terminal_current_vectors": terminal_current_vectors, "probe_nodes": probe_nodes, "analysis": copy.deepcopy(analysis)}
+    return "\n".join(lines), {"topology": topo, "net_to_spice": net_to_spice, "current_vectors": current_vectors, "terminal_current_vectors": terminal_current_vectors, "potentiometer_vectors": potentiometer_vectors, "probe_nodes": probe_nodes, "analysis": copy.deepcopy(analysis)}
 
 
 def parse_ascii_raw(path: Path) -> dict[str, list[float]]:
@@ -245,6 +272,12 @@ def simulate(project: dict, analysis: dict | None = None, cancel_event: threadin
             result["assumptions"].append("Transitoire avec UIC : condensateurs à leur tension initiale déclarée (0 V par défaut), puis alimentation continue appliquée ; ce départ diffère du point de fonctionnement DC.")
         if any(c["kind"] in ("button", "switch") for c in project.get("components", [])):
             result["assumptions"].append("Interrupteurs : 0,01 Ω fermés, 10¹² Ω ouverts ; pas de rebond mécanique.")
+        if any(c["kind"] == "potentiometer" for c in project.get("components", [])):
+            result["assumptions"].append("Potentiomètre linéaire : R(p,w)=position×R, R(w,n)=(1−position)×R ; chaque segment vaut au minimum 1 mΩ. Courant principal affiché : entrant par p ; les courants p/w/n sont disponibles séparément.")
+        if any(c["kind"] == "led" for c in project.get("components", [])):
+            result["assumptions"].append("DEL : jonctions génériques rouge, verte et bleue, sans modèle constructeur, thermique ou photométrique. Le seuil pédagogique d’avertissement est 20 mA ; la simulation ne modélise pas une destruction.")
+        if any(c["kind"] == "voltage_source" and c.get("waveform") for c in project.get("components", [])):
+            result["assumptions"].append("Source à impulsions : niveau bas utilisé pour le point continu OP ; en TRAN, ngspice calcule la suite périodique avec les temps de montée, de plateau haut et de descente déclarés.")
         with tempfile.TemporaryDirectory(prefix="atelier-ngspice-") as directory:
             work = Path(directory)
             (work / "circuit.cir").write_text(netlist)
@@ -324,6 +357,14 @@ def simulate(project: dict, analysis: dict | None = None, cancel_event: threadin
                 if values is None:
                     raise ValueError(f"Courant de borne absent : {comp}.{pin}.")
                 terminal_currents[comp][pin] = values[-1]
+        for comp, (upper_vector, lower_vector) in info["potentiometer_vectors"].items():
+            upper_values = raw.get(upper_vector) or raw.get(f"i({upper_vector})")
+            lower_values = raw.get(lower_vector) or raw.get(f"i({lower_vector})")
+            if upper_values is None or lower_values is None:
+                raise ValueError(f"Courant de segment absent : {comp}.")
+            terminal_currents[comp] = {"p": upper_values[-1], "w": lower_values[-1] - upper_values[-1], "n": -lower_values[-1]}
+            curves.append({"id": f"I:{comp}.w", "label": f"I({comp}.w)", "unit": "A", "values": [lower - upper for upper, lower in zip(upper_values, lower_values)]})
+            curves.append({"id": f"I:{comp}.n", "label": f"I({comp}.n)", "unit": "A", "values": [-value for value in lower_values]})
         probes = {}
         for comp, (plus, minus) in info["probe_nodes"].items():
             probes[comp] = voltages[plus] - voltages[minus]
@@ -331,6 +372,14 @@ def simulate(project: dict, analysis: dict | None = None, cancel_event: threadin
         result.update(status="success", voltages=voltages, currents=currents, curves=curves, time=raw.get("time", []), probe_voltages=probes, terminal_currents=terminal_currents)
         result.update(calculate_wire_flows(project, result))
         result["diagnostics"].extend(result["flow_diagnostics"])
+        for component in project.get("components", []):
+            if component["kind"] != "led":
+                continue
+            samples = next((curve["values"] for curve in curves if curve["id"] == f"I:{component['id']}"), [])
+            peak_current = max(samples, default=0.0)
+            if peak_current > 0.020:
+                current_ma = peak_current * 1000
+                result["diagnostics"].append({"category": "observation", "severity": "warning", "code": "led_overcurrent", "message": f"{component['id']} : courant maximal calculé {current_ma:.3g} mA, au-delà du seuil pédagogique de 20 mA. Augmenter la résistance série.", "explanation": "Avertissement fondé sur les échantillons réellement calculés ; le modèle ne simule ni échauffement ni destruction, et ce seuil ne remplace pas une fiche constructeur.", "measured_peak_current": peak_current, "limit_current": 0.020, "targets": [component["id"]]})
         log_lower = result["log"].lower()
         if any(word in log_lower for word in ("singular", "gmin stepping", "source stepping")):
             result["diagnostics"].append({"category": "solver", "severity": "warning", "code": "solver_assistance", "message": "Le journal signale des difficultés numériques ou des étapes de convergence. Les valeurs ont été obtenues, mais examiner les nœuds peu chargés avant d'interpréter le circuit.", "targets": []})

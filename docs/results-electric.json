@@ -25,9 +25,9 @@
           "B1": 0.0
         },
         "voltages": {
-          "D0": 0.2511946343266176,
-          "D1": 0.2511946345593268,
-          "Borrow": 0.2511946346794364
+          "D0": 0.2511946343265938,
+          "D1": 0.2511946345593108,
+          "Borrow": 0.2511946346794254
         },
         "thresholds": {
           "low": 1.5,
@@ -274,7 +274,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1209,
+        "elapsed_seconds": 0.0987,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -543,7 +543,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0864,
+        "elapsed_seconds": 0.1149,
         "expected_modulo_4": 3,
         "expected_borrow": 1,
         "observed_modulo_4": 3
@@ -563,7 +563,7 @@
           "B1": 5.0
         },
         "voltages": {
-          "D0": 0.2511946343266268,
+          "D0": 0.2511946343265885,
           "D1": 4.999999980370203,
           "Borrow": 4.999999982008761
         },
@@ -812,7 +812,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0962,
+        "elapsed_seconds": 0.089,
         "expected_modulo_4": 2,
         "expected_borrow": 1,
         "observed_modulo_4": 2
@@ -833,7 +833,7 @@
         },
         "voltages": {
           "D0": 4.999999969012826,
-          "D1": 0.2511946349428533,
+          "D1": 0.2511946349428023,
           "Borrow": 4.999999982008761
         },
         "thresholds": {
@@ -1081,7 +1081,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.085,
+        "elapsed_seconds": 0.0968,
         "expected_modulo_4": 1,
         "expected_borrow": 1,
         "observed_modulo_4": 1
@@ -1102,8 +1102,8 @@
         },
         "voltages": {
           "D0": 4.999999981613792,
-          "D1": 0.2511946345593291,
-          "Borrow": 0.2511946346794221
+          "D1": 0.2511946345592655,
+          "Borrow": 0.2511946346794316
         },
         "thresholds": {
           "low": 1.5,
@@ -1350,7 +1350,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0999,
+        "elapsed_seconds": 0.0834,
         "expected_modulo_4": 1,
         "expected_borrow": 0,
         "observed_modulo_4": 1
@@ -1370,9 +1370,9 @@
           "B1": 0.0
         },
         "voltages": {
-          "D0": 0.2511946348437993,
-          "D1": 0.2511946345592864,
-          "Borrow": 0.2511946346794464
+          "D0": 0.2511946348438165,
+          "D1": 0.2511946345592664,
+          "Borrow": 0.2511946346794502
         },
         "thresholds": {
           "low": 1.5,
@@ -1619,7 +1619,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0909,
+        "elapsed_seconds": 0.0706,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -1888,7 +1888,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0887,
+        "elapsed_seconds": 0.0803,
         "expected_modulo_4": 3,
         "expected_borrow": 1,
         "observed_modulo_4": 3
@@ -1908,7 +1908,7 @@
           "B1": 5.0
         },
         "voltages": {
-          "D0": 0.2511946348437698,
+          "D0": 0.2511946348437961,
           "D1": 4.999999980370203,
           "Borrow": 4.999999982008761
         },
@@ -2157,7 +2157,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1143,
+        "elapsed_seconds": 0.0677,
         "expected_modulo_4": 2,
         "expected_borrow": 1,
         "observed_modulo_4": 2
@@ -2177,9 +2177,9 @@
           "B1": 0.0
         },
         "voltages": {
-          "D0": 0.2511946343266354,
+          "D0": 0.2511946343266036,
           "D1": 4.999999980370202,
-          "Borrow": 0.2511946344058231
+          "Borrow": 0.2511946344058282
         },
         "thresholds": {
           "low": 1.5,
@@ -2426,7 +2426,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0858,
+        "elapsed_seconds": 0.0658,
         "expected_modulo_4": 2,
         "expected_borrow": 0,
         "observed_modulo_4": 2
@@ -2447,8 +2447,8 @@
         },
         "voltages": {
           "D0": 4.999999969012826,
-          "D1": 0.2511946349428168,
-          "Borrow": 0.2511946344573724
+          "D1": 0.2511946349428369,
+          "Borrow": 0.251194634457379
         },
         "thresholds": {
           "low": 1.5,
@@ -2695,7 +2695,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0907,
+        "elapsed_seconds": 0.0936,
         "expected_modulo_4": 1,
         "expected_borrow": 0,
         "observed_modulo_4": 1
@@ -2715,9 +2715,9 @@
           "B1": 5.0
         },
         "voltages": {
-          "D0": 0.251194634326625,
-          "D1": 0.251194634559301,
-          "Borrow": 0.2511946347256138
+          "D0": 0.251194634326561,
+          "D1": 0.251194634559333,
+          "Borrow": 0.2511946347256115
         },
         "thresholds": {
           "low": 1.5,
@@ -2964,7 +2964,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0915,
+        "elapsed_seconds": 0.066,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -3233,7 +3233,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0904,
+        "elapsed_seconds": 0.0897,
         "expected_modulo_4": 3,
         "expected_borrow": 1,
         "observed_modulo_4": 3
@@ -3255,7 +3255,7 @@
         "voltages": {
           "D0": 4.999999981613792,
           "D1": 4.999999980370202,
-          "Borrow": 0.2511946344058399
+          "Borrow": 0.2511946344058282
         },
         "thresholds": {
           "low": 1.5,
@@ -3502,7 +3502,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0897,
+        "elapsed_seconds": 0.0936,
         "expected_modulo_4": 3,
         "expected_borrow": 0,
         "observed_modulo_4": 3
@@ -3522,9 +3522,9 @@
           "B1": 0.0
         },
         "voltages": {
-          "D0": 0.2511946348438143,
+          "D0": 0.2511946348437775,
           "D1": 4.999999980370202,
-          "Borrow": 0.2511946344058168
+          "Borrow": 0.2511946344057998
         },
         "thresholds": {
           "low": 1.5,
@@ -3771,7 +3771,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0837,
+        "elapsed_seconds": 0.0879,
         "expected_modulo_4": 2,
         "expected_borrow": 0,
         "observed_modulo_4": 2
@@ -3792,8 +3792,8 @@
         },
         "voltages": {
           "D0": 4.999999981613792,
-          "D1": 0.251194634559302,
-          "Borrow": 0.2511946347256111
+          "D1": 0.2511946345592797,
+          "Borrow": 0.2511946347256337
         },
         "thresholds": {
           "low": 1.5,
@@ -4040,7 +4040,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0885,
+        "elapsed_seconds": 0.0732,
         "expected_modulo_4": 1,
         "expected_borrow": 0,
         "observed_modulo_4": 1
@@ -4060,9 +4060,9 @@
           "B1": 5.0
         },
         "voltages": {
-          "D0": 0.2511946348437751,
-          "D1": 0.251194634559287,
-          "Borrow": 0.2511946347256214
+          "D0": 0.2511946348437908,
+          "D1": 0.2511946345592966,
+          "Borrow": 0.2511946347256222
         },
         "thresholds": {
           "low": 1.5,
@@ -4309,7 +4309,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0869,
+        "elapsed_seconds": 0.0943,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -4318,6 +4318,9 @@
     "passed": 16,
     "total": 16,
     "completed": 16,
+    "diagnostics": [],
+    "elapsed_seconds": 1.4149,
+    "time_limit_seconds": 60.0,
     "assumptions": [
       "Modèles génériques : diode Is=10 fA, N=1 ; BJT β nominal=100, VAF=100 V ; température 27 °C. Ce ne sont pas des modèles constructeur.",
       "Fils et breadboard idéaux : aucune résistance de contact, inductance parasite ni tolérance des composants.",

@@ -38,13 +38,13 @@ def component_terminal_currents(project: dict, result: dict) -> dict[str, float 
         cid, kind, pins = component["id"], component["kind"], component["pins"]
         if kind in ("ground", "voltage_probe"):
             flat.update({point: 0.0 for point in pins.values()})
-        elif kind in ("npn", "pnp"):
+        elif kind in ("npn", "pnp", "potentiometer"):
             terminal_values = transistor_currents.get(cid, {})
             for pin, point in pins.items():
                 flat[point] = _finite(terminal_values.get(pin))
         else:
             value = _finite(currents.get(cid))
-            positive, negative = ("a", "k") if kind == "diode" else ("p", "n")
+            positive, negative = ("a", "k") if kind in ("diode", "led") else ("p", "n")
             flat[pins[positive]] = value
             flat[pins[negative]] = -value if value is not None else None
     return flat

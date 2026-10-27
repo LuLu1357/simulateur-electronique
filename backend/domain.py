@@ -19,16 +19,24 @@ _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,79}$")
 _PIN_NAMES = {
     "resistor": ("p", "n"), "voltage_source": ("p", "n"),
     "switch": ("p", "n"), "button": ("p", "n"),
-    "diode": ("a", "k"), "npn": ("c", "b", "e"),
+    "diode": ("a", "k"), "led": ("a", "k"), "npn": ("c", "b", "e"),
     "pnp": ("c", "b", "e"), "capacitor": ("p", "n"),
     "ground": ("g",), "voltage_probe": ("p", "n"),
-    "current_probe": ("p", "n"),
+    "current_probe": ("p", "n"), "potentiometer": ("p", "w", "n"),
 }
 _PREFIXES = {"resistor": "R", "voltage_source": "V", "switch": "S", "button": "B", "diode": "D", "npn": "Q", "pnp": "Q", "capacitor": "C", "ground": "G", "voltage_probe": "P", "current_probe": "I"}
 _DEFAULTS = {"resistor": 1000.0, "voltage_source": 5.0, "switch": 0.0, "button": 0.0, "diode": 0.0, "npn": 0.0, "pnp": 0.0, "capacitor": 1e-6, "ground": 0.0, "voltage_probe": 0.0, "current_probe": 0.0}
-_NAMES = {"resistor": "Résistance", "voltage_source": "Source continue", "switch": "Interrupteur", "button": "Bouton poussoir", "diode": "Diode", "npn": "Transistor NPN", "pnp": "Transistor PNP", "capacitor": "Condensateur", "ground": "Masse", "voltage_probe": "Sonde de tension", "current_probe": "Sonde de courant"}
-_UNITS = {"resistor": "Ω", "voltage_source": "V", "capacitor": "F"}
-_ROLES = {"p": "Borne positive / entrée du courant conventionnel", "n": "Borne négative / sortie du courant conventionnel", "a": "Anode", "k": "Cathode", "c": "Collecteur", "b": "Base", "e": "Émetteur", "g": "Référence 0 V"}
+_NAMES = {"resistor": "Résistance", "voltage_source": "Source de tension", "switch": "Interrupteur", "button": "Bouton poussoir", "diode": "Diode", "npn": "Transistor NPN", "pnp": "Transistor PNP", "capacitor": "Condensateur", "ground": "Masse", "voltage_probe": "Sonde de tension", "current_probe": "Sonde de courant"}
+_UNITS = {"resistor": "Ω", "potentiometer": "Ω", "voltage_source": "V", "capacitor": "F"}
+_ROLES = {"p": "Borne positive / entrée du courant conventionnel", "n": "Borne négative / sortie du courant conventionnel", "w": "Curseur du potentiomètre", "a": "Anode", "k": "Cathode", "c": "Collecteur", "b": "Base", "e": "Émetteur", "g": "Référence 0 V"}
+_PREFIXES.update(led="LED", potentiometer="RV")
+_DEFAULTS.update(led=0.0, potentiometer=10000.0)
+_NAMES.update(led="DEL lumineuse", potentiometer="Potentiomètre")
+_LED_MODELS = {
+    "generic_led_red": "DEL rouge générique",
+    "generic_led_green": "DEL verte générique",
+    "generic_led_blue": "DEL bleue générique",
+}
 
 
 def catalog() -> dict[str, dict]:
@@ -43,6 +51,14 @@ def catalog() -> dict[str, dict]:
             "package": {"name": "Boîtier pédagogique explicite", "pin_map": {str(i + 1): pin for i, pin in enumerate(pins)}, "warning": "Ce brochage pédagogique ne définit aucun brochage constructeur. Lire la fiche du composant réel."},
             "models": ([{"id": model_id, "label": f"Modèle générique {kind.upper()}", "origin": "generic", "assumptions": ["Paramètres représentatifs, aucun fabricant certifié.", "La simulation ne valide pas le montage physique."]}] if model_id else []),
         }
+        if kind == "led":
+            entries[kind]["models"] = [{
+                "id": model, "label": label, "origin": "generic",
+                "assumptions": ["Jonction représentative à 27 °C, aucun fabricant certifié.", "Courant de référence maximal pédagogique : 20 mA ; ajouter une résistance série.", "La lumière visualisée n'est pas une mesure de flux lumineux."],
+            } for model, label in _LED_MODELS.items()]
+        elif kind == "potentiometer":
+            entries[kind]["default_position"] = 0.5
+            entries[kind]["assumptions"] = ["Piste linéaire : R(p,w) = position × R totale ; R(w,n) = (1 − position) × R totale.", "Chaque segment est limité à 1 mΩ minimum pour éviter un court-circuit numérique idéal.", "La position 0 place le curseur du côté p ; la position 1 du côté n."]
     return entries
 
 
@@ -68,6 +84,8 @@ def _value(kind: str, value: Any) -> float:
     value = _number(value, "Valeur")
     if kind == "resistor" and not 1e-6 <= value <= 1e15:
         raise ValueError("La résistance doit être comprise entre 1 µΩ et 10^15 Ω.")
+    if kind == "potentiometer" and not 1 <= value <= 1e9:
+        raise ValueError("La résistance totale du potentiomètre doit être comprise entre 1 Ω et 1 GΩ.")
     if kind == "capacitor" and not 1e-15 <= value <= 100:
         raise ValueError("La capacité doit être comprise entre 10^-15 F et 100 F.")
     if kind == "voltage_source" and abs(value) > 1e6:
@@ -77,7 +95,55 @@ def _value(kind: str, value: Any) -> float:
     return value
 
 
-def _make_component(kind: str, cid: str, value: Any = None, label: str | None = None, model: str | None = None) -> dict:
+def _position(value: Any) -> float:
+    position = _number(value, "Position du curseur")
+    if not 0 <= position <= 1:
+        raise ValueError("La position du curseur doit être comprise entre 0 et 1.")
+    return position
+
+
+def validate_source_waveform(value: Any) -> dict | None:
+    """Normalise un stimulus typé ; aucune chaîne SPICE n'est acceptée."""
+    if value is None:
+        return None
+    numeric_fields = ("low", "high", "delay", "rise", "fall", "width", "period")
+    if not isinstance(value, dict) or set(value) != {"kind", *numeric_fields} or value.get("kind") != "pulse":
+        raise ValueError("Stimulus attendu : pulse avec low, high, delay, rise, fall, width et period uniquement.")
+    normalized = {key: _number(value[key], f"Stimulus {key}") for key in numeric_fields}
+    if any(abs(normalized[key]) > 1e6 for key in ("low", "high")):
+        raise ValueError("Les niveaux du stimulus sont limités à ±1 MV.")
+    if normalized["delay"] < 0 or any(normalized[key] <= 0 for key in ("rise", "fall", "width", "period")):
+        raise ValueError("Le retard doit être positif ou nul ; montée, descente, largeur et période doivent être strictement positives.")
+    occupied = normalized["rise"] + normalized["width"] + normalized["fall"]
+    if occupied > normalized["period"] and not math.isclose(occupied, normalized["period"], rel_tol=1e-12, abs_tol=0):
+        raise ValueError("La montée, la largeur haute et la descente doivent tenir dans la période.")
+    return {"kind": "pulse", **normalized}
+
+
+def _wire_style(value: dict) -> dict:
+    style = {}
+    if "color" in value:
+        color = value["color"]
+        if color is not None and (not isinstance(color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", color)):
+            raise ValueError("La couleur du fil doit être au format #RRGGBB ou null.")
+        style["color"] = color
+    if "waypoints" in value:
+        points = value["waypoints"]
+        if not isinstance(points, list) or len(points) > 32:
+            raise ValueError("Un fil admet au plus 32 points de passage.")
+        normalized = []
+        for point in points:
+            if not isinstance(point, dict) or set(point) != {"x", "y"}:
+                raise ValueError("Chaque point de passage doit définir x et y uniquement.")
+            coordinate = {axis: _number(point[axis], f"Point de passage {axis}") for axis in ("x", "y")}
+            if any(abs(position) > 1e6 for position in coordinate.values()):
+                raise ValueError("Les points de passage sont limités à ±1 000 000 unités.")
+            normalized.append(coordinate)
+        style["waypoints"] = normalized
+    return style
+
+
+def _make_component(kind: str, cid: str, value: Any = None, label: str | None = None, model: str | None = None, waveform: Any = None) -> dict:
     if not isinstance(kind, str) or kind not in _PIN_NAMES:
         raise ValueError(f"Type de composant inconnu : {kind}.")
     _identifier(cid)
@@ -85,11 +151,18 @@ def _make_component(kind: str, cid: str, value: Any = None, label: str | None = 
         raise ValueError("Le libellé doit être un texte de 160 caractères maximum.")
     if model is not None and not isinstance(model, str):
         raise ValueError("Le modèle doit être un identifiant textuel ou null.")
-    model = model or (f"generic_{kind}" if kind in ("diode", "npn", "pnp") else None)
+    model = model or ("generic_led_red" if kind == "led" else f"generic_{kind}" if kind in ("diode", "npn", "pnp") else None)
     allowed = [m["id"] for m in catalog()[kind]["models"]]
     if model is not None and model not in allowed:
         raise ValueError(f"Modèle {model} indisponible pour {kind}.")
-    return {"id": cid, "kind": kind, "label": str(label or cid)[:160], "value": _value(kind, _DEFAULTS[kind] if value is None else value), "model": model, "pins": {pin: f"{cid}.{pin}" for pin in _PIN_NAMES[kind]}}
+    component = {"id": cid, "kind": kind, "label": str(label or cid)[:160], "value": _value(kind, _DEFAULTS[kind] if value is None else value), "model": model, "pins": {pin: f"{cid}.{pin}" for pin in _PIN_NAMES[kind]}}
+    if kind == "potentiometer":
+        component["position"] = 0.5
+    if waveform is not None:
+        if kind != "voltage_source":
+            raise ValueError("Un stimulus temporel concerne uniquement une source de tension.")
+        component["waveform"] = validate_source_waveform(waveform)
+    return component
 
 
 def new_project(empty: bool = False) -> dict:
@@ -191,7 +264,8 @@ def validate_topology(project: dict) -> list[dict]:
         diagnostics.append(_diag("missing_ground", "connection", "error", "Aucune référence de masse n'est définie.", [], "Le solveur doit disposer d'une référence 0 V. Ajouter une masse et la relier au retour prévu par le circuit."))
     for comp in components:
         nets = [mapping[p] for p in comp["pins"].values()]
-        if comp["kind"] == "voltage_source" and len(set(nets)) == 1 and comp["value"] != 0:
+        source_levels = [comp["waveform"].get("low"), comp["waveform"].get("high")] if isinstance(comp.get("waveform"), dict) else [comp["value"]]
+        if comp["kind"] == "voltage_source" and len(set(nets)) == 1 and any(level != 0 for level in source_levels):
             diagnostics.append(_diag("shorted_source", "connection", "error", f"Les deux bornes de {comp['id']} sont en court-circuit.", [comp["id"]], "Une même connexion impose 0 V entre ces bornes alors que la source impose une tension non nulle. Vérifier fils et bandes de breadboard."))
         if comp["kind"] not in ("ground", "voltage_probe") and len(nets) > 1 and len(set(nets)) == 1:
             diagnostics.append(_diag("bypassed_component", "connection", "warning", f"Toutes les bornes de {comp['id']} sont sur le même réseau.", [comp["id"]], "Le câblage contourne ce composant ; aucune tension différente ne peut exister entre ses bornes."))
@@ -344,7 +418,15 @@ def validate_project(project: dict) -> dict:
             raise ValueError("Chaque composant doit définir un libellé textuel de 160 caractères maximum.")
         if "initial_voltage" in comp:
             _number(comp["initial_voltage"], "Tension initiale")
-        _make_component(kind, cid, comp["value"], comp["label"], comp.get("model"))
+        if kind == "potentiometer":
+            _position(comp.get("position", 0.5))
+        elif "position" in comp:
+            raise ValueError("Seul un potentiomètre possède une position de curseur.")
+        if "waveform" in comp:
+            if kind != "voltage_source":
+                raise ValueError("Un stimulus temporel concerne uniquement une source de tension.")
+            validate_source_waveform(comp["waveform"])
+        _make_component(kind, cid, comp["value"], comp["label"], comp.get("model"), comp.get("waveform"))
     if ids & terminals:
         raise ValueError("Un identifiant de composant entre en collision avec une borne.")
     junction_ids = set()
@@ -368,6 +450,7 @@ def validate_project(project: dict) -> dict:
             raise ValueError(f"Le fil {wid} référence une borne ou une jonction absente.")
         if a == b:
             raise ValueError(f"Le fil {wid} revient sur la même borne.")
+        _wire_style(wire)
     schematic = project.get("schematic")
     if not isinstance(schematic, dict):
         raise ValueError("Positions schématiques manquantes.")
@@ -432,10 +515,14 @@ def circuit_fingerprint(project: dict) -> str:
     Les identifiants sont conservés car les résultats de mesures les utilisent.
     L'ordre des listes de composants/fils n'a en revanche aucun effet.
     """
-    electrical_fields = ("id", "kind", "value", "model", "pins", "initial_voltage")
+    electrical_fields = ("id", "kind", "value", "model", "pins", "initial_voltage", "position")
     def electrical_component(comp: dict) -> dict:
         result = {key: comp[key] for key in electrical_fields if key in comp}
-        for key in ("value", "initial_voltage"):
+        if comp["kind"] == "potentiometer":
+            result["position"] = comp.get("position", 0.5)
+        if comp.get("waveform") is not None:
+            result["waveform"] = validate_source_waveform(comp["waveform"])
+        for key in ("value", "initial_voltage", "position"):
             if key in result:
                 result[key] = float(result[key])
         return result
@@ -579,7 +666,13 @@ class Store:
             cid = op.get("id") or fresh(_PREFIXES[ckind])
             if cid in all_ids:
                 raise ValueError(f"Identifiant déjà utilisé : {cid}.")
-            comp = _make_component(ckind, cid, op.get("value"), op.get("label"), op.get("model"))
+            comp = _make_component(ckind, cid, op.get("value"), op.get("label"), op.get("model"), op.get("waveform"))
+            if ckind == "potentiometer":
+                comp["position"] = _position(op.get("position", 0.5))
+            if "initial_voltage" in op:
+                if ckind != "capacitor":
+                    raise ValueError("La tension initiale concerne uniquement un condensateur.")
+                comp["initial_voltage"] = _number(op["initial_voltage"], "Tension initiale")
             project["components"].append(comp)
             project["schematic"][cid] = {"x": _number(op.get("x", 300), "Position x"), "y": _number(op.get("y", 200), "Position y"), "rotation": 0}
         elif kind == "move_component":
@@ -591,6 +684,22 @@ class Store:
         elif kind == "set_value":
             comp = component()
             comp["value"] = _value(comp["kind"], op.get("value"))
+        elif kind == "set_position":
+            comp = component()
+            if comp["kind"] != "potentiometer":
+                raise ValueError("La position du curseur concerne uniquement un potentiomètre.")
+            comp["position"] = _position(op.get("position"))
+        elif kind == "set_waveform":
+            comp = component()
+            if comp["kind"] != "voltage_source":
+                raise ValueError("Un stimulus temporel concerne uniquement une source de tension.")
+            if "waveform" not in op:
+                raise ValueError("Définir waveform avec un stimulus ou null pour revenir à une source continue.")
+            waveform = validate_source_waveform(op["waveform"])
+            if waveform is None:
+                comp.pop("waveform", None)
+            else:
+                comp["waveform"] = waveform
         elif kind == "set_model":
             comp = component()
             model = op.get("model")
@@ -610,7 +719,15 @@ class Store:
             wid = _identifier(op.get("id") or fresh("W"))
             if wid in all_ids:
                 raise ValueError("Identifiant de fil déjà utilisé.")
-            project["wires"].append({"id": wid, "a": op["a"], "b": op["b"]})
+            project["wires"].append({"id": wid, "a": op["a"], "b": op["b"], **_wire_style(op)})
+        elif kind == "set_wire_style":
+            wire = next((item for item in project["wires"] if item["id"] == op.get("id")), None)
+            if wire is None:
+                raise ValueError("Fil absent.")
+            style = _wire_style(op)
+            if not style:
+                raise ValueError("Définir une couleur ou des points de passage pour ce fil.")
+            wire.update(style)
         elif kind == "remove_component":
             comp = component()
             pins = set(comp["pins"].values())
@@ -633,6 +750,11 @@ class Store:
             if jid in all_ids or jid in terminals:
                 raise ValueError("Identifiant de jonction déjà utilisé.")
             project["junctions"].append({"id": jid, "x": _number(op.get("x"), "Position x"), "y": _number(op.get("y"), "Position y")})
+        elif kind == "move_junction":
+            junction = next((item for item in project["junctions"] if item["id"] == op.get("id")), None)
+            if junction is None:
+                raise ValueError("Jonction absente.")
+            junction["x"], junction["y"] = _number(op.get("x"), "Position x"), _number(op.get("y"), "Position y")
         elif kind == "remove_junction":
             if not any(j["id"] == op.get("id") for j in project["junctions"]):
                 raise ValueError("Jonction absente.")

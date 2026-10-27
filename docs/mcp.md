@@ -82,3 +82,6 @@ L’API écoute uniquement sur la boucle locale. Elle vérifie le Host, l’Orig
 Le simulateur impose des limites de taille de projet, nombre de cas, durée/points de calcul, avec annulation du processus. Après échec, le circuit est conservé et `last_success` identifie explicitement le dernier calcul réussi. `stale=true` indique des mesures obtenues sur un état électrique différent. Une empreinte électrique ignore la sélection, les déplacements visuels, le titre et les notes; ces changements gardent les mesures valides. La révision du calcul reste disponible pour la traçabilité. Les simulations et les brochages génériques ne valident jamais le montage physique.
 
 Documentation officielle consultée : [SDK Python MCP — exécuter un serveur](https://py.sdk.modelcontextprotocol.io/run/), [déclarer les outils](https://py.sdk.modelcontextprotocol.io/servers/tools/), [client MCP](https://py.sdk.modelcontextprotocol.io/client/).
+
+
+Les transactions partagent aussi les extensions de l’atelier : `set_position` pour le potentiomètre, `set_waveform` pour les créneaux typés et `set_wire_style` pour la couleur/les points de passage. Le tracé du fil est visuel ; le curseur et le signal modifient l’empreinte électrique. Les trois modèles DEL sont accessibles via `set_model`. Lire le catalogue et la révision avant toute modification ; aucune directive SPICE libre n’est acceptée.

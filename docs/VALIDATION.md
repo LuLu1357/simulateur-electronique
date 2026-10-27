@@ -1,4 +1,20 @@
-# Vérifications du 27 octobre 2026
+# Validation de l’atelier étendu — 27 octobre 2026
+
+Cette session a vérifié le projet dans un environnement cloud Debian 13, Python 3.12.14, Node 24.19.0 et ngspice 47 extrait dans un répertoire de travail.
+
+- **238 tests Python et 102 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
+- **136 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
+- **MCP réel**, SDK 2.3.0 / protocole 2026-07-28 : connexion, outils, transactions, conflits, annulation/rétablissement, mesure réelle de 2,5 mA et 16 cas du soustracteur réussis. Projet du serveur d’essai restauré ; serveur de test indépendant des données utilisateur.
+- **React + DOM et vraie API + ngspice**, sur un serveur isolé : saisie SI, sélection multiple, déplacement, duplication/suppression atomique, annulation de gestes, glisser-déposer vers le schéma et la plaque, modèles DEL, curseur du potentiomètre, calcul automatique dédoublonné et arrêt des répétitions après un échec.
+- **Intégration des nouveaux instruments** : formulaire PULSE, rejet des timings invalides, charge/décharge RC réelle sur trois cycles, curseur/zoom/CSV, points de passage des fils, couleurs, bibliothèque persistante, ouverture annulable et suppression sans modifier le circuit actif.
+- **Gestes rapides** : dix événements flèche successifs produisent dix déplacements, les rotations et annulations restent ordonnées, sélectionner puis dupliquer immédiatement utilise la sélection mise en file.
+
+Les vérifications DOM ne remplacent pas une revue visuelle dans un navigateur ni un test utilisateur. Ces deux évaluations restent à effectuer pour juger la fluidité et l’ergonomie face à un produit comme Tinkercad.
+
+Les tests du carnet vérifient aussi la compatibilité des anciennes captures, la provenance des modèles/curseurs/signaux, les mesures obsolètes et le stockage refusé. La bibliothèque serveur est testée face aux conflits de révision, fichiers corrompus, limites de capacité, erreurs d’écriture et identifiants de fichier non autorisés.
+
+## Historique de validation initiale
+
 
 ## Résultats exécutés
 

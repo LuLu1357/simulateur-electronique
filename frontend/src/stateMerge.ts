@@ -9,6 +9,20 @@ export function electricalSignature(project: Project): string {
         id: c.id,
         kind: c.kind,
         value: c.value,
+        position: c.kind === "potentiometer" ? (c.position ?? 0.5) : null,
+        waveform:
+          c.kind === "voltage_source" && c.waveform
+            ? {
+                kind: c.waveform.kind,
+                low: c.waveform.low,
+                high: c.waveform.high,
+                delay: c.waveform.delay,
+                rise: c.waveform.rise,
+                fall: c.waveform.fall,
+                width: c.waveform.width,
+                period: c.waveform.period,
+              }
+            : null,
         model: c.model ?? null,
         pins: sortedEntries(c.pins),
         initial_voltage:
@@ -52,11 +66,17 @@ export function publishSimulationState(
 }
 
 /** Filtre les anciennes réponses avant toute modification de la phase du calcul. */
-export function isCurrentProjectRevision(current: State | null, incoming: State): boolean {
+export function isCurrentProjectRevision(
+  current: State | null,
+  incoming: State,
+): boolean {
   return !current || incoming.project.revision >= current.project.revision;
 }
 
 /** Une ancienne réponse de modification ne remplace jamais le projet déjà reçu. */
-export function publishProjectState(current: State | null, incoming: State): State {
+export function publishProjectState(
+  current: State | null,
+  incoming: State,
+): State {
   return isCurrentProjectRevision(current, incoming) ? incoming : current!;
 }

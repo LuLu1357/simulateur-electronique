@@ -73,10 +73,11 @@ def plan_breadboard_layout(project: dict) -> dict:
     for index, comp in enumerate(parts):
         base = 1 + (index % 6) * 5
         row = "c" if index < 6 else "h"
-        if comp["kind"] in ("npn", "pnp"):
-            # Ordre pédagogique C/B/E explicite ; aucun TO-92 constructeur supposé.
-            columns = {"c": base, "b": base + 1, "e": base + 2}
-            footprint_kind = "transistor"
+        if comp["kind"] in ("npn", "pnp", "potentiometer"):
+            # Trois bornes pédagogiques sur trois bandes distinctes ; aucun
+            # boîtier constructeur n'est déduit de cette affectation.
+            columns = ({"c": base, "b": base + 1, "e": base + 2} if comp["kind"] != "potentiometer" else {"p": base, "w": base + 1, "n": base + 2})
+            footprint_kind = "transistor" if comp["kind"] != "potentiometer" else "radial"
         else:
             names = list(comp["pins"])
             columns = {names[0]: base, names[1]: base + 3}

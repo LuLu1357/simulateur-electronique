@@ -31,12 +31,13 @@ Client MCP ─ SDK officiel stdio ─ pont HTTP
 | `backend/simulation.py` | Compilation de la netlist typée, ngspice, lecture RAW, mesures, comparaisons logiques |
 | `backend/flow.py` | Bilans de courant des fils, ambiguïtés des boucles idéales et trajets illustratifs séparés des mesures |
 | `backend/server.py` | Service métier unique et sécurité HTTP, sauvegarde autorisée, coordination des calculs |
+| `backend/project_library.py` | Copies persistantes bornées, fichier fixe, validation et remplacement atomique |
 | `backend/mcp_server.py` | Outils MCP limités au simulateur ; transfert aux mêmes opérations HTTP |
 | `frontend/src/types.ts` | Contrat TypeScript, conversions d’affichage, coordonnées des bornes |
 | `frontend/src/connectivity.ts` | Routage visuel et représentation des connexions créées par les bandes |
 | `frontend/src/visuals.ts` / `components/FlowParticles.tsx` | Couleurs de potentiel et points animés, sens des charges, vitesse symbolique |
 | `frontend/src/api.ts` | Accès au service et jeton local |
-| `frontend/src/main.tsx` | Interface, sélection, édition, mesures, oscilloscope et tables |
+| `frontend/src/main.tsx` | Orchestration de l’éditeur, gestes, sélection, calcul et intégration des panneaux |
 
 Le projet JSON v1 est la source de vérité. Composants, bornes, fils et jonctions ont des identifiants stables. Les réseaux ont une identité déterministe ancrée sur une borne ; séparer ou fusionner des réseaux peut modifier cette identité, les bornes conservent leur ID. Un nom de réseau ne crée jamais à lui seul une connexion.
 
@@ -57,3 +58,14 @@ HTTP écoute sur 127.0.0.1 ; Host et Origin sont vérifiés ; aucun CORS permiss
 Le pont MCP utilise un endpoint local fixe et le jeton du répertoire autorisé. Les projets sont échangés en contenu JSON, jamais par chemin arbitraire. La netlist utilise une liste fermée de composants et modèles ; aucune directive SPICE libre, inclusion, shell ou outil d’accès général au disque n’est exposé.
 
 Le serveur MCP peut être lancé par un client sans port entrant supplémentaire ; seul le service HTTP de l’application demeure. La connexion d’un client MCP est vérifiée par ce client ; le service HTTP n’invente pas son statut à partir de la seule présence du programme.
+
+
+## Instruments et édition avancée
+
+`components/Oscilloscope.tsx` et `scope.ts` portent le curseur, le zoom et l’export CSV ; ils n’interpolent aucune mesure présentée comme un résultat exact. `coach.ts` interprète les diagnostics et les mesures réelles pour le panneau d’aide. `notebook.ts` conserve des captures bornées dans le navigateur, avec valeurs et provenance des modèles, curseurs et stimuli. Les anciens carnets restent lisibles ; une provenance manquante est signalée.
+
+`editing.ts` calcule des transactions de déplacement et de duplication sans modifier le modèle vivant. `units.ts` parse une notation SI limitée sans évaluer d’expression. Les gestes de pointeur sont nettoyés à l’annulation, à la perte de focus et au changement de projet. Le calcul automatique est retardé et dédoublonné sur la signature électrique, avec une seule tentative par état en cas d’échec.
+
+Les champs `wire.color` et `wire.waypoints` ne participent pas à l’empreinte électrique. `potentiometer.position` et `voltage_source.waveform`, eux, invalident les mesures. Les créneaux sont compilés depuis sept nombres contrôlés et une forme autorisée, jamais depuis une chaîne SPICE fournie par l’utilisateur.
+
+La bibliothèque serveur (`.runtime/projects.json`) conserve douze copies au maximum, distinctes du circuit actif. Les routes `/api/projects`, `/api/projects/save`, `/api/projects/load` et `/api/projects/delete` utilisent les mêmes contrôles d’origine et de jeton. Sauvegarde et chargement vérifient la révision ; le chargement passe par l’historique transactionnel. Un fichier illisible empêche toute écriture pour préserver les copies existantes.

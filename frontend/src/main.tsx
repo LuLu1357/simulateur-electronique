@@ -12,21 +12,23 @@ import {
   Copy,
   Download,
   FilePlus2,
+  FlaskConical,
   FolderOpen,
   Hand,
   Info,
   Link2,
   Maximize2,
   MousePointer2,
+  NotebookPen,
   Pause,
   Play,
   Plus,
   Redo2,
   RotateCw,
   Save,
+  Search,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Trash2,
   Undo2,
   Upload,
@@ -37,37 +39,50 @@ import {
   Zap,
 } from "lucide-react";
 import { api } from "./api";
-import { rotationOperations } from "./editing";
-import { createSimulationController } from "./simulationController";
-import { withMeasurements, publishSimulationState, publishProjectState, isCurrentProjectRevision } from "./stateMerge";
-import type { SimulationSnapshot } from "./simulationController";
 import {
-  handleEditorKey,
-  isEditingTarget,
-  requestSimulationStop,
-} from "./interactions";
+  rotationOperations,
+  duplicateSelectionOperations,
+  moveSelectionOperations,
+  selectedInBox,
+} from "./editing";
+import { parseEngineeringValue } from "./units";
+import { createSimulationController } from "./simulationController";
+import {
+  withMeasurements,
+  publishSimulationState,
+  publishProjectState,
+  isCurrentProjectRevision,
+  electricalSignature,
+} from "./stateMerge";
+import type { SimulationSnapshot } from "./simulationController";
+import { handleEditorKey, isEditingTarget } from "./interactions";
 import { readPreferences, writePreferences } from "./preferences";
 import type { DisplayPreferences, PreferencesStorage } from "./preferences";
 import { voltageColor, fitCircuitView } from "./visuals";
 import { FlowParticles } from "./components/FlowParticles";
 import { BreadboardView } from "./components/BreadboardView";
+import { ExperimentGallery } from "./components/ExperimentGallery";
+import { NotebookPanel } from "./components/NotebookPanel";
+import { Oscilloscope } from "./components/Oscilloscope";
+import { CircuitCoach } from "./components/CircuitCoach";
+import { SourceWaveform } from "./components/SourceWaveform";
+import { WireInspector } from "./components/WireInspector";
+import { ProjectLibrary } from "./components/ProjectLibrary";
+import { insertionFootprint } from "./breadboard";
 import { boardLinks, wirePath } from "./connectivity";
-import { colors, format, holePoint, pinOffsets, pinPoints } from "./types";
-import type {
-  Component,
-  Diagnostic,
-  Op,
-  Project,
-  Simulation,
-  State,
-} from "./types";
+import { colors, format, pinOffsets, pinPoints } from "./types";
+import type { Component, Wire, Op, Project, State } from "./types";
 import "./style.css";
+import "./workbench.css";
+import "./editor.css";
 const kindNames: Record<string, string> = {
   resistor: "Résistance",
-  voltage_source: "Source continue",
+  voltage_source: "Source de tension",
   switch: "Interrupteur",
   button: "Bouton",
   diode: "Diode",
+  led: "LED",
+  potentiometer: "Potentiomètre",
   npn: "Transistor NPN",
   pnp: "Transistor PNP",
   capacitor: "Condensateur",
@@ -101,9 +116,15 @@ function ComponentGlyph({ kind }: { kind: string }) {
         </>
       ) : kind === "capacitor" ? (
         <path d="M1 12H9M9 5V19M15 5V19M15 12H23" />
-      ) : kind === "diode" ? (
+      ) : kind === "potentiometer" ? (
+        <>
+          <path d="M1 12H6M18 12H23M12 1V8M9 5L12 8L15 5" />
+          <rect x="6" y="8" width="12" height="8" rx="1" />
+        </>
+      ) : kind === "diode" || kind === "led" ? (
         <>
           <path d="M1 12H7M17 12H23M17 5V19M7 5L17 12L7 19Z" />
+          {kind === "led" && <path d="M12 3L16 0M17 4L21 1" />}
         </>
       ) : kind === "ground" ? (
         <path d="M12 2V13M3 13H21M6 17H18M9 21H15" />
@@ -164,10 +185,11 @@ function Symbol({ c }: { c: Component }) {
   };
   return (
     <g {...common}>
-      {k === "resistor" ? (
+      {k === "resistor" || k === "potentiometer" ? (
         <>
           <path d="M-48 0H-25M25 0H48" />
           <rect x="-25" y="-10" width="50" height="20" rx="2" />
+          {k === "potentiometer" && <path d="M0 -48V-12M-5 -20L0 -12L5 -20" />}
         </>
       ) : k === "voltage_source" ? (
         <>
@@ -183,10 +205,13 @@ function Symbol({ c }: { c: Component }) {
         <>
           <path d="M-48 0H-5V-17M-5 0V17M5 -17V17M5 0H48" />
         </>
-      ) : k === "diode" ? (
+      ) : k === "diode" || k === "led" ? (
         <>
           <path d="M-48 0H-16M16 0H48M16 -17V17" />
           <path d="M-16 -17L16 0L-16 17Z" />
+          {k === "led" && (
+            <path d="M2 -25L17 -40M10 -41L17 -40L16 -33M14 -20L29 -35M22 -36L29 -35L28 -28" />
+          )}
         </>
       ) : k === "npn" || k === "pnp" ? (
         <>
@@ -224,134 +249,6 @@ function Symbol({ c }: { c: Component }) {
     </g>
   );
 }
-function Oscilloscope({ sim }: { sim: Simulation | null }) {
-  const [visible, setVisible] = useState<string[]>([]);
-  const curves = sim?.curves || [];
-  useEffect(() => {
-    setVisible(
-      curves
-        .filter((c) => c.unit === "V")
-        .slice(0, 3)
-        .map((c) => c.id),
-    );
-  }, [sim?.project_revision, curves.length]);
-  const time = sim?.time || [];
-  const units = [
-    ...new Set(curves.filter((c) => visible.includes(c.id)).map((c) => c.unit)),
-  ];
-  return (
-    <div className="scope">
-      <div className="curve-choices">
-        {curves.map((c, i) => (
-          <button
-            key={c.id}
-            className={visible.includes(c.id) ? "curve active" : "curve"}
-            style={
-              { "--curve": colors[i % colors.length] } as React.CSSProperties
-            }
-            onClick={() =>
-              setVisible((v) =>
-                v.includes(c.id) ? v.filter((x) => x !== c.id) : [...v, c.id],
-              )
-            }
-          >
-            <i />
-            {c.label} <small>{c.unit}</small>
-          </button>
-        ))}
-      </div>
-      {!time.length ? (
-        <div className="empty">
-          <Activity size={30} />
-          <p>Le temps révèle le circuit.</p>
-          <span>
-            Lance une simulation temporelle pour observer les courbes.
-          </span>
-        </div>
-      ) : (
-        units.map((unit) => {
-          const selected = curves.filter(
-              (c) => visible.includes(c.id) && c.unit === unit,
-            ),
-            all = selected.flatMap((c) => c.values),
-            w = 850,
-            h = 178,
-            left = 70,
-            top = 18,
-            min = Math.min(0, ...all),
-            max = Math.max(unit === "V" ? 1 : 1e-9, ...all),
-            span = max - min;
-          return (
-            <svg
-              key={unit}
-              viewBox={`0 0 ${w} ${h}`}
-              aria-label={`Oscilloscope — ${unit === "V" ? "tensions" : "courants"}`}
-            >
-              {Array.from({ length: 5 }, (_, i) => (
-                <g key={i}>
-                  <line
-                    className="plot-grid"
-                    x1={left}
-                    x2={w - 20}
-                    y1={top + i * 29}
-                    y2={top + i * 29}
-                  />
-                  <text
-                    className="axis"
-                    x={left - 9}
-                    y={top + i * 29 + 4}
-                    textAnchor="end"
-                  >
-                    {format(max - (span * i) / 4, unit)}
-                  </text>
-                </g>
-              ))}
-              {Array.from({ length: 7 }, (_, i) => (
-                <g key={i}>
-                  <line
-                    className="plot-grid"
-                    x1={left + (i * (w - left - 20)) / 6}
-                    x2={left + (i * (w - left - 20)) / 6}
-                    y1={top}
-                    y2={h - 43}
-                  />
-                  <text
-                    className="axis"
-                    x={left + (i * (w - left - 20)) / 6}
-                    y={h - 17}
-                    textAnchor="middle"
-                  >
-                    {format(((time.at(-1) || 0) * i) / 6, "s")}
-                  </text>
-                </g>
-              ))}
-              {selected.map((c) => {
-                const stride = Math.max(1, Math.floor(c.values.length / 1000));
-                const points = c.values
-                  .map((v, i) =>
-                    i % stride === 0 || i === c.values.length - 1
-                      ? `${left + ((time[i] || 0) / (time.at(-1) || 1)) * (w - left - 20)},${top + ((max - v) / span) * 116}`
-                      : null,
-                  )
-                  .filter(Boolean)
-                  .join(" ");
-                return (
-                  <polyline
-                    key={c.id}
-                    points={points}
-                    fill="none"
-                    stroke={colors[curves.indexOf(c) % colors.length]}
-                    strokeWidth="2"
-                  />
-                );
-              })}
-            </svg>
-          );
-        })
-      )}
-    </div>
-  );
-}
 function CurrentArrow({
   c,
   current,
@@ -361,6 +258,12 @@ function CurrentArrow({
   current: number;
   rotation?: number;
 }) {
+  if (c.kind === "potentiometer")
+    return (
+      <text className="current-label" x="0" y="65" textAnchor="middle">
+        I(P) = {format(current, "A")}
+      </text>
+    );
   const pins = Object.values(pinOffsets(c));
   if (pins.length < 2) return null;
   const a = pins[0],
@@ -405,9 +308,22 @@ function App() {
     [hoverNet, setHoverNet] = useState<string | null>(null),
     [zoom, setZoom] = useState(1),
     [pan, setPan] = useState({ x: 0, y: 0 }),
-    [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(
-      null,
-    ),
+    [drag, setDrag] = useState<{
+      ids: string[];
+      dx: number;
+      dy: number;
+    } | null>(null),
+    [selectionBox, setSelectionBox] = useState<{
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    } | null>(null),
+    [pointer, setPointer] = useState<{ x: number; y: number } | null>(null),
+    [paletteKind, setPaletteKind] = useState<string | null>(null),
+    [autoSimulate, setAutoSimulate] = useState(false),
+    [valueError, setValueError] = useState(""),
+    [potDraft, setPotDraft] = useState(50),
     [preferences, setPreferences] = useState<DisplayPreferences>(() =>
       readPreferences(preferenceStorage(), reducedMotionRequested()),
     ),
@@ -419,6 +335,14 @@ function App() {
     [step, setStep] = useState("0.0001"),
     [examples, setExamples] = useState<{ id: string; title: string }[]>([]),
     [exampleOpen, setExampleOpen] = useState(false),
+    [galleryOpen, setGalleryOpen] = useState(false),
+    [projectLibraryOpen, setProjectLibraryOpen] = useState(false),
+    [routeDrag, setRouteDrag] = useState<{
+      id: string;
+      points: { x: number; y: number }[];
+    } | null>(null),
+    [componentQuery, setComponentQuery] = useState(""),
+    [componentCategory, setComponentCategory] = useState("all"),
     [truth, setTruth] = useState<Record<string, unknown> | null>(null),
     [help, setHelp] = useState(false),
     [boardWire, setBoardWire] = useState<string | null>(null),
@@ -478,6 +402,12 @@ function App() {
   }, [help]);
   const [boardPreview, setBoardPreview] = useState<State | null>(null);
   const mutationQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const gestureCleanup = useRef<(() => void) | null>(null);
+  const autoAttempt = useRef("");
+  const reservedIds = useRef(new Set<string>());
+  const duplicating = useRef(false);
+  const spacePressed = useRef(false);
+  useEffect(() => () => gestureCleanup.current?.(), []);
   const svgRef = useRef<SVGSVGElement>(null),
     importRef = useRef<HTMLInputElement>(null),
     stateRef = useRef<State | null>(null);
@@ -514,28 +444,37 @@ function App() {
     const id = setInterval(refresh, 1000);
     return () => clearInterval(id);
   }, [refresh]);
-  const publishProject = useCallback((incoming: State): State => {
-    const published = publishProjectState(stateRef.current, incoming);
-    if (published !== incoming) {
-      void refresh();
+  const publishProject = useCallback(
+    (incoming: State): State => {
+      const published = publishProjectState(stateRef.current, incoming);
+      if (published !== incoming) {
+        void refresh();
+        return published;
+      }
+      control.invalidatePolls();
+      stateRef.current = published;
+      setState((current) => publishProjectState(current, published));
       return published;
-    }
-    control.invalidatePolls();
-    stateRef.current = published;
-    setState((current) => publishProjectState(current, published));
-    return published;
-  }, [refresh]);
+    },
+    [refresh],
+  );
   const act = useCallback(
-    (ops: Op[], preview = false): Promise<State | undefined> => {
+    (
+      ops: Op[] | ((project: Project) => Op[]),
+      preview = false,
+    ): Promise<State | undefined> => {
       const job = mutationQueue.current.then(async () => {
         const current = stateRef.current;
         if (!current) return;
         try {
+          const operations =
+            typeof ops === "function" ? ops(current.project) : ops;
+          if (!operations.length) return current;
           control.invalidatePolls();
           const committedBefore = simulationCommit.current;
           let next = await api<State>("transaction", {
             expected_revision: current.project.revision,
-            operations: ops,
+            operations,
             preview,
           });
           if (!preview) {
@@ -569,9 +508,20 @@ function App() {
     setZoom(view.zoom);
     setPan(view.pan);
   };
+  const configureAnalysis = (project: Project) => {
+    setAnalysis(project.default_analysis?.kind === "tran" ? "tran" : "op");
+    setStopTime(String(project.default_analysis?.stop ?? 0.02));
+    setStep(String(project.default_analysis?.step ?? 0.0001));
+  };
   // Un nouveau projet est cadré une fois ; le suivi MCP ne déplace pas la caméra.
   useEffect(() => {
-    if (p) centerCircuit(p);
+    if (p) {
+      centerCircuit(p);
+      configureAnalysis(p);
+      gestureCleanup.current?.();
+      setPending(null);
+      setPointer(null);
+    }
   }, [p?.id]);
   useEffect(() => {
     setBoardHoleDraft(p?.breadboard.placements[pinToPlace] || "");
@@ -581,10 +531,13 @@ function App() {
   }, [p?.title]);
   const selected = p?.ui.selected || [];
   const comp = p?.components.find((c) => selected.includes(c.id));
+  const selectedWire = p?.wires.find((wire) => selected.includes(wire.id));
   useEffect(() => {
     setDraftValue(comp ? String(comp.value) : "");
+    setValueError("");
+    setPotDraft(Math.round((comp?.position ?? 0.5) * 100));
     setPinToPlace(comp ? Object.values(comp.pins)[0] : "");
-  }, [comp?.id, comp?.value]);
+  }, [comp?.id, comp?.value, comp?.position]);
   useEffect(() => {
     const net = state?.topology.terminal_to_net[pinToPlace];
     const label =
@@ -605,17 +558,44 @@ function App() {
   );
   const tn = state?.topology.terminal_to_net || {};
   const points = p ? pinPoints(p) : {};
+  const movingPoints = new Set<string>();
   if (drag && p) {
-    const c = p.components.find((c) => c.id === drag.id);
-    if (c) {
-      const angle = ((p.schematic[c.id]?.rotation || 0) * Math.PI) / 180;
-      for (const [k, v] of Object.entries(pinOffsets(c)))
-        points[c.pins[k]] = [
-          drag.x + v[0] * Math.cos(angle) - v[1] * Math.sin(angle),
-          drag.y + v[0] * Math.sin(angle) + v[1] * Math.cos(angle),
-        ];
+    for (const id of drag.ids) {
+      const c = p.components.find((item) => item.id === id);
+      const pos = p.schematic[id];
+      if (c && pos) {
+        const angle = ((pos.rotation || 0) * Math.PI) / 180;
+        for (const [name, off] of Object.entries(pinOffsets(c))) {
+          movingPoints.add(c.pins[name]);
+          points[c.pins[name]] = [
+            pos.x +
+              drag.dx +
+              off[0] * Math.cos(angle) -
+              off[1] * Math.sin(angle),
+            pos.y +
+              drag.dy +
+              off[0] * Math.sin(angle) +
+              off[1] * Math.cos(angle),
+          ];
+        }
+      } else {
+        const junction = p.junctions.find((item) => item.id === id);
+        if (junction) {
+          movingPoints.add(id);
+          points[id] = [junction.x + drag.dx, junction.y + drag.dy];
+        }
+      }
     }
   }
+  const routedPoints = (wire: Wire) =>
+    routeDrag?.id === wire.id
+      ? routeDrag.points
+      : drag && movingPoints.has(wire.a) && movingPoints.has(wire.b)
+        ? wire.waypoints?.map((point) => ({
+            x: point.x + drag.dx,
+            y: point.y + drag.dy,
+          }))
+        : wire.waypoints;
   const selectedNets = new Set(
     selected.flatMap((id) => {
       const c = p?.components.find((c) => c.id === id);
@@ -643,7 +623,16 @@ function App() {
       : netColor(net);
   const animatedMode = stale ? "off" : flowMode;
   const voltage = (terminal: string) => sim?.voltages[tn[terminal] || terminal];
-  const select = (id: string) => act([{ type: "set_ui", selected: [id] }]);
+  const select = (id: string, additive = false) =>
+    act((project) => {
+      const selection = project.ui.selected;
+      const next = additive
+        ? selection.includes(id)
+          ? selection.filter((item) => item !== id)
+          : [...selection, id]
+        : [id];
+      return [{ type: "set_ui", selected: next }];
+    });
   const clickPin = async (id: string) => {
     if (tool === "wire" || pending) {
       if (pending && pending !== id) {
@@ -666,15 +655,374 @@ function App() {
       );
     }
   };
-  const toSvg = (e: React.PointerEvent<SVGElement>) => {
+  const toSvg = (e: { clientX: number; clientY: number }) => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
+    const matrix = svg.getScreenCTM();
+    if (!matrix) return { x: 0, y: 0 };
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(
-      svg.getScreenCTM()!.inverse(),
+      matrix.inverse(),
     );
     return { x: (pt.x - pan.x) / zoom, y: (pt.y - pan.y) / zoom };
   };
-  const run = async () => {
+  const watchGesture = (
+    move: (event: PointerEvent) => void,
+    finish: (event: PointerEvent) => void,
+    cancel: () => void,
+  ) => {
+    gestureCleanup.current?.();
+    const cleanup = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", abort);
+      window.removeEventListener("blur", abort);
+      gestureCleanup.current = null;
+    };
+    const up = (event: PointerEvent) => {
+      cleanup();
+      finish(event);
+    };
+    const abort = () => {
+      cleanup();
+      cancel();
+    };
+    gestureCleanup.current = () => {
+      cleanup();
+      cancel();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up, { once: true });
+    window.addEventListener("pointercancel", abort, { once: true });
+    window.addEventListener("blur", abort, { once: true });
+  };
+  const duplicateSelection = () => {
+    if (duplicating.current) return;
+    duplicating.current = true;
+    let changed = false;
+    void act((project) => {
+      const result = duplicateSelectionOperations(project, project.ui.selected);
+      changed = !!result.operations.length;
+      return changed
+        ? [...result.operations, { type: "set_ui", selected: result.selected }]
+        : [];
+    })
+      .then((next) => {
+        if (next && changed)
+          setNotice(
+            "Sélection dupliquée sans recopier les connexions externes. Les masses gardent la référence commune 0 V.",
+          );
+      })
+      .finally(() => {
+        duplicating.current = false;
+      });
+  };
+  const nudgeSelection = (dx: number, dy: number) => {
+    void act((project) =>
+      moveSelectionOperations(project, project.ui.selected, dx, dy),
+    );
+  };
+  const startObjectDrag = (
+    event: React.PointerEvent<SVGElement>,
+    id: string,
+  ) => {
+    if (tool !== "select" || event.button !== 0 || spacePressed.current) return;
+    event.stopPropagation();
+    event.preventDefault();
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      void select(id, true);
+      return;
+    }
+    const current = stateRef.current?.project;
+    if (!current) return;
+    const ids = current.ui.selected.includes(id) ? current.ui.selected : [id];
+    if (!current.ui.selected.includes(id)) void select(id);
+    const start = toSvg(event);
+    const delta = (e: { clientX: number; clientY: number }) => {
+      const point = toSvg(e);
+      const snap = event.altKey ? 1 : 10;
+      return {
+        dx: Math.round((point.x - start.x) / snap) * snap,
+        dy: Math.round((point.y - start.y) / snap) * snap,
+      };
+    };
+    watchGesture(
+      (e) => setDrag({ ids, ...delta(e) }),
+      (e) => {
+        const { dx, dy } = delta(e);
+        setDrag(null);
+        if (dx || dy)
+          void act((project) => moveSelectionOperations(project, ids, dx, dy));
+      },
+      () => setDrag(null),
+    );
+  };
+  const startCanvasGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (tool === "pan" || event.button === 1 || spacePressed.current) {
+      event.preventDefault();
+      const start = toSvg(event),
+        initial = { ...pan };
+      watchGesture(
+        (e) => {
+          const point = toSvg(e);
+          setPan({
+            x: initial.x + (point.x - start.x) * zoom,
+            y: initial.y + (point.y - start.y) * zoom,
+          });
+        },
+        () => {},
+        () => setPan(initial),
+      );
+      return;
+    }
+    if (
+      event.button !== 0 ||
+      (event.target !== event.currentTarget &&
+        !(event.target as Element).classList.contains("grid-bg"))
+    )
+      return;
+    const start = toSvg(event);
+    if (tool === "junction") {
+      void act([
+        {
+          type: "add_junction",
+          x: Math.round(start.x / 10) * 10,
+          y: Math.round(start.y / 10) * 10,
+        },
+      ]);
+      return;
+    }
+    if (pending || tool === "wire") return;
+    const original = stateRef.current?.project.ui.selected || [];
+    const additive = event.shiftKey;
+    setSelectionBox({ x1: start.x, y1: start.y, x2: start.x, y2: start.y });
+    watchGesture(
+      (e) => {
+        const end = toSvg(e);
+        setSelectionBox({ x1: start.x, y1: start.y, x2: end.x, y2: end.y });
+      },
+      (e) => {
+        const end = toSvg(e);
+        setSelectionBox(null);
+        const current = stateRef.current?.project;
+        if (!current) return;
+        const ids = selectedInBox(current, {
+          x1: start.x,
+          y1: start.y,
+          x2: end.x,
+          y2: end.y,
+        });
+        void act([
+          {
+            type: "set_ui",
+            selected: additive ? [...new Set([...original, ...ids])] : ids,
+          },
+        ]);
+      },
+      () => setSelectionBox(null),
+    );
+  };
+  const addComponentAt = async (
+    kind: string,
+    point?: { x: number; y: number },
+    hole?: string,
+  ) => {
+    const current = stateRef.current;
+    const entry = current?.catalog[kind];
+    if (!current || !entry) return;
+    const prefix: Record<string, string> = {
+      resistor: "R",
+      voltage_source: "V",
+      switch: "S",
+      button: "B",
+      diode: "D",
+      led: "LED",
+      potentiometer: "RV",
+      npn: "Q",
+      pnp: "Q",
+      capacitor: "C",
+      ground: "G",
+      voltage_probe: "P",
+      current_probe: "I",
+    };
+    const occupied = new Set([
+      ...current.project.components.map((c) => c.id),
+      ...current.project.wires.map((w) => w.id),
+      ...current.project.junctions.map((j) => j.id),
+      ...current.project.components.flatMap((c) => Object.values(c.pins)),
+      ...reservedIds.current,
+    ]);
+    let suffix = 1;
+    while (occupied.has(`${prefix[kind] || "X"}${suffix}`)) suffix++;
+    const id = `${prefix[kind] || "X"}${suffix}`;
+    reservedIds.current.add(id);
+    const location = point || {
+      x: (450 - pan.x) / zoom,
+      y: (180 - pan.y) / zoom,
+    };
+    const component: Component = {
+      id,
+      kind,
+      label: id,
+      value: entry.default_value,
+      model: entry.models[0]?.id,
+      pins: Object.fromEntries(
+        entry.pins.map((pin) => [pin.name, `${id}.${pin.name}`]),
+      ),
+      ...(kind === "potentiometer" ? { position: 0.5 } : {}),
+    };
+    const operations: Op[] = [
+      {
+        type: "add_component",
+        kind,
+        id,
+        label: id,
+        value: entry.default_value,
+        x: Math.round(location.x / 10) * 10,
+        y: Math.round(location.y / 10) * 10,
+      },
+    ];
+    if (hole) {
+      const proposal = insertionFootprint(current.project, component, hole);
+      if (!proposal.ok) {
+        reservedIds.current.delete(id);
+        setError(proposal.message || "Placement impossible à cet endroit.");
+        return;
+      }
+      operations.push(...proposal.operations);
+    }
+    operations.push({ type: "set_ui", selected: [id] });
+    const next = await act(operations);
+    reservedIds.current.delete(id);
+    if (next) {
+      setTool("select");
+      setNotice(
+        `${kindNames[kind]} ajouté${hole ? ` sur la plaque à partir de ${hole}` : " au schéma"}. Relie ses bornes pour l’intégrer au circuit.`,
+      );
+    }
+    setPaletteKind(null);
+  };
+  const zoomAt = (factor: number, anchor = { x: 450, y: 180 }) => {
+    const next = Math.max(0.03, Math.min(5, zoom * factor));
+    setPan({
+      x: anchor.x - ((anchor.x - pan.x) * next) / zoom,
+      y: anchor.y - ((anchor.y - pan.y) * next) / zoom,
+    });
+    setZoom(next);
+  };
+  const applyComponentValue = async (input = draftValue) => {
+    if (!comp) return;
+    const unit = state?.catalog[comp.kind]?.unit || "";
+    const value = parseEngineeringValue(input, unit);
+    if (value === null) {
+      setValueError(
+        `Valeur invalide. Essaie ${unit === "Ω" ? "4,7 kΩ" : unit === "F" ? "100 nF" : "5 V"}.`,
+      );
+      return;
+    }
+    const next = await act([{ type: "set_value", id: comp.id, value }]);
+    if (next) {
+      setValueError("");
+      setNotice(
+        `${comp.label || comp.id} : ${format(value, unit)}. ${autoSimulate ? "Calcul automatique activé." : "Recalcule pour actualiser les mesures."}`,
+      );
+    }
+  };
+  const applyPotPosition = (id: string, position: number) => {
+    const current = stateRef.current?.project.components.find(
+      (c) => c.id === id,
+    );
+    if (
+      current?.kind === "potentiometer" &&
+      position !== (current.position ?? 0.5)
+    )
+      void act([{ type: "set_position", id, position }]);
+  };
+  const addWireBend = (event: React.MouseEvent<SVGGElement>, wire: Wire) => {
+    if (tool !== "select") return;
+    event.stopPropagation();
+    event.preventDefault();
+    const point = toSvg(event);
+    const bends = wire.waypoints || [];
+    if (bends.length >= 32) {
+      setNotice("Ce fil possède déjà 32 points de passage.");
+      return;
+    }
+    const all = [
+      points[wire.a],
+      ...bends.map((p) => [p.x, p.y]),
+      points[wire.b],
+    ];
+    let index = 0,
+      best = Infinity;
+    for (let i = 0; i < all.length - 1; i++) {
+      const a = all[i],
+        b = all[i + 1];
+      if (!a || !b) continue;
+      const dx = b[0] - a[0],
+        dy = b[1] - a[1],
+        length = dx * dx + dy * dy;
+      const t = length
+        ? Math.max(
+            0,
+            Math.min(
+              1,
+              ((point.x - a[0]) * dx + (point.y - a[1]) * dy) / length,
+            ),
+          )
+        : 0;
+      const distance =
+        (point.x - a[0] - t * dx) ** 2 + (point.y - a[1] - t * dy) ** 2;
+      if (distance < best) {
+        best = distance;
+        index = i;
+      }
+    }
+    const next = [...bends];
+    next.splice(index, 0, {
+      x: Math.round(point.x / 10) * 10,
+      y: Math.round(point.y / 10) * 10,
+    });
+    void act([
+      { type: "set_wire_style", id: wire.id, waypoints: next },
+      { type: "set_ui", selected: [wire.id] },
+    ]);
+    setNotice(
+      "Point de passage ajouté. Glisse sa poignée pour ajuster le fil ; Suppr sur la poignée le retire.",
+    );
+  };
+  const startBendDrag = (
+    event: React.PointerEvent<SVGCircleElement>,
+    wire: Wire,
+    index: number,
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const original = wire.waypoints || [];
+    const changed = (e: { clientX: number; clientY: number }) => {
+      const point = toSvg(e);
+      return original.map((p, i) =>
+        i === index
+          ? {
+              x: Math.round(point.x / 10) * 10,
+              y: Math.round(point.y / 10) * 10,
+            }
+          : p,
+      );
+    };
+    watchGesture(
+      (e) => setRouteDrag({ id: wire.id, points: changed(e) }),
+      (e) => {
+        setRouteDrag(null);
+        void act([
+          { type: "set_wire_style", id: wire.id, waypoints: changed(e) },
+        ]);
+      },
+      () => setRouteDrag(null),
+    );
+  };
+  const runSimulation = async (background = false) => {
+    await mutationQueue.current;
     if (!control.getSnapshot().canStart) return;
     setError("");
     try {
@@ -697,7 +1045,7 @@ function App() {
       const published = publishSimulationState(stateRef.current, next);
       stateRef.current = published;
       setState(published);
-      setTab(analysis === "tran" ? "scope" : "measures");
+      if (!background) setTab(analysis === "tran" ? "scope" : "measures");
       setNotice(
         next.simulation?.status === "success"
           ? analysis === "op"
@@ -711,6 +1059,7 @@ function App() {
       else setError(String(e));
     }
   };
+  const run = () => runSimulation(false);
   const stopCalculation = async () => {
     updatePreference("flowMode", "off");
     try {
@@ -733,38 +1082,57 @@ function App() {
           : lastFlowMode.current
         : "off",
     );
-  const doHistory = async (which: string) => {
-    if (!p) return;
-    try {
-      publishProject(await api<State>(which, { expected_revision: p.revision }));
-      setPending(null);
-    } catch (e) {
-      setError(String(e));
-    }
+  const doHistory = (which: string) => {
+    const job = mutationQueue.current.then(async () => {
+      const current = stateRef.current;
+      if (!current) return;
+      try {
+        control.invalidatePolls();
+        publishProject(
+          await api<State>(which, {
+            expected_revision: current.project.revision,
+          }),
+        );
+        setPending(null);
+        setError("");
+      } catch (cause) {
+        setError(String(cause));
+        await refresh();
+      }
+    });
+    mutationQueue.current = job;
+    return job;
   };
-  const remove = () => {
-    if (!p) return;
-    const ops = selected.flatMap((id) =>
-      p.components.some((c) => c.id === id)
-        ? [{ type: "remove_component", id }]
-        : p.wires.some((w) => w.id === id)
-          ? [{ type: "remove_wire", id }]
-          : p.junctions.some((j) => j.id === id)
-            ? [{ type: "remove_junction", id }]
-            : [],
+  const remove = () =>
+    void act((project) =>
+      project.ui.selected
+        .flatMap((id) =>
+          project.components.some((c) => c.id === id)
+            ? [{ type: "remove_component", id }]
+            : project.wires.some((w) => w.id === id)
+              ? [{ type: "remove_wire", id }]
+              : project.junctions.some((j) => j.id === id)
+                ? [{ type: "remove_junction", id }]
+                : [],
+        )
+        .sort(
+          (a, b) =>
+            (a.type === "remove_wire" ? 0 : 1) -
+            (b.type === "remove_wire" ? 0 : 1),
+        ),
     );
-    if (ops.length) act(ops);
-  };
   const rotateSelection = (direction: 1 | -1 = 1) => {
-    if (!p) return;
-    const operations = rotationOperations(p, selected, direction);
-    if (operations.length) act(operations);
+    void act((project) =>
+      rotationOperations(project, project.ui.selected, direction),
+    );
   };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (
         exampleOpen &&
         !help &&
+        !galleryOpen &&
+        !projectLibraryOpen &&
         e.key === "Escape" &&
         !isEditingTarget(e.target)
       ) {
@@ -773,60 +1141,119 @@ function App() {
         return;
       }
       handleEditorKey(e, {
-        helpOpen: help,
-        closeHelp: () => setHelp(false),
+        helpOpen: help || galleryOpen || projectLibraryOpen,
+        closeHelp: () => {
+          if (projectLibraryOpen) setProjectLibraryOpen(false);
+          else if (galleryOpen) setGalleryOpen(false);
+          else setHelp(false);
+        },
         cancelWiring: () => {
           setPending(null);
           setBoardWire(null);
           setTool("select");
+          setPointer(null);
+          setRouteDrag(null);
+          gestureCleanup.current?.();
         },
         removeSelection: remove,
         history: doHistory,
         selectTool: setTool,
         rotateSelection,
+        duplicateSelection,
+        selectAll: () => {
+          void act((project) => [
+            {
+              type: "set_ui",
+              selected: [
+                ...project.components.map((c) => c.id),
+                ...project.junctions.map((j) => j.id),
+              ],
+            },
+          ]);
+        },
+        nudgeSelection,
       });
     };
+    const spaceDown = (event: KeyboardEvent) => {
+      if (
+        event.code === "Space" &&
+        !isEditingTarget(event.target) &&
+        !help &&
+        !galleryOpen &&
+        !projectLibraryOpen &&
+        (event.target === svgRef.current ||
+          svgRef.current?.contains(event.target as Node))
+      ) {
+        event.preventDefault();
+        spacePressed.current = true;
+      }
+    };
+    const spaceUp = () => {
+      spacePressed.current = false;
+    };
     window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
+    window.addEventListener("keydown", spaceDown);
+    window.addEventListener("keyup", spaceUp);
+    window.addEventListener("blur", spaceUp);
+    return () => {
+      window.removeEventListener("keydown", key);
+      window.removeEventListener("keydown", spaceDown);
+      window.removeEventListener("keyup", spaceUp);
+      window.removeEventListener("blur", spaceUp);
+    };
   });
   const save = async () => {
     try {
-      await api("save", {});
-      setNotice("Projet sauvegardé sur cet ordinateur.");
+      await mutationQueue.current;
+      await api("save", {
+        expected_revision: stateRef.current?.project.revision,
+      });
+      setNotice("Projet enregistré dans l’environnement de l’atelier.");
     } catch (e) {
       setError(String(e));
     }
   };
-  const exportProject = () => {
-    if (!p) return;
+  const exportProject = async () => {
+    await mutationQueue.current;
+    const project = stateRef.current?.project;
+    if (!project) return;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(
-      new Blob([JSON.stringify(p, null, 2)], { type: "application/json" }),
+      new Blob([JSON.stringify(project, null, 2)], {
+        type: "application/json",
+      }),
     );
-    a.download = `${p.title.replace(/[^\p{L}\d-]/gu, "_")}.atelier.json`;
+    a.download = `${project.title.replace(/[^\p{L}\d-]/gu, "_")}.atelier.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
-  const loadExample = async (id: string) => {
-    if (!p) return;
+  const loadExample = async (id: string, propagateError = false) => {
+    const current = stateRef.current;
+    if (!current || busy || current.running) {
+      if (propagateError)
+        throw new Error(
+          "Attends la fin du calcul avant de charger une expérience.",
+        );
+      return;
+    }
     try {
       const next = await api<State>("load-example", {
         id,
-        expected_revision: p.revision,
+        expected_revision: current.project.revision,
       });
-      if (publishProject(next) !== next) return;
+      if (publishProject(next) !== next)
+        throw new Error(
+          "Le circuit a changé entre-temps. Réessaie de charger l’expérience.",
+        );
       centerCircuit(next.project);
       setTruth(null);
-      setAnalysis(id === "rc" ? "tran" : "op");
-      if (id === "rc") {
-        setStopTime("0.006");
-        setStep("0.00001");
-      }
+      configureAnalysis(next.project);
       setPending(null);
       setExampleOpen(false);
       setNotice("Exemple chargé. Tu peux annuler pour retrouver ton circuit.");
     } catch (e) {
       setError(String(e));
+      if (propagateError) throw e;
     }
   };
   const previewBoardLayout = async () => {
@@ -883,17 +1310,41 @@ function App() {
   const calculationFailed =
     !!rawSim && ["error", "timeout", "cancelled"].includes(rawSim.status);
   const calculationBusy = busy || !!state?.running;
+  const autoKey = p
+    ? `${p.id}:${electricalSignature(p)}:${analysis}:${step}:${stopTime}`
+    : "";
+  useEffect(() => {
+    if (
+      !autoSimulate ||
+      !state ||
+      emptyCircuit ||
+      calculationBusy ||
+      boardPreview ||
+      (state.diagnostics || []).some(
+        (d) => d.category === "connection" && d.severity === "error",
+      ) ||
+      autoAttempt.current === autoKey
+    )
+      return;
+    const timer = window.setTimeout(() => {
+      if (control.getSnapshot().canStart) {
+        autoAttempt.current = autoKey;
+        void runSimulation(true);
+      }
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [
+    autoSimulate,
+    autoKey,
+    calculationBusy,
+    !!boardPreview,
+    JSON.stringify(
+      (state?.diagnostics || []).filter((d) => d.severity === "error"),
+    ),
+  ]);
   const commonPoints =
     !!p &&
     (p.wires.length > 0 || Object.keys(p.breadboard.placements).length > 0);
-  const journeyStep =
-    !state || emptyCircuit
-      ? 0
-      : pending || tool === "wire" || !commonPoints
-        ? 1
-        : !sim || stale || calculationFailed
-          ? 2
-          : 3;
   const contextualHint = !state
     ? "Connexion au service local…"
     : emptyCircuit
@@ -916,6 +1367,39 @@ function App() {
     setTab("measures");
     document.getElementById("simulation-results")?.focus();
   };
+  const openNotebook = () => {
+    setTab("notebook");
+    document.getElementById("simulation-results")?.focus();
+  };
+  const normalizedQuery = componentQuery
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  const visibleComponents = Object.entries(kindNames).filter(([kind, name]) => {
+    const base = [
+      "resistor",
+      "potentiometer",
+      "voltage_source",
+      "capacitor",
+      "ground",
+      "switch",
+      "button",
+    ];
+    const categoryMatches =
+      componentCategory === "all" ||
+      (componentCategory === "base"
+        ? base.includes(kind)
+        : ["diode", "led", "npn", "pnp"].includes(kind));
+    return (
+      categoryMatches &&
+      `${name} ${kind}`
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .includes(normalizedQuery)
+    );
+  });
   return (
     <div className="app">
       <nav className="rail" aria-label="Navigation de l’atelier">
@@ -923,21 +1407,40 @@ function App() {
           <Zap size={22} />
         </div>
         <button
-          className="rail-button active"
+          className={`rail-button ${tab !== "notebook" ? "active" : ""}`}
           title="L’atelier"
           aria-label="L’atelier"
-          aria-current="page"
-          onClick={() => document.getElementById("studio")?.focus()}
+          aria-current={tab !== "notebook" ? "page" : undefined}
+          onClick={() => {
+            setTab("measures");
+            document.getElementById("studio")?.focus();
+          }}
         >
           <CircuitBoard />
         </button>
         <button
           className="rail-button"
-          onClick={() => setExampleOpen(!exampleOpen)}
-          title="Circuits d’exemple"
-          aria-label="Circuits d’exemple"
-          aria-expanded={exampleOpen}
-          aria-controls="example-menu"
+          onClick={() => setGalleryOpen(true)}
+          title="Explorer les expériences"
+          aria-label="Explorer les expériences"
+          aria-haspopup="dialog"
+        >
+          <FlaskConical />
+        </button>
+        <button
+          className={`rail-button ${tab === "notebook" ? "active" : ""}`}
+          onClick={openNotebook}
+          title="Carnet de labo"
+          aria-label="Carnet de labo"
+        >
+          <NotebookPen />
+        </button>
+        <button
+          className="rail-button"
+          title="Mes circuits enregistrés"
+          aria-label="Mes circuits enregistrés"
+          aria-haspopup="dialog"
+          onClick={() => setProjectLibraryOpen(true)}
         >
           <FolderOpen />
         </button>
@@ -963,13 +1466,17 @@ function App() {
           >
             <Info />
           </button>
-          <span className="avatar">LS</span>
+          <span className="avatar" title="Atelier Électronique">
+            AÉ
+          </span>
         </div>
       </nav>
       <div className="workspace">
         <header>
           <div className="heading">
-            <span className="eyebrow">LE LABORATOIRE PERSONNEL</span>
+            <span className="eyebrow">
+              UN PEU DE THÉORIE. BEAUCOUP D’EXPÉRIENCES.
+            </span>
             <h1>
               Atelier<span> / Électronique</span>
             </h1>
@@ -977,11 +1484,19 @@ function App() {
           <div className="header-right">
             <span className="local-badge">
               <i />
-              Local · ngspice
+              {state ? "Service local connecté" : "Connexion au laboratoire…"}
             </span>
             <button className="subtle" onClick={() => setHelp(true)}>
               <BookOpen size={16} />
               Guide
+            </button>
+            <button
+              className="subtle"
+              onClick={() => setProjectLibraryOpen(true)}
+              aria-haspopup="dialog"
+            >
+              <FolderOpen size={16} />
+              Mes circuits
             </button>
             <button className="save" onClick={save}>
               <Save size={15} />
@@ -1004,7 +1519,7 @@ function App() {
             <span className="tag">PROJET</span>
           </div>
           <span className="revision">
-            Révision {p?.revision ?? "—"} <i /> JSON v1
+            Révision {p?.revision ?? "—"} <i /> Projet local
           </span>
           <div className="project-actions">
             <button
@@ -1096,34 +1611,68 @@ function App() {
               COMPOSANTS <span>{Object.keys(kindNames).length}</span>
             </div>
             <p className="muted library-intro">
-              Clique un composant pour l’ajouter, puis déplace-le dans le
-              schéma.
+              Les bonnes idées commencent par quelques composants.
             </p>
+            <label className="library-search">
+              <Search size={15} aria-hidden="true" />
+              <input
+                type="search"
+                aria-label="Rechercher un composant"
+                placeholder="Chercher un composant…"
+                value={componentQuery}
+                onChange={(e) => setComponentQuery(e.target.value)}
+              />
+              {componentQuery && (
+                <button
+                  aria-label="Effacer la recherche"
+                  onClick={() => setComponentQuery("")}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </label>
+            <div
+              className="library-filters"
+              role="group"
+              aria-label="Catégories de composants"
+            >
+              {[
+                ["all", "Tous"],
+                ["base", "Essentiels"],
+                ["active", "Actifs"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  aria-pressed={componentCategory === id}
+                  onClick={() => setComponentCategory(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div
               className="component-list"
               id="component-library"
               aria-label="Bibliothèque de composants"
             >
-              {Object.entries(kindNames).map(([kind, name]) => (
+              {visibleComponents.map(([kind, name]) => (
                 <button
                   className="component-add"
                   key={kind}
                   aria-label={`Ajouter : ${name}`}
                   title={`Ajouter : ${name}`}
                   disabled={!state}
-                  onClick={() =>
-                    act([
-                      {
-                        type: "add_component",
-                        kind,
-                        x: 220 + ((p?.components.length || 0) % 4) * 130,
-                        y:
-                          170 +
-                          (Math.floor((p?.components.length || 0) / 4) % 3) *
-                            110,
-                      },
-                    ])
-                  }
+                  draggable={!!state}
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(
+                      "application/x-atelier-component",
+                      kind,
+                    );
+                    event.dataTransfer.effectAllowed = "copy";
+                    setPaletteKind(kind);
+                  }}
+                  onDragEnd={() => setPaletteKind(null)}
+                  onClick={() => void addComponentAt(kind)}
                 >
                   <span className={`component-icon ${kind}`} aria-hidden="true">
                     <ComponentGlyph kind={kind} />
@@ -1132,19 +1681,25 @@ function App() {
                   <Plus size={13} />
                 </button>
               ))}
+              {visibleComponents.length === 0 && (
+                <p className="library-no-results" role="status">
+                  Aucun composant trouvé. Essaie « résistance » ou « source ».
+                </p>
+              )}
             </div>
             <p className="scroll-hint library-scroll-hint">
               ↔ Fais défiler les composants, puis choisis celui à ajouter.
             </p>
             <div className="library-tip">
-              <Sparkles size={17} />
-              <strong>Voir. Mesurer. Comprendre.</strong>
+              <FlaskConical size={20} />
+              <span className="tip-eyebrow">L’IDÉE DU PROCHAIN ESSAI</span>
+              <strong>Et si tu doublais la résistance ?</strong>
               <p>
-                Un croisement de fils ne crée pas de connexion. Ajoute une
-                jonction pour relier des branches.
+                Prédis le courant, lance le calcul, puis compare. C’est comme ça
+                que l’intuition se construit.
               </p>
-              <button onClick={() => setHelp(true)}>
-                Prendre en main
+              <button onClick={() => setGalleryOpen(true)}>
+                Choisir une expérience
                 <ChevronRight size={13} />
               </button>
             </div>
@@ -1163,53 +1718,119 @@ function App() {
             tabIndex={-1}
             aria-label="Édition et simulation"
           >
-            <nav className="journey" aria-label="Les quatre étapes du circuit">
-              {[
-                ["Ajouter", "Depuis la bibliothèque"],
-                ["Relier", "Deux bornes, un fil"],
-                ["Simuler", "Calculer avec ngspice"],
-                ["Comprendre", "Tensions et courants"],
-              ].map(([label, detail], index) => (
-                <button
-                  key={label}
-                  className={`journey-step ${index === journeyStep ? "current" : index < journeyStep ? "done" : ""}`}
-                  aria-current={index === journeyStep ? "step" : undefined}
-                  disabled={
-                    index === 2 && (!state || emptyCircuit || calculationBusy)
-                  }
-                  onClick={() => {
-                    if (index === 0) focusLibrary();
-                    else if (index === 1) {
-                      setTool("wire");
-                      setPending(null);
-                      setNotice(
-                        "Choisis une première borne, puis une seconde pour les relier.",
-                      );
-                    } else if (index === 2) run();
-                    else focusResults();
-                  }}
-                >
-                  <span className="step-index">{index + 1}</span>
-                  <span>
-                    <strong>{label}</strong>
-                    <small>{detail}</small>
-                  </span>
-                </button>
-              ))}
-            </nav>
-            <div className="context-help">
-              <p>{contextualHint}</p>
+            <div className="bench-heading">
+              <div>
+                <span className="bench-kicker">
+                  <i /> L’ÉTABLI
+                </span>
+                <h2>
+                  Place à l’expérience<span>.</span>
+                </h2>
+                <p>Une idée, quelques fils. Observe ce qui change.</p>
+              </div>
               <button
-                className="context-action"
-                onClick={() =>
-                  calculationFailed ? setTab("diagnostics") : setHelp(true)
-                }
+                className="experiment-button"
+                onClick={() => setGalleryOpen(true)}
+                aria-haspopup="dialog"
               >
-                {calculationFailed
-                  ? "Voir les diagnostics"
-                  : "Guide du premier circuit"}
+                <FlaskConical size={16} /> Explorer les expériences{" "}
                 <ChevronRight size={14} />
               </button>
+            </div>
+            <div className="bench-summary" aria-label="État du circuit">
+              <span>
+                <CircuitBoard size={14} />
+                <b>{p?.components.length ?? "—"}</b> composants
+              </span>
+              <span>
+                <Link2 size={14} />
+                <b>{p?.wires.length ?? "—"}</b> connexions
+              </span>
+              <span
+                className={`bench-state ${stale || calculationFailed ? "needs-attention" : ""}`}
+              >
+                <i />
+                {calculationBusy
+                  ? "Calcul en cours"
+                  : calculationFailed
+                    ? "Calcul à vérifier"
+                    : stale
+                      ? "À recalculer"
+                      : sim
+                        ? "Mesures actualisées"
+                        : "À explorer"}
+              </span>
+              <button onClick={openNotebook}>
+                <NotebookPen size={14} /> Ouvrir le carnet
+              </button>
+            </div>
+            {state && (
+              <CircuitCoach
+                state={state}
+                stale={stale}
+                busy={calculationBusy}
+                onSelect={(ids) =>
+                  void act([{ type: "set_ui", selected: ids }])
+                }
+                onRun={run}
+                onOpenExperiments={() => setGalleryOpen(true)}
+                onOpenLibrary={() => {
+                  setComponentQuery("Masse");
+                  setComponentCategory("all");
+                  document
+                    .querySelector<HTMLInputElement>(
+                      '[aria-label="Rechercher un composant"]',
+                    )
+                    ?.focus();
+                }}
+              />
+            )}
+            <div className="editor-mode-bar">
+              <div role="group" aria-label="Vue de travail">
+                {[
+                  ["split", "Les deux"],
+                  ["schematic", "Schéma"],
+                  ["breadboard", "Montage"],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    aria-pressed={(p?.ui.view || "split") === id}
+                    onClick={() => void act([{ type: "set_ui", view: id }])}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <label className="auto-simulation">
+                <input
+                  type="checkbox"
+                  checked={autoSimulate}
+                  onChange={(event) => {
+                    autoAttempt.current = "";
+                    setAutoSimulate(event.target.checked);
+                  }}
+                />
+                <Zap size={13} />
+                Calcul automatique
+              </label>
+            </div>
+            <div
+              className="editor-selection-status"
+              role="status"
+              title={contextualHint}
+            >
+              <span>
+                {selected.length
+                  ? `${selected.length} élément${selected.length > 1 ? "s" : ""} sélectionné${selected.length > 1 ? "s" : ""} · Maj+clic pour compléter`
+                  : "Glisse un composant ici · Trace un rectangle pour sélectionner"}
+              </span>
+              {selected.length > 0 && (
+                <button
+                  onClick={() => void act([{ type: "set_ui", selected: [] }])}
+                >
+                  Désélectionner <X size={12} />
+                </button>
+              )}
             </div>
             <div className="toolbar">
               <div className="tools" role="group" aria-label="Outils du schéma">
@@ -1248,6 +1869,14 @@ function App() {
                 >
                   <RotateCw size={17} />
                   <span className="tool-label">Tourner</span>
+                </button>
+                <button
+                  title="Dupliquer la sélection (⌘/Ctrl+D)"
+                  aria-label="Dupliquer la sélection"
+                  disabled={!selected.length}
+                  onClick={duplicateSelection}
+                >
+                  <Copy size={16} />
                 </button>
                 <i className="divider" />
                 <button
@@ -1591,69 +2220,43 @@ function App() {
                     className={`schematic canvas-${tool}`}
                     viewBox="0 0 900 360"
                     aria-label="Éditeur de schéma électrique"
-                    onPointerDown={(e) => {
-                      if (
-                        e.target !== e.currentTarget &&
-                        !(e.target as Element).classList.contains("grid-bg")
-                      )
-                        return;
-                      const pt = toSvg(e);
-                      if (tool === "junction")
-                        act([
-                          {
-                            type: "add_junction",
-                            x: Math.round(pt.x / 10) * 10,
-                            y: Math.round(pt.y / 10) * 10,
-                          },
-                        ]);
-                      else if (tool === "pan") {
-                        const start = {
-                          x: e.clientX,
-                          y: e.clientY,
-                          px: pan.x,
-                          py: pan.y,
-                        };
-                        const move = (ev: PointerEvent) =>
-                          setPan({
-                            x:
-                              start.px +
-                              ((ev.clientX - start.x) * 900) /
-                                e.currentTarget.getBoundingClientRect().width,
-                            y:
-                              start.py +
-                              ((ev.clientY - start.y) * 360) /
-                                e.currentTarget.getBoundingClientRect().height,
-                          });
-                        const svg = e.currentTarget;
-                        const safe = (ev: PointerEvent) =>
-                          setPan({
-                            x:
-                              start.px +
-                              ((ev.clientX - start.x) * 900) /
-                                svg.getBoundingClientRect().width,
-                            y:
-                              start.py +
-                              ((ev.clientY - start.y) * 360) /
-                                svg.getBoundingClientRect().height,
-                          });
-                        void move;
-                        window.addEventListener("pointermove", safe);
-                        window.addEventListener(
-                          "pointerup",
-                          () => window.removeEventListener("pointermove", safe),
-                          { once: true },
-                        );
-                      } else if (!pending)
-                        act([{ type: "set_ui", selected: [] }]);
+                    tabIndex={0}
+                    onPointerDown={startCanvasGesture}
+                    onPointerMove={(event) => {
+                      if (pending || paletteKind) setPointer(toSvg(event));
                     }}
-                    onWheel={(e) => {
-                      if (e.ctrlKey || e.metaKey)
-                        setZoom((z) =>
-                          Math.min(
-                            3,
-                            Math.max(0.1, z * (e.deltaY < 0 ? 1.1 : 0.9)),
-                          ),
-                        );
+                    onPointerLeave={() => {
+                      if (!drag) setPointer(null);
+                    }}
+                    onDragOver={(event) => {
+                      if (
+                        event.dataTransfer.types.includes(
+                          "application/x-atelier-component",
+                        )
+                      ) {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "copy";
+                        setPointer(toSvg(event));
+                      }
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const kind = event.dataTransfer.getData(
+                        "application/x-atelier-component",
+                      );
+                      if (kind && state?.catalog[kind])
+                        void addComponentAt(kind, toSvg(event));
+                      setPaletteKind(null);
+                      setPointer(null);
+                    }}
+                    onWheel={(event) => {
+                      if (event.ctrlKey || event.metaKey) {
+                        const point = toSvg(event);
+                        zoomAt(event.deltaY < 0 ? 1.12 : 1 / 1.12, {
+                          x: point.x * zoom + pan.x,
+                          y: point.y * zoom + pan.y,
+                        });
+                      }
                     }}
                   >
                     <defs>
@@ -1663,7 +2266,7 @@ function App() {
                         height="20"
                         patternUnits="userSpaceOnUse"
                       >
-                        <circle cx="1" cy="1" r=".8" fill="#24334a" />
+                        <circle cx="1" cy="1" r=".8" fill="#2c3d35" />
                       </pattern>
                       <marker
                         id="currentArrow"
@@ -1720,16 +2323,24 @@ function App() {
                         return (
                           <g
                             key={w.id}
+                            onDoubleClick={(event) => addWireBend(event, w)}
                             onClick={(e) => {
                               e.stopPropagation();
-                              select(w.id);
+                              select(
+                                w.id,
+                                e.shiftKey || e.ctrlKey || e.metaKey,
+                              );
                             }}
                             onMouseEnter={() => setHoverNet(net)}
                             onMouseLeave={() => setHoverNet(null)}
                           >
                             <path
-                              d={wirePath(p, w.a, w.b, points)}
-                              stroke={wirePaint(net || "")}
+                              d={wirePath(p, w.a, w.b, points, routedPoints(w))}
+                              stroke={
+                                !voltageColors && w.color
+                                  ? w.color
+                                  : wirePaint(net || "")
+                              }
                               className={active ? "wire-selected" : ""}
                               strokeDasharray={
                                 voltageColors &&
@@ -1741,7 +2352,7 @@ function App() {
                               fill="none"
                             />
                             <path
-                              d={wirePath(p, w.a, w.b, points)}
+                              d={wirePath(p, w.a, w.b, points, routedPoints(w))}
                               stroke="transparent"
                               strokeWidth="13"
                               fill="none"
@@ -1754,7 +2365,13 @@ function App() {
                                 : "Trajet animé indicatif si une boucle idéale rend la répartition indéterminée."}
                             </title>
                             <FlowParticles
-                              path={wirePath(p, w.a, w.b, points)}
+                              path={wirePath(
+                                p,
+                                w.a,
+                                w.b,
+                                points,
+                                routedPoints(w),
+                              )}
                               current={
                                 sim?.wire_currents?.[w.id] ??
                                 sim?.wire_flow_hints?.[w.id]
@@ -1765,6 +2382,85 @@ function App() {
                                 sim?.wire_current_status?.[w.id] !== "unique"
                               }
                             />
+                            {selected.includes(w.id) &&
+                              (routedPoints(w) || []).map((point, index) => (
+                                <circle
+                                  key={index}
+                                  className="wire-bend-handle"
+                                  cx={point.x}
+                                  cy={point.y}
+                                  r="5"
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-label={`Point ${index + 1} du fil ${w.id}. Flèches pour déplacer, Suppr pour retirer.`}
+                                  onPointerDown={(event) =>
+                                    startBendDrag(event, w, index)
+                                  }
+                                  onClick={(event) => event.stopPropagation()}
+                                  onDoubleClick={(event) => {
+                                    event.stopPropagation();
+                                    void act([
+                                      {
+                                        type: "set_wire_style",
+                                        id: w.id,
+                                        waypoints: (w.waypoints || []).filter(
+                                          (_, i) => i !== index,
+                                        ),
+                                      },
+                                    ]);
+                                  }}
+                                  onKeyDown={(event) => {
+                                    let next: typeof w.waypoints;
+                                    const step = event.shiftKey ? 1 : 10;
+                                    if (
+                                      ["Delete", "Backspace"].includes(
+                                        event.key,
+                                      )
+                                    )
+                                      next = (w.waypoints || []).filter(
+                                        (_, i) => i !== index,
+                                      );
+                                    else if (
+                                      [
+                                        "ArrowLeft",
+                                        "ArrowRight",
+                                        "ArrowUp",
+                                        "ArrowDown",
+                                      ].includes(event.key)
+                                    )
+                                      next = (w.waypoints || []).map((p, i) =>
+                                        i !== index
+                                          ? p
+                                          : {
+                                              x:
+                                                p.x +
+                                                (event.key === "ArrowLeft"
+                                                  ? -step
+                                                  : event.key === "ArrowRight"
+                                                    ? step
+                                                    : 0),
+                                              y:
+                                                p.y +
+                                                (event.key === "ArrowUp"
+                                                  ? -step
+                                                  : event.key === "ArrowDown"
+                                                    ? step
+                                                    : 0),
+                                            },
+                                      );
+                                    else return;
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    void act([
+                                      {
+                                        type: "set_wire_style",
+                                        id: w.id,
+                                        waypoints: next,
+                                      },
+                                    ]);
+                                  }}
+                                />
+                              ))}
                             {netName &&
                               p.net_labels &&
                               Object.values(p.net_labels).includes(netName) && (
@@ -1780,7 +2476,22 @@ function App() {
                         );
                       })}
                       {p?.junctions.map((j) => (
-                        <g key={j.id} onClick={() => clickPin(j.id)}>
+                        <g
+                          key={j.id}
+                          onPointerDown={(event) => {
+                            if (tool === "select" && !pending)
+                              startObjectDrag(event, j.id);
+                          }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (tool === "wire" || pending) void clickPin(j.id);
+                          }}
+                          transform={
+                            drag?.ids.includes(j.id)
+                              ? `translate(${drag.dx},${drag.dy})`
+                              : undefined
+                          }
+                        >
                           <circle
                             cx={j.x}
                             cy={j.y}
@@ -1794,10 +2505,16 @@ function App() {
                         </g>
                       ))}
                       {p?.components.map((c) => {
-                        const pos =
-                          drag?.id === c.id
-                            ? drag
-                            : p.schematic[c.id] || { x: 150, y: 150 };
+                        const originalPos = p.schematic[c.id] || {
+                          x: 150,
+                          y: 150,
+                        };
+                        const pos = drag?.ids.includes(c.id)
+                          ? {
+                              x: originalPos.x + drag.dx,
+                              y: originalPos.y + drag.dy,
+                            }
+                          : originalPos;
                         const isSel =
                           selected.includes(c.id) || highlights.includes(c.id);
                         const unit = state?.catalog[c.kind]?.unit || "";
@@ -1823,74 +2540,20 @@ function App() {
                                 ? "electrical-component selected"
                                 : "electrical-component"
                             }
-                            onPointerDown={(e) => {
-                              if (tool !== "select") return;
-                              e.stopPropagation();
-                              select(c.id);
-                              const start = toSvg(e);
-                              const initial = { x: pos.x, y: pos.y };
-                              const svg = svgRef.current!;
-                              const move = (ev: PointerEvent) => {
-                                const pt = new DOMPoint(
-                                  ev.clientX,
-                                  ev.clientY,
-                                ).matrixTransform(
-                                  svg.getScreenCTM()!.inverse(),
-                                );
-                                setDrag({
-                                  id: c.id,
-                                  x:
-                                    Math.round(
-                                      (initial.x +
-                                        (pt.x - pan.x) / zoom -
-                                        start.x) /
-                                        10,
-                                    ) * 10,
-                                  y:
-                                    Math.round(
-                                      (initial.y +
-                                        (pt.y - pan.y) / zoom -
-                                        start.y) /
-                                        10,
-                                    ) * 10,
-                                });
-                              };
-                              const up = (ev: PointerEvent) => {
-                                window.removeEventListener("pointermove", move);
-                                const pt = new DOMPoint(
-                                  ev.clientX,
-                                  ev.clientY,
-                                ).matrixTransform(
-                                  svg.getScreenCTM()!.inverse(),
-                                );
-                                const x =
-                                    Math.round(
-                                      (initial.x +
-                                        (pt.x - pan.x) / zoom -
-                                        start.x) /
-                                        10,
-                                    ) * 10,
-                                  y =
-                                    Math.round(
-                                      (initial.y +
-                                        (pt.y - pan.y) / zoom -
-                                        start.y) /
-                                        10,
-                                    ) * 10;
-                                setDrag(null);
-                                if (
-                                  Math.abs(x - initial.x) +
-                                    Math.abs(y - initial.y) >
-                                  5
-                                )
-                                  act([
-                                    { type: "move_component", id: c.id, x, y },
-                                  ]);
-                              };
-                              window.addEventListener("pointermove", move);
-                              window.addEventListener("pointerup", up, {
-                                once: true,
-                              });
+                            onPointerDown={(event) =>
+                              startObjectDrag(event, c.id)
+                            }
+                            onDoubleClick={(event) => {
+                              if (["switch", "button"].includes(c.kind)) {
+                                event.stopPropagation();
+                                void act([
+                                  {
+                                    type: "set_value",
+                                    id: c.id,
+                                    value: c.value ? 0 : 1,
+                                  },
+                                ]);
+                              }
                             }}
                           >
                             <rect
@@ -1904,6 +2567,32 @@ function App() {
                             <g
                               transform={`rotate(${p.schematic[c.id]?.rotation || 0})`}
                             >
+                              {c.kind === "led" &&
+                                !stale &&
+                                sim?.currents[c.id] !== undefined &&
+                                sim.currents[c.id] > 1e-6 && (
+                                  <circle
+                                    r="28"
+                                    className="schematic-led-glow"
+                                    fill={
+                                      c.model === "generic_led_blue"
+                                        ? "#77b9ff"
+                                        : c.model === "generic_led_green"
+                                          ? "#a7eaa0"
+                                          : "#ff8375"
+                                    }
+                                    opacity={Math.min(
+                                      0.6,
+                                      sim.currents[c.id] / 0.02,
+                                    )}
+                                  >
+                                    <title>
+                                      Luminosité symbolique selon le courant
+                                      calculé :{" "}
+                                      {format(sim.currents[c.id], "A")}
+                                    </title>
+                                  </circle>
+                                )}
                               <Symbol c={c} />
                               {Object.entries(pinOffsets(c)).map(
                                 ([name, point]) => {
@@ -2035,9 +2724,13 @@ function App() {
                                   ? c.value
                                     ? "Fermé"
                                     : "Ouvert"
-                                  : ["npn", "pnp", "diode"].includes(c.kind)
+                                  : ["npn", "pnp", "diode", "led"].includes(
+                                        c.kind,
+                                      )
                                     ? c.model || "Générique"
-                                    : format(c.value, unit)}
+                                    : c.kind === "voltage_source" && c.waveform
+                                      ? `${format(c.waveform.low, "V")} ↔ ${format(c.waveform.high, "V")} · ${format(1 / c.waveform.period, "Hz")}`
+                                      : format(c.value, unit)}
                             </text>
                             {showCurrent &&
                               sim?.currents[c.id] !== undefined && (
@@ -2050,11 +2743,48 @@ function App() {
                           </g>
                         );
                       })}
+                      {pending && pointer && points[pending] && (
+                        <path
+                          className="pending-wire"
+                          d={`M${points[pending][0]} ${points[pending][1]}H${pointer.x}V${pointer.y}`}
+                          fill="none"
+                          pointerEvents="none"
+                        />
+                      )}
+                      {paletteKind && pointer && (
+                        <g
+                          transform={`translate(${pointer.x},${pointer.y})`}
+                          className="palette-ghost"
+                          pointerEvents="none"
+                        >
+                          <rect
+                            x="-57"
+                            y="-35"
+                            width="114"
+                            height="70"
+                            rx="10"
+                          />
+                          <text textAnchor="middle" y="4">
+                            {kindNames[paletteKind]}
+                          </text>
+                        </g>
+                      )}
+                      {selectionBox && (
+                        <rect
+                          className="marquee-selection"
+                          x={Math.min(selectionBox.x1, selectionBox.x2)}
+                          y={Math.min(selectionBox.y1, selectionBox.y2)}
+                          width={Math.abs(selectionBox.x2 - selectionBox.x1)}
+                          height={Math.abs(selectionBox.y2 - selectionBox.y1)}
+                          pointerEvents="none"
+                        />
+                      )}
                     </g>
                   </svg>
                 </div>
                 <p className="scroll-hint">
-                  Vue défilable ↔ · zoom et recentrage ci-dessous
+                  Maj+clic : sélection multiple · Flèches : déplacer ·
+                  Espace+glisser : naviguer
                 </p>
                 <div className="canvas-foot">
                   <span>
@@ -2078,7 +2808,7 @@ function App() {
                     <button
                       title="Dézoomer"
                       aria-label="Dézoomer"
-                      onClick={() => setZoom((z) => Math.max(0.1, z - 0.1))}
+                      onClick={() => zoomAt(1 / 1.2)}
                     >
                       <ZoomOut size={14} />
                     </button>
@@ -2086,7 +2816,7 @@ function App() {
                     <button
                       title="Zoomer"
                       aria-label="Zoomer"
-                      onClick={() => setZoom((z) => Math.min(3, z + 0.1))}
+                      onClick={() => zoomAt(1.2)}
                     >
                       <ZoomIn size={14} />
                     </button>
@@ -2169,6 +2899,10 @@ function App() {
                     onError={setError}
                     onLayout={previewBoardLayout}
                     act={act}
+                    onDropComponent={(kind, hole) =>
+                      void addComponentAt(kind, undefined, hole)
+                    }
+                    onPosition={applyPotPosition}
                   />
                 </>
               )}
@@ -2217,6 +2951,7 @@ function App() {
                 {[
                   ["measures", "Mesures", Activity],
                   ["scope", "Oscilloscope", Activity],
+                  ["notebook", "Carnet de labo", NotebookPen],
                   ["diagnostics", "Diagnostics", ShieldCheck],
                   ["truth", "Table de vérité", Workflow],
                   ["netlist", "Netlist", Copy],
@@ -2258,7 +2993,12 @@ function App() {
                         >
                           <span>COURANT · {id}</span>
                           <strong>{format(current, "A")}</strong>
-                          <small>Sens défini par les bornes du composant</small>
+                          <small>
+                            {p?.components.find((c) => c.id === id)?.kind ===
+                            "potentiometer"
+                              ? "Courant entrant par la borne P"
+                              : "Sens défini par les bornes du composant"}
+                          </small>
                         </button>
                       ))}
                     {!sim && (
@@ -2332,13 +3072,22 @@ function App() {
                     <p className="legend">
                       <span>→</span>Courant conventionnel : sens positif de la
                       première borne vers la seconde ; pour un transistor,
-                      courant entrant par le collecteur. Une valeur négative
-                      inverse la flèche.
+                      courant entrant par le collecteur ; pour un potentiomètre,
+                      courant entrant par P (le curseur a son propre courant).
+                      Une valeur négative inverse la flèche.
                     </p>
                   )}
                 </div>
               )}
-              {tab === "scope" && <Oscilloscope sim={sim} />}
+              {tab === "scope" && <Oscilloscope sim={sim} stale={stale} />}
+              {tab === "notebook" && p && state && (
+                <NotebookPanel
+                  project={p}
+                  simulation={sim}
+                  stale={stale || calculationFailed || calculationBusy}
+                  topology={state.topology}
+                />
+              )}
               {tab === "diagnostics" && (
                 <div className="diagnostics">
                   {diags.length ? (
@@ -2443,51 +3192,127 @@ function App() {
                 {![
                   "ground",
                   "diode",
+                  "led",
                   "npn",
                   "pnp",
                   "voltage_probe",
                   "current_probe",
-                ].includes(comp.kind) && (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      act([
-                        {
-                          type: "set_value",
-                          id: comp.id,
-                          value: Number(draftValue),
-                        },
-                      ]);
-                    }}
-                  >
-                    <label className="field-label">
-                      {["switch", "button"].includes(comp.kind)
-                        ? "ÉTAT · 0 OUVERT / 1 FERMÉ"
-                        : "VALEUR EN UNITÉS SI"}
-                    </label>
-                    <div className="value-input">
-                      <input
-                        aria-label="Valeur du composant"
-                        type="number"
-                        step="any"
-                        value={draftValue}
-                        onChange={(e) => setDraftValue(e.target.value)}
-                      />
-                      <span>{state?.catalog[comp.kind]?.unit}</span>
-                      <button
-                        title="Appliquer la valeur"
-                        aria-label="Appliquer la valeur"
+                  "switch",
+                  "button",
+                ].includes(comp.kind) &&
+                  !(comp.kind === "voltage_source" && comp.waveform) && (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void applyComponentValue();
+                      }}
+                    >
+                      <label className="field-label">
+                        {["switch", "button"].includes(comp.kind)
+                          ? "ÉTAT · 0 OUVERT / 1 FERMÉ"
+                          : "VALEUR DU COMPOSANT"}
+                      </label>
+                      <div className="value-input">
+                        <input
+                          aria-label="Valeur du composant"
+                          type="text"
+                          inputMode="decimal"
+                          aria-invalid={!!valueError}
+                          aria-describedby="component-value-hint"
+                          value={draftValue}
+                          onChange={(e) => setDraftValue(e.target.value)}
+                        />
+                        <span>{state?.catalog[comp.kind]?.unit}</span>
+                        <button
+                          title="Appliquer la valeur"
+                          aria-label="Appliquer la valeur"
+                        >
+                          <Check size={15} />
+                        </button>
+                      </div>
+                      <p
+                        id="component-value-hint"
+                        className={valueError ? "value-error" : "value-hint"}
+                        role={valueError ? "alert" : undefined}
                       >
-                        <Check size={15} />
-                      </button>
-                    </div>
-                  </form>
+                        {valueError ||
+                          "Accepte les préfixes : 4,7 kΩ · 100 nF · 5 V."}
+                      </p>
+                      <div className="value-presets">
+                        {(comp.kind === "resistor" ||
+                        comp.kind === "potentiometer"
+                          ? ["220 Ω", "1 kΩ", "4,7 kΩ", "10 kΩ"]
+                          : comp.kind === "capacitor"
+                            ? ["100 nF", "1 µF", "10 µF"]
+                            : comp.kind === "voltage_source"
+                              ? ["3,3 V", "5 V", "9 V"]
+                              : []
+                        ).map((value) => (
+                          <button
+                            type="button"
+                            key={value}
+                            onClick={() => {
+                              setDraftValue(value);
+                              void applyComponentValue(value);
+                            }}
+                          >
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+                    </form>
+                  )}
+                {comp.kind === "potentiometer" && (
+                  <div className="pot-control">
+                    <label htmlFor="pot-position">
+                      Position du curseur <strong>{potDraft} %</strong>
+                    </label>
+                    <input
+                      id="pot-position"
+                      aria-label="Position du potentiomètre"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={potDraft}
+                      onChange={(e) => setPotDraft(Number(e.target.value))}
+                      onPointerUp={(e) =>
+                        applyPotPosition(
+                          comp.id,
+                          Number(e.currentTarget.value) / 100,
+                        )
+                      }
+                      onKeyUp={(e) => {
+                        if (
+                          [
+                            "ArrowLeft",
+                            "ArrowRight",
+                            "Home",
+                            "End",
+                            "PageUp",
+                            "PageDown",
+                          ].includes(e.key)
+                        )
+                          applyPotPosition(
+                            comp.id,
+                            Number(e.currentTarget.value) / 100,
+                          );
+                      }}
+                      onBlur={(e) =>
+                        applyPotPosition(
+                          comp.id,
+                          Number(e.currentTarget.value) / 100,
+                        )
+                      }
+                    />
+                    <small>0 % : curseur côté P · 100 % : côté N</small>
+                  </div>
                 )}
                 {["switch", "button"].includes(comp.kind) && (
                   <button
-                    className="outline full"
+                    className="switch-control"
+                    aria-pressed={!!comp.value}
                     onClick={() =>
-                      act([
+                      void act([
                         {
                           type: "set_value",
                           id: comp.id,
@@ -2496,8 +3321,24 @@ function App() {
                       ])
                     }
                   >
-                    Basculer {comp.value ? "ouvert" : "fermé"}
+                    <Zap size={15} />
+                    {comp.value
+                      ? "Circuit fermé · ouvrir"
+                      : "Circuit ouvert · fermer"}
                   </button>
+                )}
+
+                {comp.kind === "voltage_source" && (
+                  <SourceWaveform
+                    component={comp}
+                    busy={calculationBusy}
+                    onApply={async (waveform) => {
+                      const result = await act([
+                        { type: "set_waveform", id: comp.id, waveform },
+                      ]);
+                      return !!result;
+                    }}
+                  />
                 )}
                 <div className="inspector-section">
                   <h4>Orientation du schéma</h4>
@@ -2668,7 +3509,7 @@ function App() {
                     {comp.model || "Élément idéal"}
                   </span>
                   <p className="inspector-hint">
-                    {["npn", "pnp", "diode"].includes(comp.kind)
+                    {["npn", "pnp", "diode", "led"].includes(comp.kind)
                       ? "Modèle générique pédagogique. Les paramètres et le brochage ne certifient aucun composant réel."
                       : "Hypothèses idéales : valeurs nominales, sans tolérances ni échauffement."}
                   </p>
@@ -2706,6 +3547,22 @@ function App() {
                   Supprimer le composant
                 </button>
               </>
+            ) : selectedWire ? (
+              <WireInspector
+                wire={selectedWire}
+                voltageColors={voltageColors}
+                onDisableVoltageColors={() =>
+                  updatePreference("voltageColors", false)
+                }
+                onStyle={(style) =>
+                  void act([
+                    { type: "set_wire_style", id: selectedWire.id, ...style },
+                  ])
+                }
+                onRemove={() =>
+                  void act([{ type: "remove_wire", id: selectedWire.id }])
+                }
+              />
             ) : (
               <div className="inspector-empty">
                 <MousePointer2 size={28} />
@@ -2729,7 +3586,7 @@ function App() {
             )}
             <div className="inspector-section annotations">
               <h4>
-                Carnet de l’atelier <BookOpen size={13} />
+                Notes du circuit <BookOpen size={13} />
               </h4>
               {p?.ui.annotations.map((a, i) => (
                 <p className="note" key={a.id || i}>
@@ -2779,6 +3636,34 @@ function App() {
             {state ? "Service local connecté" : "Connexion au service…"}
           </span>
         </footer>
+        <ProjectLibrary
+          open={projectLibraryOpen}
+          onClose={() => setProjectLibraryOpen(false)}
+          currentTitle={p?.title || "Circuit"}
+          getRevision={async () => {
+            await mutationQueue.current;
+            return stateRef.current?.project.revision ?? null;
+          }}
+          busy={!state || calculationBusy}
+          onLoaded={(next) => {
+            publishProject(next);
+            centerCircuit(next.project);
+            setPending(null);
+            setBoardWire(null);
+            setTruth(null);
+            configureAnalysis(next.project);
+            setNotice(
+              "Circuit chargé depuis la bibliothèque. L’ouverture est annulable.",
+            );
+          }}
+        />
+        <ExperimentGallery
+          open={galleryOpen}
+          onClose={() => setGalleryOpen(false)}
+          onLoad={(id) => loadExample(id, true)}
+          availableIds={examples.map((example) => example.id)}
+          busy={!state || calculationBusy}
+        />
         {error && (
           <div className="error-toast" role="alert">
             <Info size={18} />

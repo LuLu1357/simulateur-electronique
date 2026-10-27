@@ -1,0 +1,321 @@
+.notebook-panel {
+  padding: 22px;
+  background: #101a19;
+  color: #d4e1db;
+  min-width: 0;
+}
+.notebook-heading {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+.notebook-heading-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: #20362b;
+  color: #a8e7bb;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.notebook-kicker {
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  color: #a8e7bb;
+  font-weight: 700;
+}
+.notebook-heading h3 {
+  font-size: 17px;
+  line-height: 1.4;
+  margin: 5px 0;
+  color: #e6eee9;
+  letter-spacing: -0.4px;
+}
+.notebook-heading p {
+  font-size: 11px;
+  color: #8fa9a1;
+  line-height: 1.6;
+}
+.notebook-export {
+  margin-left: auto;
+  border: 1px solid #34483e;
+  border-radius: 6px;
+  padding: 7px 10px;
+  flex-shrink: 0;
+}
+.notebook-capture-form {
+  margin-top: 22px;
+}
+.notebook-capture-form > label {
+  display: block;
+  color: #bacdc2;
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+.notebook-capture-form > label span {
+  color: #81958b;
+  margin-left: 4px;
+  font-size: 10px;
+}
+.notebook-capture-form > div {
+  display: flex;
+  gap: 9px;
+}
+.notebook-capture-form input {
+  flex: 1;
+  min-width: 0;
+  background: #182321;
+  border: 1px solid #34483e;
+  color: #e0e9e3;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.notebook-capture-form input::placeholder {
+  color: #82978c;
+}
+.notebook-panel .notebook-capture {
+  background: #a8e7bb;
+  color: #15291c;
+  font-weight: 650;
+  border-radius: 6px;
+  padding: 9px 13px;
+  flex-shrink: 0;
+}
+.notebook-panel .notebook-capture:not(:disabled):hover {
+  background: #c2f1cf;
+  color: #15291c;
+}
+.notebook-storage-note {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #8fa9a1;
+  margin-top: 8px;
+}
+.notebook-feedback {
+  font-size: 11px;
+  color: #a8e7bb;
+  line-height: 1.7;
+  margin-top: 4px;
+}
+.notebook-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 34px 16px 20px;
+  color: #8fa9a1;
+}
+.notebook-empty > svg {
+  color: #eac06c;
+}
+.notebook-empty strong {
+  color: #d4e1db;
+  font-weight: 600;
+}
+.notebook-empty p {
+  max-width: 410px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.notebook-comparison-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 23px 0 13px;
+  color: #a8e7bb;
+}
+.notebook-comparison-heading h4 {
+  font-size: 12px;
+  color: #e0e9e3;
+}
+.notebook-comparison-heading > span {
+  margin-left: auto;
+  font-size: 10px;
+  color: #8fa9a1;
+}
+.notebook-selectors {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+.notebook-selectors label {
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  color: #8fa9a1;
+}
+.notebook-selectors select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  background: #182321;
+  border: 1px solid #34483e;
+  color: #d4e1db;
+  font-size: 11px;
+  padding: 8px;
+}
+.notebook-selectors > span {
+  color: #eac06c;
+  padding-top: 14px;
+}
+.notebook-comparison-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 13px 0;
+  font-size: 10px;
+  color: #8fa9a1;
+}
+.notebook-comparison-meta > span:first-child {
+  color: #eac06c;
+}
+.notebook-table-scroll {
+  overflow: auto;
+  max-height: 310px;
+  border: 1px solid #2d3e35;
+  border-radius: 7px;
+}
+.notebook-panel .notebook-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  margin: 0;
+  background: #141f1b;
+}
+.notebook-table th,
+.notebook-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #2a3a31;
+  font-size: 11px;
+  text-align: right;
+}
+.notebook-table thead th {
+  background: #1d2b23;
+  color: #8fa9a1;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+}
+.notebook-table th:first-child {
+  text-align: left;
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.notebook-table td {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #d4e1db;
+}
+.notebook-table td.notebook-delta {
+  color: #eac06c;
+}
+.notebook-table-note {
+  color: #8fa9a1;
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.notebook-comparison-notice {
+  border: 1px solid #5a4c2e;
+  background: #2c281d;
+  border-radius: 6px;
+  padding: 12px;
+  color: #eac06c;
+  line-height: 1.7;
+  margin-top: 14px;
+  font-size: 12px;
+}
+.notebook-history {
+  margin-top: 19px;
+  border-top: 1px solid #2d3e35;
+}
+.notebook-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #26362d;
+}
+.notebook-entry-number {
+  font-size: 11px;
+  color: #eac06c;
+  font-family: ui-monospace, monospace;
+}
+.notebook-entry > div {
+  flex: 1;
+  min-width: 0;
+}
+.notebook-entry strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.notebook-entry > div > span {
+  display: block;
+  font-size: 10px;
+  color: #8fa9a1;
+  margin-top: 3px;
+}
+.notebook-entry button {
+  border-radius: 5px;
+  color: #8fa9a1;
+}
+.notebook-panel button:focus-visible,
+.notebook-panel input:focus-visible,
+.notebook-panel select:focus-visible {
+  outline-color: #a8e7bb;
+}
+@media (max-width: 760px) {
+  .notebook-panel {
+    padding: 18px 13px;
+  }
+  .notebook-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .notebook-heading > div:nth-child(2) {
+    flex: 1;
+    min-width: 190px;
+  }
+  .notebook-heading h3 {
+    font-size: 16px;
+  }
+  .notebook-export {
+    margin-left: 59px;
+  }
+  .notebook-capture-form > div {
+    flex-wrap: wrap;
+  }
+  .notebook-capture-form input {
+    flex-basis: 100%;
+  }
+  .notebook-selectors {
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .notebook-selectors label {
+    flex-basis: 100%;
+  }
+  .notebook-selectors > span {
+    display: none;
+  }
+  .notebook-comparison-heading {
+    flex-wrap: wrap;
+  }
+  .notebook-comparison-heading > span {
+    flex-basis: 100%;
+    margin-left: 24px;
+  }
+  .notebook-table th,
+  .notebook-table td {
+    padding: 9px;
+    font-size: 10px;
+  }
+}

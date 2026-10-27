@@ -8,3 +8,6 @@ frontend/tsconfig.tsbuildinfo
 *.pyc
 .DS_Store
 docs/SUIVI_JARVIS.md
+
+# Outils et artefacts de validation locale
+work/

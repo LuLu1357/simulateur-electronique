@@ -1,0 +1,217 @@
+.editor-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 13px 0;
+}
+.editor-mode-bar > [role="group"] {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #3b4b34;
+  border-radius: 8px;
+  background: #172118;
+}
+.editor-mode-bar > [role="group"] button {
+  color: #a7b999;
+  font-size: 11px;
+  padding: 6px 14px;
+  min-height: 30px;
+  border-radius: 5px;
+}
+.editor-mode-bar > [role="group"] button[aria-pressed="true"] {
+  color: #e8efd5;
+  background: #35482c;
+  box-shadow: none;
+}
+.auto-simulation {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #becdac;
+  cursor: pointer;
+  padding: 7px 0;
+}
+.auto-simulation input {
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+}
+.editor-selection-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-height: 34px;
+  padding: 2px 1px 10px;
+  font-size: 10px;
+  color: #a4b594;
+}
+.editor-selection-status button {
+  color: #d0dfb8;
+  font-size: 10px;
+  min-height: 26px;
+}
+.component-add[draggable="true"] {
+  cursor: grab;
+}
+.component-add[draggable="true"]:active {
+  cursor: grabbing;
+}
+.pending-wire {
+  stroke: #eac06c;
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+  filter: drop-shadow(0 0 3px #eac06c55);
+}
+.marquee-selection {
+  fill: #a8e7bb16;
+  stroke: #b9dda0;
+  stroke-width: 1;
+  stroke-dasharray: 5 3;
+}
+.palette-ghost > rect {
+  fill: #243b23df;
+  stroke: #c8e2aa;
+  stroke-dasharray: 4 3;
+}
+.palette-ghost > text {
+  fill: #e2edcc;
+  font:
+    12px system-ui,
+    sans-serif;
+}
+.schematic.canvas-select {
+  touch-action: none;
+}
+.schematic-led-glow {
+  filter: blur(9px);
+  pointer-events: none;
+}
+.component-icon.led {
+  color: #f1aa88;
+}
+.component-icon.potentiometer {
+  color: #bdce89;
+}
+.value-hint,
+.value-error {
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.value-hint {
+  color: #a2b392;
+}
+.value-error {
+  color: #f3b5a3;
+}
+.value-presets {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin: 9px 0 4px;
+}
+.value-presets button {
+  border: 1px solid #425537;
+  border-radius: 5px;
+  font-size: 10px;
+  min-height: 28px;
+  padding: 4px 7px;
+  color: #cbdab6;
+  background: #25331f;
+}
+.pot-control {
+  margin-top: 20px;
+  border: 1px solid #43533a;
+  padding: 12px;
+  border-radius: 8px;
+  background: #202d1d;
+}
+.pot-control > label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #c4d6b0;
+  font-size: 11px;
+}
+.pot-control strong {
+  color: #e6d3a3;
+  font-family: ui-monospace, monospace;
+  font-weight: 500;
+}
+.pot-control > input {
+  width: 100%;
+  padding: 0;
+  accent-color: #bace93;
+  margin: 10px 0 3px;
+  border: 0;
+}
+.pot-control > small {
+  color: #9fb18e;
+  font-size: 9px;
+  line-height: 1.6;
+}
+.switch-control {
+  width: 100%;
+  border: 1px solid #50633f;
+  background: #2d3c23;
+  padding: 9px;
+  border-radius: 7px;
+  margin-top: 13px;
+  color: #d4e4b9;
+}
+.switch-control[aria-pressed="true"] {
+  background: #39502c;
+}
+@media (max-width: 760px) {
+  .editor-mode-bar > [role="group"] button {
+    min-height: 38px;
+    padding: 8px 12px;
+  }
+  .auto-simulation {
+    font-size: 12px;
+    min-height: 40px;
+  }
+  .auto-simulation input {
+    width: 18px;
+    height: 18px;
+    min-height: 18px;
+  }
+  .editor-selection-status {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .editor-selection-status button {
+    min-height: 36px;
+    font-size: 11px;
+  }
+  .value-presets button {
+    font-size: 12px;
+    min-height: 36px;
+  }
+  .pot-control > input {
+    min-height: 40px;
+  }
+  .pot-control > label {
+    font-size: 12px;
+  }
+}
+
+.wire-bend-handle {
+  fill: #dce8b9;
+  stroke: #597447;
+  stroke-width: 2;
+  cursor: move;
+}
+.wire-bend-handle:hover,
+.wire-bend-handle:focus-visible {
+  fill: #f1d792;
+  stroke: #eac06c;
+  outline: none;
+  r: 7;
+}

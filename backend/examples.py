@@ -20,7 +20,9 @@ class Builder:
 
     def add(self, kind: str, cid: str, nets: dict[str, str], value: float | None = None, x: float | None = None, y: float | None = None, **extra) -> dict:
         entry = catalog()[kind]
-        component = {"id": cid, "kind": kind, "label": cid, "value": entry["default_value"] if value is None else value, "model": f"generic_{kind}" if kind in ("npn", "pnp", "diode") else None, "pins": {pin["name"]: f"{cid}.{pin['name']}" for pin in entry["pins"]}, **extra}
+        component = {"id": cid, "kind": kind, "label": cid, "value": entry["default_value"] if value is None else value, "model": "generic_led_red" if kind == "led" else f"generic_{kind}" if kind in ("npn", "pnp", "diode") else None, "pins": {pin["name"]: f"{cid}.{pin['name']}" for pin in entry["pins"]}, **extra}
+        if kind == "potentiometer":
+            component.setdefault("position", 0.5)
         self.project["components"].append(component)
         self.project["schematic"][cid] = {"x": x if x is not None else 100 + (self.count % 6) * 150, "y": y if y is not None else 110 + (self.count // 6) * 130, "rotation": 0}
         self.count += 1
@@ -110,6 +112,33 @@ def rc() -> dict:
     return b.finish()
 
 
+def led() -> dict:
+    b = Builder("led", "Allumer une DEL · résistance série", "Une DEL rouge générique sous 5 V avec 330 Ω en série. Observer le courant calculé, choisir une couleur puis modifier la résistance ; au-delà de 20 mA, un avertissement pédagogique apparaît.")
+    b.add("voltage_source", "V1", {"p": "vcc", "n": "gnd"}, 5, 100, 220)
+    b.add("resistor", "R1", {"p": "vcc", "n": "anode"}, 330, 300, 130)
+    b.add("led", "LED1", {"a": "anode", "k": "gnd"}, x=500, y=250)
+    b.add("ground", "G1", {"g": "gnd"}, x=300, y=400)
+    return b.finish()
+
+
+def potentiometer() -> dict:
+    b = Builder("potentiometer", "Potentiomètre · une tension réglable", "Une piste linéaire de 10 kΩ partage les 5 V. Position 0 : curseur près de p (+5 V), position 1 : près de n (masse). Au milieu, sans charge, la sortie est à 2,5 V.")
+    b.add("voltage_source", "V1", {"p": "vcc", "n": "gnd"}, 5, 100, 220)
+    b.add("potentiometer", "RV1", {"p": "vcc", "w": "out", "n": "gnd"}, 10000, 350, 200, position=0.5)
+    b.add("voltage_probe", "P1", {"p": "out", "n": "gnd"}, x=580, y=170)
+    b.add("ground", "G1", {"g": "gnd"}, x=350, y=400)
+    return b.finish()
+
+
+def pulse_rc() -> dict:
+    project = rc()
+    project.update(id="demo_pulse_rc", title="Créneaux et RC · charger puis décharger", description="Une source alterne entre 0 et 5 V toutes les 6 ms, avec des fronts de 10 µs et un plateau haut de 3 ms. Le réseau 1 kΩ / 1 µF filtre ces créneaux : observer trois cycles de charge et de décharge, τ = 1 ms.")
+    source = next(component for component in project["components"] if component["id"] == "V1")
+    source["waveform"] = {"kind": "pulse", "low": 0, "high": 5, "delay": 0, "rise": 0.00001, "fall": 0.00001, "width": 0.003, "period": 0.006}
+    project["default_analysis"] = {"kind": "tran", "step": 0.00001, "stop": 0.018, "startup": True}
+    return project
+
+
 def subtractor() -> dict:
     b = Builder("subtractor", "Soustracteur à 2 bits · logique discrète", "A = A1 A0, B = B1 B0. Sortie D1 D0 modulo 4 et emprunt final séparé. Vingt portes NAND à transistors NPN, aucun calcul Python des sorties observées.")
     b.add("voltage_source", "VCC", {"p": "vcc", "n": "gnd"}, 5, 70, 90)
@@ -158,4 +187,4 @@ def subtractor() -> dict:
 
 
 def example_projects() -> dict[str, dict]:
-    return {"ohm": ohm(), "divider": divider(), "diode": diode(), "npn": transistor(), "pnp": transistor(True), "rc": rc(), "subtractor": subtractor()}
+    return {"ohm": ohm(), "divider": divider(), "diode": diode(), "npn": transistor(), "pnp": transistor(True), "rc": rc(), "led": led(), "potentiometer": potentiometer(), "pulse_rc": pulse_rc(), "subtractor": subtractor()}

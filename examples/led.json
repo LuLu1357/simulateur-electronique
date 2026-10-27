@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "id": "demo_led",
+  "title": "Allumer une DEL · résistance série",
+  "revision": 0,
+  "components": [
+    {
+      "id": "V1",
+      "kind": "voltage_source",
+      "label": "V1",
+      "value": 5,
+      "model": null,
+      "pins": {
+        "p": "V1.p",
+        "n": "V1.n"
+      }
+    },
+    {
+      "id": "R1",
+      "kind": "resistor",
+      "label": "R1",
+      "value": 330,
+      "model": null,
+      "pins": {
+        "p": "R1.p",
+        "n": "R1.n"
+      }
+    },
+    {
+      "id": "LED1",
+      "kind": "led",
+      "label": "LED1",
+      "value": 0.0,
+      "model": "generic_led_red",
+      "pins": {
+        "a": "LED1.a",
+        "k": "LED1.k"
+      }
+    },
+    {
+      "id": "G1",
+      "kind": "ground",
+      "label": "G1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "g": "G1.g"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "W1",
+      "a": "V1.p",
+      "b": "R1.p"
+    },
+    {
+      "id": "W2",
+      "a": "V1.n",
+      "b": "LED1.k"
+    },
+    {
+      "id": "W3",
+      "a": "V1.n",
+      "b": "G1.g"
+    },
+    {
+      "id": "W4",
+      "a": "R1.n",
+      "b": "LED1.a"
+    }
+  ],
+  "junctions": [],
+  "schematic": {
+    "V1": {
+      "x": 100,
+      "y": 220,
+      "rotation": 0
+    },
+    "R1": {
+      "x": 300,
+      "y": 130,
+      "rotation": 0
+    },
+    "LED1": {
+      "x": 500,
+      "y": 250,
+      "rotation": 0
+    },
+    "G1": {
+      "x": 300,
+      "y": 400,
+      "rotation": 0
+    }
+  },
+  "net_labels": {},
+  "breadboard": {
+    "placements": {
+      "V1.p": "rail_top_p1",
+      "R1.p": "rail_top_p2",
+      "V1.n": "rail_top_n1",
+      "LED1.k": "rail_top_n2",
+      "G1.g": "rail_top_n3",
+      "R1.n": "a1",
+      "LED1.a": "b1"
+    },
+    "rail_splits": true
+  },
+  "ui": {
+    "selected": [],
+    "view": "split",
+    "highlights": [],
+    "annotations": []
+  },
+  "description": "Une DEL rouge générique sous 5 V avec 330 Ω en série. Observer le courant calculé, choisir une couleur puis modifier la résistance ; au-delà de 20 mA, un avertissement pédagogique apparaît.",
+  "default_analysis": {
+    "kind": "op"
+  }
+}

@@ -147,10 +147,13 @@ def test_non_object_payload_is_rejected_without_server_error(client, route, payl
     ('simulate', {'analysis': 'op'}),
     ('simulate', {'analysis': {'kind': 'tran', 'startup': 'yes'}}),
     ('simulate', {'analysis': {'kind': 'tran', 'step': '0.1'}}),
+    ('simulate', {'analysis': {'kind': 'tran', 'step': 10 ** 1000}}),
+    ('simulate', {'analysis': {'kind': 'tran', 'stop': 10 ** 1000}}),
     ('truth-table', {'inputs': ['A'], 'outputs': {'D': 'R1.n'}, 'cases': [{}]}),
     ('truth-table', {'inputs': {'A': []}, 'outputs': {'D': 'R1.n'}, 'cases': [{}]}),
     ('truth-table', {'inputs': {'A': 'V1'}, 'outputs': {'D': 'R1.n'}, 'cases': [None]}),
     ('truth-table', {'inputs': {'A': 'V1'}, 'outputs': {'D': 'R1.n'}, 'cases': [{'inputs': {'A': 0}, 'expected': {'D': 0}}], 'thresholds': []}),
+    ('truth-table', {'inputs': {'A': 'V1'}, 'outputs': {'D': 'R1.n'}, 'cases': [{'inputs': {'A': 0}, 'expected': {'D': 0}}], 'thresholds': {'low': 0, 'high': 10 ** 1000}}),
     ('truth-table', {'example': []}),
 ])
 def test_nested_payload_errors_are_useful_and_do_not_mutate(client, route, payload):

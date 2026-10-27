@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   CircuitBoard,
@@ -22,6 +22,7 @@ import {
   boardHoles,
   defaultFootprint,
   externalComponent,
+  ledVisualState,
   orderedPins,
   placeBoardPin,
   rigidJumperPath,
@@ -53,6 +54,8 @@ export type BreadboardViewProps = {
   onNotice: (message: string) => void;
   onError: (message: string) => void;
   onLayout: () => void;
+  onDropComponent?: (kind: string, hole: string) => void;
+  onPosition?: (id: string, position: number) => void;
   act: (operations: Op[], preview?: boolean) => Promise<State | undefined>;
 };
 
@@ -68,6 +71,8 @@ type Drag = {
 const kindNames: Record<string, string> = {
   resistor: "Résistance",
   diode: "Diode",
+  led: "LED",
+  potentiometer: "Potentiomètre",
   capacitor: "Condensateur",
   npn: "NPN",
   pnp: "PNP",
@@ -107,20 +112,46 @@ export function BreadboardView(props: BreadboardViewProps) {
     onNotice,
     onError,
     onLayout,
+    onDropComponent,
+    onPosition,
     act,
   } = props;
   const project = state.project;
   const placements = project.breadboard.placements;
   const svgRef = useRef<SVGSVGElement>(null);
   const suppressClick = useRef(false);
+  const capturedPointer = useRef<{ element: SVGElement; id: number } | null>(
+    null,
+  );
   const jumperCounter = useRef(0);
   const [hoverHole, setHoverHole] = useState<string | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [placingId, setPlacingId] = useState<string | null>(null);
   const [trayDragId, setTrayDragId] = useState<string | null>(null);
+  const [paletteOver, setPaletteOver] = useState(false);
+  const [keyboardHole, setKeyboardHole] = useState("a1");
+  const [boardFocused, setBoardFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [holeDraft, setHoleDraft] = useState("");
+  const [potDraft, setPotDraft] = useState(0.5);
+  const potCommit = useRef("");
   const disabled = preview || busy;
+  const releaseCapture = () => {
+    const captured = capturedPointer.current;
+    capturedPointer.current = null;
+    if (captured?.element.hasPointerCapture?.(captured.id))
+      captured.element.releasePointerCapture(captured.id);
+  };
+  useEffect(() => () => releaseCapture(), []);
+  useEffect(() => {
+    releaseCapture();
+    setDrag(null);
+    setPlacingId(null);
+    setTrayDragId(null);
+    setPaletteOver(false);
+    setHoverHole(null);
+    suppressClick.current = false;
+  }, [project.id, preview]);
   const selected = project.ui.selected;
   const highlights = project.ui.highlights.filter(
     (id): id is string => typeof id === "string",
@@ -129,6 +160,30 @@ export function BreadboardView(props: BreadboardViewProps) {
   const activeComponent = project.components.find((c) =>
     selected.includes(c.id),
   );
+  const activePosition =
+    (activeComponent as (Component & { position?: number }) | undefined)
+      ?.position ?? 0.5;
+  useEffect(() => {
+    setPotDraft(activePosition);
+    potCommit.current = "";
+  }, [activeComponent?.id, activePosition]);
+  const applyPosition = (value: number) => {
+    if (
+      !activeComponent ||
+      activeComponent.kind !== "potentiometer" ||
+      disabled ||
+      !onPosition
+    )
+      return;
+    const key = `${activeComponent.id}:${value}`;
+    if (
+      potCommit.current === key ||
+      (!potCommit.current && value === activePosition)
+    )
+      return;
+    potCommit.current = key;
+    onPosition(activeComponent.id, value);
+  };
   const unplaced = project.components.filter((c) =>
     Object.values(c.pins).some((pin) => !placements[pin]),
   );
@@ -166,9 +221,13 @@ export function BreadboardView(props: BreadboardViewProps) {
     return net === "0" ? "#477ca7" : "#33866b";
   };
   const reset = () => {
+    releaseCapture();
     setDrag(null);
     setPlacingId(null);
     setTrayDragId(null);
+    setPaletteOver(false);
+    setHoverHole(null);
+    suppressClick.current = false;
     onPending(null);
     onPin("");
     onBoardWire(null);
@@ -242,6 +301,10 @@ export function BreadboardView(props: BreadboardViewProps) {
       return;
     }
     event.currentTarget.setPointerCapture(event.pointerId);
+    capturedPointer.current = {
+      element: event.currentTarget,
+      id: event.pointerId,
+    };
     setDrag({
       mode: "body",
       componentId: c.id,
@@ -264,6 +327,10 @@ export function BreadboardView(props: BreadboardViewProps) {
     const anchor = boardHolePoint(placements[terminal] || "");
     if (!anchor) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    capturedPointer.current = {
+      element: event.currentTarget,
+      id: event.pointerId,
+    };
     setDrag({
       mode: "pin",
       componentId: c.id,
@@ -281,6 +348,7 @@ export function BreadboardView(props: BreadboardViewProps) {
       drag.moved ||
       Math.hypot(xy[0] - drag.start[0], xy[1] - drag.start[1]) > 4;
     suppressClick.current = true;
+    releaseCapture();
     setDrag(null);
     if (!moved) {
       onSelect(drag.componentId);
@@ -402,19 +470,50 @@ export function BreadboardView(props: BreadboardViewProps) {
     const isExternal = externalComponent(c);
     const partial = entries.length < Object.keys(c.pins).length;
     const bipolar = c.kind === "npn" || c.kind === "pnp";
+    const isLed = c.kind === "led";
+    const isPot = c.kind === "potentiometer";
+    const position = (c as Component & { position?: number }).position;
+    const potPosition =
+      typeof position === "number" && Number.isFinite(position)
+        ? Math.max(0, Math.min(1, position))
+        : 0.5;
+    const light = ledVisualState(
+      simulation?.currents[c.id],
+      stale ||
+        simulation?.status !== "success" ||
+        preview ||
+        isGhost ||
+        partial,
+    );
+    const ledColor =
+      c.model === "generic_led_green"
+        ? "#4bcf7d"
+        : c.model === "generic_led_blue"
+          ? "#64a9ff"
+          : "#f46354";
+    const lightDescription =
+      light.state === "unknown"
+        ? "état lumineux inconnu · recalcul nécessaire"
+        : light.state === "overcurrent"
+          ? `courant calculé ${format(simulation?.currents[c.id], "A")} supérieur à 20 mA`
+          : light.state === "on"
+            ? `allumée · ${format(simulation?.currents[c.id], "A")}`
+            : "éteinte";
     const a = entries[0].xy,
       b = entries[1]?.xy || a;
     const angle = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
     const distance = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const bodyLength = Math.max(22, Math.min(52, distance - 20));
-    const labelY = bipolar ? minY - 51 : minY - 24;
+    const labelY = isPot ? minY - 65 : bipolar || isLed ? minY - 51 : minY - 24;
     const detail =
-      c.kind === "resistor"
+      c.kind === "resistor" || isPot
         ? format(c.value, "Ω")
         : c.kind === "capacitor"
           ? format(c.value, "F")
           : c.kind === "voltage_source"
-            ? format(c.value, "V")
+            ? c.waveform
+              ? `${format(c.waveform.low, "V")} ↔ ${format(c.waveform.high, "V")}`
+              : format(c.value, "V")
             : ["switch", "button"].includes(c.kind)
               ? c.value
                 ? "fermé"
@@ -427,7 +526,7 @@ export function BreadboardView(props: BreadboardViewProps) {
         data-component-id={c.id}
         role={isGhost ? undefined : "button"}
         tabIndex={isGhost || preview ? -1 : 0}
-        aria-label={`${c.label}, ${kindNames[c.kind]}, ${partial ? "implantation partielle" : "glisser le corps pour déplacer toutes les bornes"}`}
+        aria-label={`${c.label}, ${kindNames[c.kind]}, ${isLed ? `${lightDescription}, ` : ""}${partial ? "implantation partielle" : "glisser le corps pour déplacer toutes les bornes"}`}
         onPointerDown={isGhost ? undefined : (event) => startBody(event, c)}
         onClick={
           isGhost
@@ -439,6 +538,25 @@ export function BreadboardView(props: BreadboardViewProps) {
                   return;
                 }
                 onSelect(c.id);
+              }
+        }
+        onDoubleClick={
+          isGhost || disabled || !["switch", "button"].includes(c.kind)
+            ? undefined
+            : async (event) => {
+                event.stopPropagation();
+                try {
+                  if (
+                    await act([
+                      { type: "set_value", id: c.id, value: c.value ? 0 : 1 },
+                    ])
+                  )
+                    onNotice(
+                      `${c.label} ${c.value ? "ouvert" : "fermé"}. Recalcule pour actualiser les mesures.`,
+                    );
+                } catch (error) {
+                  onError(String(error));
+                }
               }
         }
         onKeyDown={
@@ -481,7 +599,7 @@ export function BreadboardView(props: BreadboardViewProps) {
           height={maxY - labelY + 40}
           rx="4"
         />
-        {!partial && !isExternal && !bipolar && (
+        {!partial && !isExternal && !bipolar && !isLed && !isPot && (
           <g
             transform={`translate(${a[0]} ${a[1]}) rotate(${angle})`}
             className="bb-body"
@@ -529,6 +647,98 @@ export function BreadboardView(props: BreadboardViewProps) {
                 className="bb-switch-contact"
               />
             )}
+          </g>
+        )}
+        {!partial && isLed && (
+          <g
+            className={`bb-body bb-led bb-led-${light.state}`}
+            style={{ "--bb-led-color": ledColor } as React.CSSProperties}
+          >
+            {entries.map(({ xy, name }) => (
+              <path
+                key={name}
+                d={`M${xy[0]} ${xy[1]}L${cx + (name === "a" ? -8 : 8)} ${minY - 14}`}
+                className="bb-lead"
+              />
+            ))}
+            {light.intensity > 0 && (
+              <circle
+                cx={cx}
+                cy={minY - 25}
+                r={22 + light.intensity * 7}
+                fill={ledColor}
+                opacity={0.08 + light.intensity * 0.18}
+                className="bb-led-halo"
+              />
+            )}
+            <path
+              d={`M${cx - 13} ${minY - 14}V${minY - 26}a13 13 0 0 1 26 0V${minY - 14}Z`}
+              className="bb-led-bulb"
+              fill={light.intensity > 0 ? ledColor : "#826762"}
+              fillOpacity={
+                light.intensity > 0 ? 0.45 + light.intensity * 0.55 : 0.6
+              }
+            />
+            <path
+              d={`M${cx + 10} ${minY - 29}V${minY - 16}`}
+              className="bb-led-flat"
+            />
+            <path
+              d={`M${cx - 8} ${minY - 27}q0 -7 6 -8`}
+              className="bb-led-reflection"
+            />
+            {light.state === "overcurrent" && (
+              <text
+                x={cx + 21}
+                y={minY - 29}
+                className="bb-led-warning"
+                aria-hidden="true"
+              >
+                !
+              </text>
+            )}
+            <title>
+              {c.label} : {lightDescription}. Intensité lumineuse symbolique
+              d’après le courant calculé, sans modèle optique ou thermique.
+            </title>
+          </g>
+        )}
+        {!partial && isPot && (
+          <g className="bb-body bb-potentiometer">
+            {entries.map(({ xy, name }) => (
+              <path
+                key={name}
+                d={`M${xy[0]} ${xy[1]}V${minY - 6}L${cx + (name === "p" ? -18 : name === "n" ? 18 : 0)} ${minY - 13}`}
+                className="bb-lead"
+              />
+            ))}
+            <rect
+              x={cx - 28}
+              y={minY - 54}
+              width="56"
+              height="44"
+              rx="7"
+              className="bb-pot-case"
+            />
+            <circle cx={cx} cy={minY - 33} r="16" className="bb-pot-knob" />
+            <path
+              d={`M${cx} ${minY - 33}v-11`}
+              transform={`rotate(${-135 + potPosition * 270} ${cx} ${minY - 33})`}
+              className="bb-pot-pointer"
+            />
+            <text
+              x={cx}
+              y={minY - 14}
+              textAnchor="middle"
+              className="bb-pot-position"
+            >
+              {Math.round(potPosition * 100)} %
+            </text>
+            <title>
+              Potentiomètre pédagogique : P, curseur W, N. Position{" "}
+              {Math.round(potPosition * 100)} % ; P–W représente cette
+              proportion de la résistance totale.
+            </title>
           </g>
         )}
         {!partial && bipolar && (
@@ -593,7 +803,7 @@ export function BreadboardView(props: BreadboardViewProps) {
           {c.label || c.id}
           <tspan className="bb-part-value">
             {" "}
-            · {partial ? "à compléter" : detail}
+            · {partial ? "à compléter" : isLed ? lightDescription : detail}
           </tspan>
         </text>
         {entries.map(({ name, terminal, xy }) => (
@@ -742,10 +952,14 @@ export function BreadboardView(props: BreadboardViewProps) {
       </div>
       <div className="bb-instructions">
         <Hand size={17} />
-        <p>
+        <p id="bb-board-instructions">
           <strong>Glisse le corps</strong> pour déplacer toutes ses pattes.{" "}
           <strong>Glisse une patte</strong> pour la déplacer seule. La sélection
           est partagée avec le schéma ; les fils restent attachés aux bornes.
+          <span className="bb-keyboard-help">
+            Au clavier : tabule jusqu’à la plaque, utilise les flèches pour
+            choisir un trou et Entrée pour agir.
+          </span>
         </p>
       </div>
       {(placingId || activePin || boardWire) && (
@@ -818,6 +1032,43 @@ export function BreadboardView(props: BreadboardViewProps) {
               {activeComponent.value ? "Ouvrir" : "Fermer"}
             </button>
           )}
+          {activeComponent.kind === "potentiometer" && onPosition && (
+            <label className="bb-pot-control">
+              Curseur P → W
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={potDraft}
+                disabled={disabled}
+                aria-label={`Position du potentiomètre ${activeComponent.label}`}
+                onChange={(event) => setPotDraft(Number(event.target.value))}
+                onPointerUp={(event) =>
+                  applyPosition(Number(event.currentTarget.value))
+                }
+                onKeyUp={(event) => {
+                  if (
+                    [
+                      "ArrowLeft",
+                      "ArrowRight",
+                      "ArrowUp",
+                      "ArrowDown",
+                      "Home",
+                      "End",
+                      "PageUp",
+                      "PageDown",
+                    ].includes(event.key)
+                  )
+                    applyPosition(Number(event.currentTarget.value));
+                }}
+                onBlur={(event) =>
+                  applyPosition(Number(event.currentTarget.value))
+                }
+              />
+              <output>{Math.round(potDraft * 100)} %</output>
+            </label>
+          )}
           {orderedPins(activeComponent).map(([name, terminal]) => (
             <button
               key={terminal}
@@ -828,6 +1079,31 @@ export function BreadboardView(props: BreadboardViewProps) {
               {name.toUpperCase()} · {placements[terminal] || "hors plaque"}
             </button>
           ))}
+          {Object.values(activeComponent.pins).some(
+            (pin) => placements[pin],
+          ) && (
+            <button
+              disabled={disabled}
+              onClick={async () => {
+                if (
+                  await act(
+                    Object.values(activeComponent.pins).map((terminal) => ({
+                      type: "place_pin",
+                      terminal,
+                      hole: null,
+                    })),
+                  )
+                ) {
+                  reset();
+                  onNotice(
+                    `${activeComponent.label} retiré de la plaque. Son schéma et ses fils sont conservés ; les contacts physiques ont changé.`,
+                  );
+                }
+              }}
+            >
+              Retirer de la plaque
+            </button>
+          )}
         </div>
       )}
       {activePin && (
@@ -865,9 +1141,40 @@ export function BreadboardView(props: BreadboardViewProps) {
       >
         <svg
           ref={svgRef}
-          className="bb-board"
+          className={`bb-board ${paletteOver ? "bb-palette-over" : ""}`}
           viewBox={`0 0 ${BOARD.width} ${BOARD.height}`}
           aria-label="Breadboard plane, groupes A–E et F–J, rails séparés"
+          aria-describedby="bb-board-instructions"
+          tabIndex={disabled ? -1 : 0}
+          onFocus={(event) => {
+            if (event.target === event.currentTarget) setBoardFocused(true);
+          }}
+          onBlur={(event) => {
+            if (event.target === event.currentTarget) setBoardFocused(false);
+          }}
+          onKeyDown={(event) => {
+            if (disabled || event.target !== event.currentTarget) return;
+            const deltas: Record<string, [number, number]> = {
+              ArrowLeft: [-1, 0],
+              ArrowRight: [1, 0],
+              ArrowUp: [0, -1],
+              ArrowDown: [0, 1],
+            };
+            const delta = deltas[event.key];
+            if (delta) {
+              event.preventDefault();
+              event.stopPropagation();
+              const next = adjacentBoardHole(keyboardHole, ...delta);
+              if (next) {
+                setKeyboardHole(next);
+                setHoverHole(next);
+              }
+            } else if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              event.stopPropagation();
+              void clickHole(keyboardHole);
+            }
+          }}
           onPointerMove={(event) => {
             const xy = point(event);
             const hole = snapBoardHole(...xy);
@@ -883,17 +1190,36 @@ export function BreadboardView(props: BreadboardViewProps) {
           }}
           onPointerUp={finishDrag}
           onPointerCancel={() => {
+            releaseCapture();
             setDrag(null);
+            setHoverHole(null);
+            suppressClick.current = false;
             onNotice("Geste interrompu : aucun déplacement appliqué.");
           }}
           onPointerLeave={() => {
             if (!drag) setHoverHole(null);
           }}
           onDragOver={(event) => {
-            if (disabled || !trayDragId) return;
+            const componentData = event.dataTransfer.types.includes(
+              "application/x-atelier-component",
+            );
+            if (
+              disabled ||
+              (!trayDragId && !(onDropComponent && componentData))
+            )
+              return;
             event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
+            event.dataTransfer.dropEffect = trayDragId ? "move" : "copy";
+            setPaletteOver(!trayDragId);
             setHoverHole(snapBoardHole(...point(event)));
+          }}
+          onDragLeave={(event) => {
+            if (
+              !event.currentTarget.contains(event.relatedTarget as Node | null)
+            ) {
+              setPaletteOver(false);
+              setHoverHole(null);
+            }
           }}
           onDrop={(event) => {
             if (disabled) return;
@@ -902,10 +1228,14 @@ export function BreadboardView(props: BreadboardViewProps) {
               trayDragId ||
               event.dataTransfer.getData("application/x-atelier-component");
             const hole = snapBoardHole(...point(event));
-            if (id && hole)
+            if (id && hole && project.components.some((c) => c.id === id))
               void commit(defaultFootprint(project, id, hole), id);
+            else if (id && hole && onDropComponent && state.catalog[id])
+              onDropComponent(id, hole);
             else onNotice("Dépose la première patte sur un trou de la plaque.");
             setTrayDragId(null);
+            setPaletteOver(false);
+            setHoverHole(null);
           }}
         >
           <rect
@@ -1038,12 +1368,13 @@ export function BreadboardView(props: BreadboardViewProps) {
             );
             const active =
               hole === hoverHole ||
+              (boardFocused && hole === keyboardHole) ||
               hole === boardWire ||
               Boolean(net && (net === hoverNet || selectedNets.has(net)));
             return (
               <g
                 key={hole}
-                className={`bb-hole ${active ? "active" : ""}`}
+                className={`bb-hole ${active ? "active" : ""} ${occupied ? "occupied" : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (suppressClick.current) {
@@ -1099,7 +1430,9 @@ export function BreadboardView(props: BreadboardViewProps) {
                   <path
                     className={`bb-jumper ${isSelected ? "selected" : ""}`}
                     d={path}
-                    stroke={paint(wire.a)}
+                    stroke={
+                      !voltageColors && wire.color ? wire.color : paint(wire.a)
+                    }
                   />
                   <path
                     d={path}
@@ -1166,17 +1499,31 @@ export function BreadboardView(props: BreadboardViewProps) {
               className="bb-ghost-target invalid"
             />
           )}
+          {paletteOver && hoverHole && (
+            <circle
+              cx={boardHolePoint(hoverHole)![0]}
+              cy={boardHolePoint(hoverHole)![1]}
+              r="11"
+              className="bb-palette-target"
+            />
+          )}
         </svg>
       </div>
       <p className={`bb-board-feedback ${ghost && !ghost.ok ? "invalid" : ""}`}>
         {preview
           ? "Prévisualisation : aucune modification n’est appliquée avant confirmation."
-          : drag
-            ? ghost?.message ||
-              "Glisse vers un trou libre. Toutes les pattes du corps se déplacent ensemble."
-            : hoverProposal
-              ? hoverProposal.message
-              : "A–E d’une colonne sont reliés ; F–J forment un groupe distinct. Un déplacement peut créer ou supprimer une connexion physique."}
+          : paletteOver
+            ? hoverHole
+              ? `Déposer ici : première borne dans ${hoverHole}. Le placement sera refusé si le corps ou une patte rencontre un obstacle.`
+              : "Survole un trou pour placer la première borne du composant."
+            : boardFocused && !drag && !hoverProposal
+              ? `Trou clavier : ${keyboardHole} · ${Object.entries(placements).find(([, occupied]) => occupied === keyboardHole)?.[0] || "libre"}. Flèches pour se déplacer, Entrée pour agir.`
+              : drag
+                ? ghost?.message ||
+                  "Glisse vers un trou libre. Toutes les pattes du corps se déplacent ensemble."
+                : hoverProposal
+                  ? hoverProposal.message
+                  : "A–E d’une colonne sont reliés ; F–J forment un groupe distinct. Un déplacement peut créer ou supprimer une connexion physique."}
       </p>
       {unplaced.length > 0 && (
         <div className="bb-unplaced">
@@ -1247,6 +1594,8 @@ export function BreadboardView(props: BreadboardViewProps) {
           explicite. Alimentation, masse et sondes sont des{" "}
           <strong>connecteurs virtuels</strong>, pas des boîtiers réels. Les
           cavaliers sont des segments rigides à angle droit.
+          {project.components.some((c) => c.kind === "led") &&
+            " La lumière des LED est symbolique et dépend du courant calculé ; elle reste inconnue avant calcul ou après modification. Un courant supérieur à 20 mA est signalé, sans modèle thermique."}
           {hiddenWires > 0 &&
             ` ${hiddenWires} liaison(s) restent hors plaque jusqu’au placement de leurs extrémités.`}
         </p>

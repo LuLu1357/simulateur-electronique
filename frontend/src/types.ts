@@ -1,8 +1,21 @@
+export type VoltageWaveform = {
+  kind: "pulse";
+  low: number;
+  high: number;
+  delay: number;
+  rise: number;
+  fall: number;
+  width: number;
+  period: number;
+};
 export type Component = {
   id: string;
   kind: string;
   label: string;
   value: number;
+  position?: number;
+  initial_voltage?: number;
+  waveform?: VoltageWaveform | null;
   model?: string;
   pins: Record<string, string>;
 };
@@ -12,6 +25,8 @@ export type Wire = {
   b: string;
   kind?: string;
   origin?: string;
+  color?: string | null;
+  waypoints?: { x: number; y: number }[];
 };
 export type Project = {
   net_labels?: Record<string, string>;
@@ -140,6 +155,8 @@ export function pinOffsets(c: Component): Record<string, [number, number]> {
   if (c.kind === "npn" || c.kind === "pnp")
     return { c: [32, -34], b: [-44, 0], e: [32, 34] };
   if (c.kind === "ground") return { g: [0, -28] };
+  if (c.kind === "potentiometer")
+    return { p: [-48, 0], w: [0, -48], n: [48, 0] };
   return Object.fromEntries(
     Object.keys(c.pins).map((p, i) => [p, [i === 0 ? -48 : 48, 0]]),
   );

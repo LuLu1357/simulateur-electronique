@@ -20,9 +20,19 @@ from fastapi.staticfiles import StaticFiles
 
 from .domain import Store, catalog, circuit_fingerprint, new_project, topology, validate_topology
 from .examples import example_projects
+from .project_library import ProjectLibrary
 from .simulation import run_truth_table, simulate
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def _finite_number(value: Any) -> bool:
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(value)
+    except (OverflowError, ValueError):
+        return False
 
 
 def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> FastAPI:
@@ -53,6 +63,7 @@ def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> F
     application.state.last_truth_table = None
     application.state.running = False
     application.state.worker_tasks = set()
+    project_library = ProjectLibrary(runtime)
 
     @application.middleware('http')
     async def local_security(request: Request, call_next):
@@ -201,6 +212,43 @@ def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> F
         project = state_store.get_state()['project']
         return {'revision': project['revision'], 'diagnostics': validate_topology(project)}
 
+    def library_body(body: dict, fields: set[str]) -> None:
+        if set(body) != fields:
+            raise ValueError('Champs de bibliothèque invalides : utilisez uniquement les champs attendus.')
+
+    @application.get('/api/projects')
+    def list_saved_projects():
+        return project_library.list()
+
+    @application.get('/api/projects/export/{identifier}')
+    def export_project_snapshot(identifier: str):
+        return JSONResponse(project_library.get(identifier), headers={'Content-Disposition': 'attachment; filename="circuit.atelier.json"'})
+
+    @application.post('/api/projects/save')
+    def save_project_snapshot(body: dict = Body(...)):
+        library_body(body, {'expected_revision'})
+        expected = revision(body)
+        with state_store.lock:
+            if expected != state_store.project['revision']:
+                raise ValueError('Conflit de révision : relisez le circuit avant de le conserver dans la bibliothèque.')
+            return project_library.save(state_store.project)
+
+    @application.post('/api/projects/load')
+    def load_project_snapshot(body: dict = Body(...)):
+        library_body(body, {'id', 'expected_revision'})
+        expected = revision(body)
+        if application.state.running:
+            raise HTTPException(409, 'Attendez la fin du calcul avant d’ouvrir un autre projet.')
+        with state_store.lock:
+            project = project_library.get(body.get('id'))
+            state_store.replace_project(project, expected)
+            return get_state()
+
+    @application.post('/api/projects/delete')
+    def delete_project_snapshot(body: dict = Body(...)):
+        library_body(body, {'id'})
+        return project_library.delete(body.get('id'))
+
     async def run_calculation(request: Request, operation, publish):
         """Le thread conserve le verrou jusqu'à sa sortie, même si le client part.
 
@@ -260,7 +308,7 @@ def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> F
             if 'startup' in analysis and type(analysis['startup']) is not bool:
                 raise ValueError('startup doit être un booléen.')
             for key in ('step', 'stop'):
-                if key in analysis and (type(analysis[key]) not in (float, int) or not math.isfinite(analysis[key]) or analysis[key] <= 0):
+                if key in analysis and (not _finite_number(analysis[key]) or analysis[key] <= 0):
                     raise ValueError(f'{key} doit être un nombre fini strictement positif en secondes.')
         project = copy.deepcopy(state_store.get_state()['project'])
         def publish(result):
@@ -311,7 +359,7 @@ def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> F
         if not isinstance(thresholds, dict):
             raise ValueError('thresholds doit être un objet avec low et high en volts.')
         low, high = thresholds.get('low', 1.5), thresholds.get('high', 3.5)
-        if any(type(value) not in (int, float) or not math.isfinite(value) for value in (low, high)) or not 0 <= low < high <= 5:
+        if any(not _finite_number(value) for value in (low, high)) or not 0 <= low < high <= 5:
             raise ValueError('Les seuils doivent respecter 0 ≤ low < high ≤ 5 V.')
         return await run_calculation(
             request,
