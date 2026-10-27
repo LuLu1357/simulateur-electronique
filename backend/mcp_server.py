@@ -154,7 +154,9 @@ async def transaction_preview(expected_revision: int, operations: list[dict]) ->
     """Prévisualiser un groupe d’opérations validées, sans changer le circuit, sa révision ni son historique.
 
     Types: add_component, move_component, set_value, set_model, connect, remove_component,
-    remove_wire, add_junction, remove_junction, place_pin, set_rail_splits, set_ui, annotate, set_title.
+    set_position, set_waveform, set_wire_style, remove_wire, add_junction, move_junction,
+    remove_junction, place_pin, set_board_count (1 à 4), layout_breadboard,
+    set_rail_splits, set_ui, annotate, set_title. Trou plaque 2 : '2:a1' ; plaque 1 : 'a1'.
     """
     return await api('POST', '/api/transaction', {'expected_revision': expected_revision, 'operations': operations, 'preview': True})
 
@@ -172,14 +174,46 @@ async def transaction_apply(expected_revision: int, operations: list[dict]) -> d
 
 
 @mcp.tool()
+async def parameter_sweep(expected_revision: int, component_id: str, values: list[float], probe: dict | None = None) -> dict:
+    """Balayer 2 à 16 valeurs SI sur des copies du circuit, sans modifier son modèle ni ses mesures.
+
+    Cible : résistance, tension d’une source sans créneau ou position 0..1 d’un potentiomètre.
+    Chaque point est un vrai calcul OP. probe optionnel {p:'R1.p',n:'0'} définit la tension différentielle.
+    Retourne courants, tensions et convergence, au plus 45 s. simulation_stop interrompt aussi cette série.
+    """
+    body = {'expected_revision': expected_revision, 'component_id': component_id, 'values': values}
+    if probe is not None:
+        body['probe'] = probe
+    return await api('POST', '/api/parameter-sweep', body)
+
+
+@mcp.tool()
+async def project_library_list() -> dict:
+    """Lister les copies locales enregistrées, avec leurs identifiants, titres et dates, sans modifier le circuit."""
+    return await api('GET', '/api/projects')
+
+
+@mcp.tool()
+async def project_library_save(expected_revision: int) -> dict:
+    """Conserver une copie indépendante du circuit courant dans la bibliothèque locale (12 maximum)."""
+    return await api('POST', '/api/projects/save', {'expected_revision': expected_revision})
+
+
+@mcp.tool()
+async def project_library_load(expected_revision: int, snapshot_id: str) -> dict:
+    """Ouvrir une copie choisie dans project_library_list ; remplace le circuit actif et reste annulable."""
+    return await api('POST', '/api/projects/load', {'expected_revision': expected_revision, 'id': snapshot_id})
+
+
+@mcp.tool()
 async def history_undo(expected_revision: int) -> dict:
-    """Annuler la dernière transaction; la révision reste croissante et le circuit réellement obtenu est retourné."""
+    """Annuler la dernière édition; la révision reste croissante et le circuit réellement obtenu est retourné."""
     return await api('POST', '/api/undo', {'expected_revision': expected_revision})
 
 
 @mcp.tool()
 async def history_redo(expected_revision: int) -> dict:
-    """Rétablir la dernière transaction annulée, avec contrôle de révision."""
+    """Rétablir la dernière édition annulée, avec contrôle de révision."""
     return await api('POST', '/api/redo', {'expected_revision': expected_revision})
 
 

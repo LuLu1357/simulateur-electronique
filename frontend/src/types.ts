@@ -42,6 +42,7 @@ export type Project = {
   junctions: { id: string; x: number; y: number }[];
   schematic: Record<string, { x: number; y: number; rotation?: number }>;
   breadboard: {
+    board_count?: number;
     placements: Record<string, string>;
     rail_splits: boolean;
     footprints?: Record<

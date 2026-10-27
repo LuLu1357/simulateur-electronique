@@ -72,3 +72,10 @@ La bibliothèque serveur (`.runtime/projects.json`) conserve douze copies au max
 
 
 `backend/sweep.py` prévalide toutes les variantes puis effectue jusqu’à seize calculs OP sur des copies, avec annulation et échéance globale de 45 secondes. La route `/api/parameter-sweep` utilise le même verrou de calcul que les simulations et tables ; elle n’écrit pas dans les mesures du Store. `ParameterSweep.tsx` garde le rapport séparément du circuit et affiche sa provenance lorsque la signature électrique change. `sweep.ts` ne génère que les valeurs d’entrée et le CSV, sans calcul électrique de remplacement.
+
+
+## Plusieurs plaques, un seul graphe
+
+Le champ optionnel `breadboard.board_count` vaut 1 par défaut et accepte 1 à 4. La première plaque conserve ses IDs historiques ; les suivantes préfixent chaque trou (`2:a1`). La topologie et le bilan des courants construisent les bandes séparément sur chaque plaque. Les fils explicites sont les seules liaisons inter-plaques, à l’exception des références de masse globales déjà définies par le modèle. Ajouter une plaque vide ne change pas l’empreinte électrique ; déplacer une borne reste une modification électrique.
+
+Le placement physique refuse les pattes d’un même composant sur plusieurs plaques ; les raccordements virtuels sont exemptés. Les empreintes et collisions utilisent des coordonnées locales avec un identifiant de plaque, pour ne pas confondre deux corps aux mêmes coordonnées sur des supports différents. La navigation active est locale au navigateur et suit une sélection de composant ; elle n’altère pas le modèle. L’implantation automatique réserve douze emplacements par plaque et conserve les réseaux par des cavaliers explicites.

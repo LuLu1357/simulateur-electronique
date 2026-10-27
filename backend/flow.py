@@ -64,7 +64,7 @@ def _graph(project: dict):
     for terminal, hole in placements.items():
         edges.append((terminal, hole, None))
         nodes.update((terminal, hole))
-    for index, group in enumerate(breadboard_groups(project.get("breadboard", {}).get("rail_splits", True))):
+    for index, group in enumerate(breadboard_groups(project.get("breadboard", {}).get("rail_splits", True), project.get("breadboard", {}).get("board_count", 1))):
         hub = f"__breadboard_group_{index}"
         nodes.add(hub)
         for hole in group:

@@ -133,8 +133,21 @@ const experiments: Experiment[] = [
     accent: "violet",
   },
   {
-    id: "subtractor",
+    id: "two_boards",
     number: "10",
+    title: "Relier deux îlots",
+    category: "Premiers pas",
+    duration: "7 min",
+    description:
+      "Un pont diviseur réparti sur deux plaques. Les bandes et rails restent indépendants, les cavaliers relient le montage.",
+    prediction: "Deux résistances égales → 2,5 V en sortie",
+    challenge:
+      "Repère les liaisons entre plaques et retrouve R2 sur la deuxième.",
+    accent: "mint",
+  },
+  {
+    id: "subtractor",
+    number: "11",
     title: "Faire compter les transistors",
     category: "Logique",
     duration: "10 min",
@@ -217,6 +230,20 @@ function ExperimentDrawing({ id }: { id: string }) {
             </text>
             <text x="159" y="85">
               2,5 V
+            </text>
+          </>
+        )}
+        {id === "two_boards" && (
+          <>
+            <rect x="27" y="22" width="82" height="50" rx="5" />
+            <rect x="169" y="22" width="82" height="50" rx="5" />
+            <path d="M40 35H95M40 59H95M181 35H237M181 59H237" opacity=".4" />
+            <path d="M80 35V12H198V35M94 59V82H181V59" />
+            <text x="65" y="51" textAnchor="middle">
+              01
+            </text>
+            <text x="211" y="51" textAnchor="middle">
+              02
             </text>
           </>
         )}

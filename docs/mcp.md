@@ -85,3 +85,5 @@ Documentation officielle consultée : [SDK Python MCP — exécuter un serveur](
 
 
 Les transactions partagent aussi les extensions de l’atelier : `set_position` pour le potentiomètre, `set_waveform` pour les créneaux typés et `set_wire_style` pour la couleur/les points de passage. Le tracé du fil est visuel ; le curseur et le signal modifient l’empreinte électrique. Les trois modèles DEL sont accessibles via `set_model`. Lire le catalogue et la révision avant toute modification ; aucune directive SPICE libre n’est acceptée.
+
+Le pont expose aussi `parameter_sweep`, `project_library_list`, `project_library_save` et `project_library_load`. La bibliothèque reste celle du service local. Les transactions `set_board_count` créent jusqu’à quatre plaques ; les trous hors première plaque sont préfixés (`2:a1`). Transférer un corps demande une transaction groupant toutes ses pattes, pour éviter un composant réparti entre plaques.

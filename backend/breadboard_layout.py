@@ -14,6 +14,10 @@ _AXIAL = {"resistor", "diode"}
 
 
 def _hole_position(hole: str) -> tuple[float, float]:
+    if ":" in hole:
+        board, local = hole.split(":", 1)
+        x, y = _hole_position(local)
+        return (x + (int(board) - 1) * 1000, y)
     rail = re.fullmatch(r"rail_(top|bottom)_([pn])(\d+)", hole)
     if rail:
         return (58 + (int(rail[3]) - 1) * 23, (32 if rail[1] == "top" else 290) + (17 if rail[2] == "n" else 0))
@@ -31,8 +35,8 @@ def _partition(topo: dict) -> set[frozenset[str]]:
 def plan_breadboard_layout(project: dict) -> dict:
     """Retourne une copie complète implantée ; l'entrée n'est jamais modifiée.
 
-    Douze emplacements sont volontairement réservés pour garder des corps et
-    étiquettes lisibles sur une plaque de trente colonnes. Toute impossibilité
+    Douze emplacements par plaque sont réservés pour garder des corps et
+    étiquettes lisibles sur chaque plaque de trente colonnes. Toute impossibilité
     rejette l'ensemble du plan, sans implantation partielle.
     """
     from .domain import breadboard_groups, topology
@@ -42,14 +46,15 @@ def plan_breadboard_layout(project: dict) -> dict:
     candidate = deepcopy(project)
     parts = [comp for comp in candidate["components"] if comp["kind"] not in _EXTERNAL]
     external = [comp for comp in candidate["components"] if comp["kind"] in _EXTERNAL]
-    if len(parts) > 12:
+    count = candidate["breadboard"].get("board_count", 1)
+    if len(parts) > 12 * count:
         raise ValueError(
-            f"Implantation impossible sur cette plaque : {len(parts)} composants dépassent les 12 emplacements pédagogiques espacés. "
-            "Utilisez plusieurs plaques ou un circuit plus petit ; aucune implantation partielle n'a été appliquée."
+            f"Implantation impossible sur cette plaque : {len(parts)} composants dépassent les {12 * count} emplacements pédagogiques espacés. "
+            "Pour utiliser plusieurs plaques, ajoutez-en jusqu’à quatre au total ; au-delà de la capacité automatique, implantez manuellement ou utilisez un circuit plus petit. Aucune implantation partielle n'a été appliquée."
         )
 
     split = candidate["breadboard"]["rail_splits"]
-    groups = breadboard_groups(split)
+    groups = breadboard_groups(split, count)
     group_of = {hole: index for index, group in enumerate(groups) for hole in group}
     owners: dict[int, str] = {}
     placements: dict[str, str] = {}
@@ -72,7 +77,9 @@ def plan_breadboard_layout(project: dict) -> dict:
     ))
     for index, comp in enumerate(parts):
         base = 1 + (index % 6) * 5
-        row = "c" if index < 6 else "h"
+        row = "c" if index % 12 < 6 else "h"
+        board = index // 12 + 1
+        prefix = f"{board}:" if board > 1 else ""
         if comp["kind"] in ("npn", "pnp", "potentiometer"):
             # Trois bornes pédagogiques sur trois bandes distinctes ; aucun
             # boîtier constructeur n'est déduit de cette affectation.
@@ -82,7 +89,7 @@ def plan_breadboard_layout(project: dict) -> dict:
             names = list(comp["pins"])
             columns = {names[0]: base, names[1]: base + 3}
             footprint_kind = "axial" if comp["kind"] in _AXIAL else "radial"
-        holes = {name: f"{row}{column}" for name, column in columns.items()}
+        holes = {name: f"{prefix}{row}{column}" for name, column in columns.items()}
         for name, hole in holes.items():
             put(comp["pins"][name], hole)
         footprints[comp["id"]] = {"kind": footprint_kind, "pins": holes, "package": "pedagogical", "orientation": "horizontal"}
@@ -93,7 +100,7 @@ def plan_breadboard_layout(project: dict) -> dict:
     for comp in external:
         for terminal in comp["pins"].values():
             external_by_net[before_nets[terminal]].append(terminal)
-    rail_indices = [index for index, group in enumerate(groups) if group[0].startswith("rail_")]
+    rail_indices = [index for index, group in enumerate(groups) if group[0].split(":")[-1].startswith("rail_")]
     available_rails = set(rail_indices)
     for net, terminals in sorted(external_by_net.items(), key=lambda item: (item[0] != "0", item[0])):
         preferred_polarity = "_n" if net == "0" else "_p"
@@ -114,7 +121,7 @@ def plan_breadboard_layout(project: dict) -> dict:
 
     # Les jonctions sont des points de raccordement, pas des boîtiers. Réutiliser
     # les bandes de leur réseau ; à défaut, réserver une nouvelle bande libre.
-    strip_indices = [index for index, group in enumerate(groups) if not group[0].startswith("rail_")]
+    strip_indices = [index for index, group in enumerate(groups) if not group[0].split(":")[-1].startswith("rail_")]
     for junction in candidate["junctions"]:
         terminal = junction["id"]
         net = before_nets[terminal]
@@ -167,5 +174,5 @@ def plan_breadboard_layout(project: dict) -> dict:
         "external_count": len(external), "added_jumpers": added,
         "note": "Empreintes pédagogiques à bornes explicites ; vérifier le brochage constructeur du composant réel. Les rails coupés ne sont reliés que par les fils explicites du circuit.",
     }
-    candidate["breadboard_note"] = "Implantation pédagogique sur une plaque : composants espacés, sources et sondes externes, liaisons par jumpers rigides. Le brochage réel et le montage physique restent à vérifier."
+    candidate["breadboard_note"] = f"Implantation pédagogique sur {count} plaque(s) : composants espacés, sources et sondes externes, liaisons par jumpers rigides. Le brochage réel et le montage physique restent à vérifier."
     return candidate

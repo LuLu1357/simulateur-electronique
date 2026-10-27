@@ -8,6 +8,7 @@ import {
   MousePointer2,
   Maximize2,
   RotateCw,
+  Plus,
   X,
 } from "lucide-react";
 import type { Component, Op, Project, Simulation, State } from "../types";
@@ -19,7 +20,9 @@ import {
   adjacentBoardHole,
   boardGroup,
   boardHolePoint,
-  boardHoles,
+  boardHolesOnBoard,
+  boardNumber,
+  holeOnBoard,
   defaultFootprint,
   externalComponent,
   ledVisualState,
@@ -117,7 +120,17 @@ export function BreadboardView(props: BreadboardViewProps) {
     act,
   } = props;
   const project = state.project;
-  const placements = project.breadboard.placements;
+  const boardCount = project.breadboard.board_count || 1;
+  const [activeBoard, setActiveBoard] = useState(1);
+  const allPlacements = project.breadboard.placements;
+  const placements = Object.fromEntries(
+    Object.entries(allPlacements).filter(
+      ([, hole]) => boardNumber(hole) === activeBoard,
+    ),
+  );
+  const localHole = (hole: string) => holeOnBoard(hole, activeBoard);
+  const snapActiveHole = (x: number, y: number, maxDistance = 18) =>
+    snapBoardHole(x, y, maxDistance, activeBoard);
   const svgRef = useRef<SVGSVGElement>(null);
   const suppressClick = useRef(false);
   const capturedPointer = useRef<{ element: SVGElement; id: number } | null>(
@@ -151,7 +164,15 @@ export function BreadboardView(props: BreadboardViewProps) {
     setPaletteOver(false);
     setHoverHole(null);
     suppressClick.current = false;
-  }, [project.id, preview]);
+    setKeyboardHole(holeOnBoard("a1", activeBoard));
+  }, [project.id, preview, activeBoard]);
+  useEffect(() => {
+    setActiveBoard(1);
+    onBoardWire(null);
+  }, [project.id]);
+  useEffect(() => {
+    setActiveBoard((current) => Math.min(current, boardCount));
+  }, [boardCount]);
   const selected = project.ui.selected;
   const highlights = project.ui.highlights.filter(
     (id): id is string => typeof id === "string",
@@ -160,6 +181,14 @@ export function BreadboardView(props: BreadboardViewProps) {
   const activeComponent = project.components.find((c) =>
     selected.includes(c.id),
   );
+  useEffect(() => {
+    const hole =
+      activeComponent &&
+      Object.values(activeComponent.pins)
+        .map((pin) => allPlacements[pin])
+        .find(Boolean);
+    if (hole) setActiveBoard(boardNumber(hole));
+  }, [activeComponent?.id, project.id, preview]);
   const activePosition =
     (activeComponent as (Component & { position?: number }) | undefined)
       ?.position ?? 0.5;
@@ -185,11 +214,36 @@ export function BreadboardView(props: BreadboardViewProps) {
     onPosition(activeComponent.id, value);
   };
   const unplaced = project.components.filter((c) =>
-    Object.values(c.pins).some((pin) => !placements[pin]),
+    Object.values(c.pins).some((pin) => !allPlacements[pin]),
   );
   const hiddenWires = project.wires.filter(
-    (wire) => !placements[wire.a] || !placements[wire.b],
+    (wire) => !allPlacements[wire.a] || !allPlacements[wire.b],
   ).length;
+  const interboardWires = project.wires.filter(
+    (wire) =>
+      allPlacements[wire.a] &&
+      allPlacements[wire.b] &&
+      boardNumber(allPlacements[wire.a]) !== boardNumber(allPlacements[wire.b]),
+  );
+  const lastBoardOccupied = Object.values(allPlacements).some(
+    (hole) => boardNumber(hole) === boardCount,
+  );
+  const changeBoardCount = async (count: number) => {
+    setBusy(true);
+    try {
+      const next = await act([{ type: "set_board_count", count }]);
+      if (next) {
+        setActiveBoard(count);
+        onNotice(
+          count > boardCount
+            ? `Plaque ${count} ajoutée. Ses rails sont indépendants des autres plaques.`
+            : "Dernière plaque vide retirée.",
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
   const selectedNets = useMemo(
     () =>
       new Set(
@@ -277,7 +331,7 @@ export function BreadboardView(props: BreadboardViewProps) {
             current.anchor[1] + xy[1] - current.start[1],
           ]
         : xy;
-    const hole = snapBoardHole(anchor[0], anchor[1]);
+    const hole = snapActiveHole(anchor[0], anchor[1]);
     if (!hole)
       return rejected(
         "Aucun trou sous la patte : déplacement annulé, implantation conservée.",
@@ -388,7 +442,7 @@ export function BreadboardView(props: BreadboardViewProps) {
       const ops: Op[] = [];
       const stamp = `${Date.now().toString(36)}_${++jumperCounter.current}`;
       const endpoint = (target: string, suffix: string) => {
-        const existing = Object.entries(placements).find(
+        const existing = Object.entries(allPlacements).find(
           ([, occupied]) => occupied === target,
         );
         if (existing) return existing[0];
@@ -929,7 +983,7 @@ export function BreadboardView(props: BreadboardViewProps) {
                 ])
               }
             />
-            Rails coupés à 15
+            Rails coupés à 15{boardCount > 1 ? " · toutes les plaques" : ""}
           </label>
           <button
             disabled={disabled}
@@ -955,6 +1009,55 @@ export function BreadboardView(props: BreadboardViewProps) {
           </button>
         </div>
       </div>
+      <nav className="bb-board-tabs" aria-label="Plaques du circuit">
+        <div>
+          {Array.from({ length: boardCount }, (_, index) => index + 1).map(
+            (board) => (
+              <button
+                key={board}
+                aria-label={`Afficher la plaque ${board}`}
+                aria-pressed={activeBoard === board}
+                disabled={busy}
+                onClick={() => setActiveBoard(board)}
+              >
+                <CircuitBoard size={14} />
+                Plaque {board}
+                <small>
+                  {
+                    Object.values(allPlacements).filter(
+                      (hole) => boardNumber(hole) === board,
+                    ).length
+                  }{" "}
+                  bornes
+                </small>
+              </button>
+            ),
+          )}
+        </div>
+        <button
+          aria-label="Ajouter une breadboard"
+          disabled={disabled || boardCount >= 4}
+          title="Ajouter une plaque indépendante (4 maximum)"
+          onClick={() => void changeBoardCount(boardCount + 1)}
+        >
+          <Plus size={14} />
+          Ajouter
+        </button>
+        {boardCount > 1 && (
+          <button
+            aria-label="Retirer la dernière breadboard vide"
+            disabled={disabled || lastBoardOccupied}
+            title={
+              lastBoardOccupied
+                ? "Déplace ou retire d’abord les bornes de la dernière plaque"
+                : "Retirer la dernière plaque vide"
+            }
+            onClick={() => void changeBoardCount(boardCount - 1)}
+          >
+            <X size={14} />
+          </button>
+        )}
+      </nav>
       <div className="bb-instructions">
         <Hand size={17} />
         <p id="bb-board-instructions">
@@ -999,7 +1102,13 @@ export function BreadboardView(props: BreadboardViewProps) {
             }}
           >
             <Hand size={14} />
-            Placer l’ensemble
+            {Object.values(activeComponent.pins).some(
+              (pin) =>
+                allPlacements[pin] &&
+                boardNumber(allPlacements[pin]) !== activeBoard,
+            )
+              ? `Transférer sur la plaque ${activeBoard}`
+              : "Placer l’ensemble"}
           </button>
           {!externalComponent(activeComponent) && (
             <button
@@ -1117,7 +1226,13 @@ export function BreadboardView(props: BreadboardViewProps) {
           onSubmit={(event) => {
             event.preventDefault();
             void commit(
-              placeBoardPin(project, activePin, holeDraft.trim().toLowerCase()),
+              placeBoardPin(
+                project,
+                activePin,
+                holeDraft.includes(":")
+                  ? holeDraft.trim().toLowerCase()
+                  : localHole(holeDraft.trim().toLowerCase()),
+              ),
             );
           }}
         >
@@ -1187,7 +1302,7 @@ export function BreadboardView(props: BreadboardViewProps) {
             )
               return;
             const xy = point(event);
-            const hole = snapBoardHole(...xy);
+            const hole = snapActiveHole(...xy);
             setHoverHole(hole);
             if (drag)
               setDrag({
@@ -1226,7 +1341,7 @@ export function BreadboardView(props: BreadboardViewProps) {
             event.preventDefault();
             event.dataTransfer.dropEffect = trayDragId ? "move" : "copy";
             setPaletteOver(!trayDragId);
-            setHoverHole(snapBoardHole(...point(event)));
+            setHoverHole(snapActiveHole(...point(event)));
           }}
           onDragLeave={(event) => {
             if (
@@ -1242,7 +1357,7 @@ export function BreadboardView(props: BreadboardViewProps) {
             const id =
               trayDragId ||
               event.dataTransfer.getData("application/x-atelier-component");
-            const hole = snapBoardHole(...point(event));
+            const hole = snapActiveHole(...point(event));
             if (id && hole && project.components.some((c) => c.id === id))
               void commit(defaultFootprint(project, id, hole), id);
             else if (id && hole && onDropComponent && state.catalog[id])
@@ -1359,8 +1474,8 @@ export function BreadboardView(props: BreadboardViewProps) {
           )}
           {Array.from({ length: 30 }, (_, index) =>
             ["a", "f"].map((row) => {
-              const first = `${row}${index + 1}`,
-                end = `${row === "a" ? "e" : "j"}${index + 1}`;
+              const first = localHole(`${row}${index + 1}`),
+                end = localHole(`${row === "a" ? "e" : "j"}${index + 1}`);
               const net = state.topology.hole_to_net[first];
               const active = net && (net === hoverNet || selectedNets.has(net));
               return (
@@ -1375,7 +1490,7 @@ export function BreadboardView(props: BreadboardViewProps) {
               );
             }),
           )}
-          {boardHoles.map((hole) => {
+          {boardHolesOnBoard(activeBoard).map((hole) => {
             const xy = boardHolePoint(hole)!;
             const net = state.topology.hole_to_net[hole];
             const occupied = Object.entries(placements).find(
@@ -1540,6 +1655,47 @@ export function BreadboardView(props: BreadboardViewProps) {
                   ? hoverProposal.message
                   : "A–E d’une colonne sont reliés ; F–J forment un groupe distinct. Un déplacement peut créer ou supprimer une connexion physique."}
       </p>
+      {interboardWires.length > 0 && (
+        <details className="bb-interboard">
+          <summary>
+            <Link2 size={14} />
+            Liaisons entre plaques · {interboardWires.length}
+          </summary>
+          <div>
+            {interboardWires.map((wire) => {
+              const a = allPlacements[wire.a],
+                b = allPlacements[wire.b];
+              return (
+                <div
+                  key={wire.id}
+                  className={selected.includes(wire.id) ? "selected" : ""}
+                >
+                  <button onClick={() => onSelect(wire.id)}>
+                    {wire.id}
+                    <span>
+                      {wire.a} · plaque {boardNumber(a)} {a.split(":").at(-1)} ↔{" "}
+                      {wire.b} · plaque {boardNumber(b)} {b.split(":").at(-1)}
+                    </span>
+                  </button>
+                  <button
+                    aria-label={`Voir le fil ${wire.id} sur la plaque ${boardNumber(a) === activeBoard ? boardNumber(b) : boardNumber(a)}`}
+                    onClick={() => {
+                      setActiveBoard(
+                        boardNumber(a) === activeBoard
+                          ? boardNumber(b)
+                          : boardNumber(a),
+                      );
+                      onSelect(wire.id);
+                    }}
+                  >
+                    Voir l’autre plaque
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      )}
       {unplaced.length > 0 && (
         <div className="bb-unplaced">
           <h3>

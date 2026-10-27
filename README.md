@@ -1,6 +1,6 @@
 # Atelier Électronique
 
-Une application locale en français pour construire un circuit, l’éditer dans un schéma et une breadboard synchronisés, le calculer avec **ngspice**, et le faire inspecter ou modifier par un véritable client **MCP**.
+Une application locale en français pour construire un circuit, l’éditer dans un schéma et des breadboards synchronisés, le calculer avec **ngspice**, et le faire inspecter ou modifier par un véritable client **MCP**.
 
 ## Ouvrir l’application
 
@@ -48,6 +48,16 @@ Chaque point lance un véritable calcul **OP** sur une copie indépendante. Le c
 
 Les résultats restent visibles avec leur provenance quand le circuit change. Ce balayage ne fait pas d’analyse temporelle, de tolérances statistiques ou de validation physique : les condensateurs sont ouverts en OP et les autres sources à créneaux restent à leur niveau bas. Pour balayer une source, rétablis d’abord son mode continu.
 
+## Répartir un montage sur plusieurs plaques
+
+Le navigateur de plaques permet d’ajouter jusqu’à **quatre breadboards** indépendantes dans le même circuit. La première conserve les noms de trous habituels (`a1`) ; les suivantes portent un préfixe (`2:a1`, `3:a1`, `4:a1`). Un même nom local ou une même couleur de rail ne relie jamais deux plaques.
+
+Sélectionner un composant depuis le schéma retrouve sa plaque. Pour le transférer, choisis une autre plaque puis **Transférer sur la plaque…** et un trou : toutes ses pattes sont déplacées atomiquement, les fils restent attachés. Un corps physique ne peut pas être réparti entre deux plaques. Les sources, masses et sondes restent des raccordements externes pédagogiques.
+
+Le mode **Cavalier rigide** permet de choisir un trou, changer de plaque puis choisir l’autre extrémité. Le panneau **Liaisons entre plaques** retrouve ces fils sans les dessiner à tort sur des coordonnées locales superposées. Une plaque occupée ne peut pas être supprimée ; seule la dernière plaque vide peut être retirée. Le réglage de coupure des rails à la colonne 15 s’applique à toutes les plaques, dont les bandes restent indépendantes.
+
+**Implanter depuis le schéma** répartit jusqu’à douze composants par plaque en conservant tous les réseaux. L’aperçu permet de consulter chaque plaque avant d’appliquer le plan. Le soustracteur dépasse encore cette capacité automatique et ne prétend pas disposer d’une implantation physique complète. L’exemple **Deux plaques · un pont diviseur** fournit un montage directement vérifiable à 2,5 V.
+
 ## Garder plusieurs circuits
 
 **Mes circuits → Conserver une copie** enregistre un instantané indépendant dans la bibliothèque du service, avec sa date et son nombre de composants. Les **12 copies** survivent au redémarrage du serveur dans le même environnement. La bibliothèque est stockée dans `.runtime/projects.json`, séparément du circuit actif. À la limite, une nouvelle copie est refusée plutôt qu’une ancienne effacée.
@@ -66,7 +76,7 @@ Cliquer une borne puis une autre crée un fil. Une jonction explicite permet de 
 
 La breadboard est une vue plane : glisser le corps déplace toutes les pattes, glisser une patte la déplace seule. On peut aussi choisir une borne puis cliquer un trou, utiliser les flèches au clavier, ou saisir le nom du trou. **A–E** sont reliés par colonne, **F–J** constituent un autre groupe. Le canal central isole les deux côtés. Les quatre rails peuvent être coupés après la colonne 15. Une couleur de rail ne crée aucune connexion entre ses segments. **Cavalier rigide** relie deux trous par des jonctions et un fil du modèle, dessiné avec des angles droits. Une rotation qui réunirait des pattes auparavant séparées sur une même bande est refusée.
 
-**Implanter depuis le schéma** propose un placement espacé et prévisualisable, à appliquer ou annuler. Cette opération conserve tous les réseaux, y compris les connexions qui reposaient uniquement sur les bandes métalliques, en ajoutant les cavaliers nécessaires. Elle accueille jusqu’à 12 composants physiques sur cette plaque ; les alimentations, masses et sondes sont des raccordements externes. Déplacer ensuite un composant peut changer les contacts physiques : les bornes et les fils restent partagés entre les deux vues, mais les positions du schéma et de la plaque sont indépendantes.
+**Implanter depuis le schéma** propose un placement espacé et prévisualisable, à appliquer ou annuler. Cette opération conserve tous les réseaux, y compris les connexions qui reposaient uniquement sur les bandes métalliques, en ajoutant les cavaliers nécessaires. Elle accueille jusqu’à 12 composants physiques par plaque, sur 1 à 4 plaques ; les alimentations, masses et sondes sont des raccordements externes. Déplacer ensuite un composant peut changer les contacts physiques : les bornes et les fils restent partagés entre les deux vues, mais les positions du schéma et de la plaque sont indépendantes.
 
 Les bandes de breadboard participent réellement au calcul. Une liaison par une bande, sans fil explicite, apparaît en pointillés dans le schéma. Survoler un trou montre le réseau commun ; sélectionner un composant le retrouve dans les deux vues. Les modèles indiquent explicitement les bornes électriques et le brochage pédagogique : aucune silhouette n’est interprétée comme une fiche constructeur.
 
@@ -84,7 +94,7 @@ Les courants des composants proviennent du calcul ngspice. Pour un **fil idéal 
 
 ### Explorer et garder une trace
 
-Le bouton **Explorer les expériences** ouvre dix fiches illustrées : loi d’Ohm, pont diviseur, charge RC, diode, DEL, potentiomètre, créneaux RC, NPN, PNP et soustracteur. Chaque fiche propose une prédiction théorique et une modification à essayer. Les filtres permettent de choisir les premiers pas, les transistors ou la logique. Charger une expérience est annulable avec **Annuler** dans l’atelier.
+Le bouton **Explorer les expériences** ouvre onze fiches illustrées : loi d’Ohm, pont diviseur, charge RC, diode, DEL, potentiomètre, créneaux RC, NPN, PNP, montage sur deux plaques et soustracteur. Chaque fiche propose une prédiction théorique et une modification à essayer. Les filtres permettent de choisir les premiers pas, les transistors ou la logique. Charger une expérience est annulable avec **Annuler** dans l’atelier.
 
 La bibliothèque possède une recherche insensible aux accents et des filtres **Tous**, **Essentiels** et **Actifs**. Cliquer un composant l’ajoute au circuit.
 
@@ -92,7 +102,7 @@ Le **Carnet de labo**, accessible dans les résultats ou la barre latérale, con
 
 Les **12 captures les plus récentes**, tous projets confondus, restent dans ce navigateur. Elles sont distinctes du fichier projet et exportables en JSON. Si le stockage est indisponible, elles restent accessibles pendant la session et un message invite à les exporter. La suppression d’une capture libère sa place.
 
-Dix projets importables dans `examples/` : loi d’Ohm, diviseur, diode, DEL, potentiomètre, NPN, PNP, charge RC, créneaux RC et soustracteur 2 bits. L’exemple RC choisit une analyse temporelle ; les courbes peuvent être activées individuellement. Les tensions et les courants ont des graphes avec des échelles distinctes. Les mesures temporelles de l’inspecteur sont celles du dernier instant calculé.
+Onze projets importables dans `examples/` : loi d’Ohm, diviseur, diode, DEL, potentiomètre, NPN, PNP, charge RC, créneaux RC, diviseur sur deux plaques et soustracteur 2 bits. L’exemple RC choisit une analyse temporelle ; les courbes peuvent être activées individuellement. Les tensions et les courants ont des graphes avec des échelles distinctes. Les mesures temporelles de l’inspecteur sont celles du dernier instant calculé.
 
 L’oscilloscope possède un **curseur** à la souris, au toucher et au clavier (flèches, Début, Fin), avec lecture exacte des échantillons. Le zoom se centre sur ce curseur ; Réinitialiser retrouve toute la durée. L’export CSV contient tous les échantillons des courbes sélectionnées, même lorsque le graphe est zoomé. Les tensions et courants conservent des graphes séparés.
 
@@ -145,13 +155,13 @@ Résultats et preuves : [docs/VALIDATION.md](docs/VALIDATION.md), [rapport élec
 
 ## Limites actuelles
 
-- Boîtiers pédagogiques à bornes libres ; pas de contrainte mécanique de pas, d’encombrement ou d’orientation d’un véritable boîtier TO-92. Une seule breadboard, rail coupé uniquement au milieu.
+- Boîtiers pédagogiques à bornes libres ; pas de contrainte mécanique de pas, d’encombrement ou d’orientation d’un véritable boîtier TO-92. Jusqu’à quatre breadboards ; coupure des rails uniquement au milieu, réglage commun à toutes les plaques.
 - Routage orthogonal simple ; un grand schéma reste dense. Pas de bibliothèque constructeur importable, de sous-circuits repliables ou de modèle thermique.
 - Sources continues ou créneaux périodiques ; commutateurs statiques pendant une analyse, sans rebond de bouton ni programme de microcontrôleur. Le transitoire démarre par défaut avec condensateurs déchargés, hypothèse indiquée dans les résultats.
 - Point continu et transitoire ; animation symbolique des charges, sans calcul microscopique des électrons. Pas d’AC, d’analyse de tolérances ou d’oscilloscope déclenché.
 - Synchronisation UI/MCP par interrogation toutes les secondes ; un seul projet actif autorisé, un seul calcul à la fois. L’historique et les résultats ne survivent pas au redémarrage ; le circuit oui.
 - Limites moteur : 300 composants, 12 s par calcul, 8 s CPU, 512 Mio, fichier RAW 24 Mio, 6 000 points conservés, analyse jusqu’à 10 s avec au plus 5 900 intervalles demandés, 32 cas par table.
 
-Prochaines étapes : plusieurs plaques avec contraintes de boîtiers, sous-circuits pédagogiques, modèles constructeur documentés, autres formes de stimuli et microcontrôleurs. **Une simulation ne valide pas automatiquement un montage physique.**
+Prochaines étapes : contraintes de boîtiers constructeur, sous-circuits pédagogiques, modèles constructeur documentés, autres formes de stimuli et microcontrôleurs. **Une simulation ne valide pas automatiquement un montage physique.**
 
 Documentation officielle consultée pour cette intégration : [ngspice et manuel actuel](https://ngspice.sourceforge.io/docs.html), [mode batch](https://nmg.gitlab.io/ngspice-manual/analysesandoutputcontrol_batchmode.html), [SDK MCP Python et transports](https://py.sdk.modelcontextprotocol.io/run/).

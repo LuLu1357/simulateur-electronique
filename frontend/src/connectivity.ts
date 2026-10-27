@@ -22,13 +22,17 @@ export function boardLinks(p: Project) {
   for (const g of grounds.slice(1)) join(grounds[0], g);
   const groups = new Map<string, string[]>();
   for (const [terminal, hole] of Object.entries(p.breadboard.placements)) {
-    const matrix = /^([a-j])(\d+)$/.exec(hole);
-    const rail = /^rail_(top|bottom)_([pn])(\d+)$/.exec(hole);
-    const group = matrix
+    const separator = hole.indexOf(":");
+    const prefix = separator >= 0 ? hole.slice(0, separator + 1) : "";
+    const local = separator >= 0 ? hole.slice(separator + 1) : hole;
+    const matrix = /^([a-j])(\d+)$/.exec(local);
+    const rail = /^rail_(top|bottom)_([pn])(\d+)$/.exec(local);
+    const localGroup = matrix
       ? `${matrix[1] < "f" ? "AE" : "FJ"}${matrix[2]}`
       : rail
         ? `${rail[1]}_${rail[2]}_${p.breadboard.rail_splits && Number(rail[3]) > 15 ? 2 : 1}`
-        : hole;
+        : local;
+    const group = prefix + localGroup;
     groups.set(group, [...(groups.get(group) || []), terminal]);
   }
   const links: { a: string; b: string; group: string }[] = [];

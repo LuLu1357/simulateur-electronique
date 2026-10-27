@@ -26,13 +26,31 @@ export type PlacementProposal = {
 
 export function parseBoardHole(
   hole: string,
-): { row: string; column: number } | null {
-  const matched = /^(rail_(?:top|bottom)_[pn]|[a-j])(\d+)$/.exec(hole);
+): { row: string; column: number; board?: number } | null {
+  const prefix = /^([2-4]):(.+)$/.exec(hole);
+  const local = prefix ? prefix[2] : hole;
+  const matched = /^(rail_(?:top|bottom)_[pn]|[a-j])(\d+)$/.exec(local);
   if (!matched) return null;
   const column = Number(matched[2]);
   return column >= 1 && column <= 30 && String(column) === matched[2]
-    ? { row: matched[1], column }
+    ? {
+        row: matched[1],
+        column,
+        ...(prefix ? { board: Number(prefix[1]) } : {}),
+      }
     : null;
+}
+
+export function boardNumber(hole: string): number {
+  return parseBoardHole(hole)?.board || 1;
+}
+export function holeOnBoard(local: string, board = 1): string {
+  return board === 1
+    ? local.replace(/^[2-4]:/, "")
+    : `${board}:${local.replace(/^[2-4]:/, "")}`;
+}
+export function boardHolesOnBoard(board = 1): string[] {
+  return boardHoles.map((hole) => holeOnBoard(hole, board));
 }
 
 export function boardHolePoint(hole: string): BoardPoint | null {
@@ -55,6 +73,7 @@ export function snapBoardHole(
   x: number,
   y: number,
   maxDistance = 18,
+  board = 1,
 ): string | null {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   let closest: string | null = null;
@@ -67,15 +86,16 @@ export function snapBoardHole(
       distance = candidate;
     }
   }
-  return closest;
+  return closest ? holeOnBoard(closest, board) : null;
 }
 
 export function boardGroup(hole: string, splitRails = true): string | null {
   const parsed = parseBoardHole(hole);
   if (!parsed) return null;
-  return parsed.row.startsWith("rail_")
+  const group = parsed.row.startsWith("rail_")
     ? `${parsed.row}_${splitRails && parsed.column > 15 ? "right" : "left"}`
     : `${parsed.row < "f" ? "AE" : "FJ"}${parsed.column}`;
+  return parsed.board ? `${parsed.board}:${group}` : group;
 }
 
 export function orderedPins(component: Component): [string, string][] {
@@ -123,6 +143,7 @@ export function placementOperations(placements: Record<string, string>): Op[] {
 }
 
 export type BodyBounds = {
+  board?: number;
   left: number;
   right: number;
   top: number;
@@ -134,6 +155,10 @@ export function componentBodyBounds(
   locations: Record<string, string>,
 ): BodyBounds | null {
   if (externalComponent(component)) return null;
+  const bounds = (value: BodyBounds): BodyBounds => ({
+    ...value,
+    board: boardNumber(locations[orderedPins(component)[0]?.[1]] || ""),
+  });
   const pins = orderedPins(component).map(([, pin]) =>
     boardHolePoint(locations[pin] || ""),
   );
@@ -146,13 +171,33 @@ export function componentBodyBounds(
   const cx = (minX + maxX) / 2,
     cy = (minY + maxY) / 2;
   if (["npn", "pnp"].includes(component.kind))
-    return { left: cx - 31, right: cx + 31, top: minY - 43, bottom: minY - 16 };
+    return bounds({
+      left: cx - 31,
+      right: cx + 31,
+      top: minY - 43,
+      bottom: minY - 16,
+    });
   if (component.kind === "led")
-    return { left: cx - 16, right: cx + 16, top: minY - 39, bottom: minY - 7 };
+    return bounds({
+      left: cx - 16,
+      right: cx + 16,
+      top: minY - 39,
+      bottom: minY - 7,
+    });
   if (component.kind === "potentiometer")
-    return { left: cx - 30, right: cx + 30, top: minY - 57, bottom: minY - 7 };
+    return bounds({
+      left: cx - 30,
+      right: cx + 30,
+      top: minY - 57,
+      bottom: minY - 7,
+    });
   if (component.kind === "capacitor")
-    return { left: cx - 17, right: cx + 17, top: cy - 17, bottom: cy + 17 };
+    return bounds({
+      left: cx - 17,
+      right: cx + 17,
+      top: cy - 17,
+      bottom: cy + 17,
+    });
   const a = points[0],
     b = points[1] || a;
   const angle = Math.atan2(b[1] - a[1], b[0] - a[0]);
@@ -165,7 +210,12 @@ export function componentBodyBounds(
   const dy =
     Math.abs(Math.sin(angle)) * halfWidth +
     Math.abs(Math.cos(angle)) * halfHeight;
-  return { left: cx - dx, right: cx + dx, top: cy - dy, bottom: cy + dy };
+  return bounds({
+    left: cx - dx,
+    right: cx + dx,
+    top: cy - dy,
+    bottom: cy + dy,
+  });
 }
 
 export function validatePlacement(
@@ -175,7 +225,10 @@ export function validatePlacement(
   const moving = new Set(Object.keys(placements));
   const targets = new Set<string>();
   for (const [terminal, hole] of Object.entries(placements)) {
-    if (!boardHolePoint(hole))
+    if (
+      !boardHolePoint(hole) ||
+      boardNumber(hole) > (project.breadboard.board_count || 1)
+    )
       return rejected(
         `${terminal} sortirait de la plaque : déplacement refusé.`,
       );
@@ -195,6 +248,17 @@ export function validatePlacement(
     Object.values(component.pins).some((pin) => moving.has(pin)),
   );
   for (const component of movingComponents) {
+    if (
+      !externalComponent(component) &&
+      new Set(
+        Object.values(component.pins)
+          .filter((pin) => combined[pin])
+          .map((pin) => boardNumber(combined[pin])),
+      ).size > 1
+    )
+      return rejected(
+        `Pour changer de plaque, transfère ${component.id} en entier avec « Placer l’ensemble ».`,
+      );
     const body = componentBodyBounds(component, combined);
     if (!body) continue;
     if (
@@ -209,6 +273,7 @@ export function validatePlacement(
       const obstacle = componentBodyBounds(other, combined);
       if (
         obstacle &&
+        (obstacle.board || 1) === (body.board || 1) &&
         body.left < obstacle.right &&
         body.right > obstacle.left &&
         body.top < obstacle.bottom &&
@@ -269,7 +334,12 @@ export function translateFootprint(
   const proposed: Record<string, string> = {};
   for (const [, terminal] of pins) {
     const point = boardHolePoint(project.breadboard.placements[terminal])!;
-    const hole = snapBoardHole(point[0] + dx, point[1] + dy, 0.1);
+    const hole = snapBoardHole(
+      point[0] + dx,
+      point[1] + dy,
+      0.1,
+      boardNumber(targetAnchorHole),
+    );
     if (!hole)
       return rejected(
         "Le corps ne tient pas à cet endroit : une patte ne rejoindrait aucun trou. Aucun déplacement appliqué.",
@@ -298,14 +368,20 @@ export function defaultFootprint(
       pins.length === 2
     ) {
       const row = anchor.row.replace(/_[pn]$/, index === 0 ? "_p" : "_n");
-      proposed[terminal] = `${row}${anchor.column}`;
+      proposed[terminal] = holeOnBoard(
+        `${row}${anchor.column}`,
+        anchor.board || 1,
+      );
     } else {
       const stride = ["npn", "pnp", "potentiometer", "led"].includes(
         component.kind,
       )
         ? 1
         : 3;
-      proposed[terminal] = `${anchor.row}${anchor.column + index * stride}`;
+      proposed[terminal] = holeOnBoard(
+        `${anchor.row}${anchor.column + index * stride}`,
+        anchor.board || 1,
+      );
     }
   }
   const proposal = validatePlacement(project, proposed);
@@ -368,7 +444,7 @@ export function adjacentBoardHole(
   const row = (BOARD.rows as readonly string[]).indexOf(parsed.row) + dy;
   const column = parsed.column + dx;
   return row >= 0 && row < BOARD.rows.length && column >= 1 && column <= 30
-    ? `${BOARD.rows[row]}${column}`
+    ? holeOnBoard(`${BOARD.rows[row]}${column}`, parsed.board || 1)
     : null;
 }
 
@@ -401,6 +477,7 @@ export function rotateFootprint(
       pivot[0] + dx * Math.cos(angle) - dy * Math.sin(angle),
       pivot[1] + dx * Math.sin(angle) + dy * Math.cos(angle),
       0.1,
+      boardNumber(project.breadboard.placements[pins[0]?.[1]] || ""),
     );
     if (!hole)
       return rejected(

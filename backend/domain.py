@@ -194,17 +194,29 @@ class _UnionFind:
             self.parent[max(ra, rb)] = min(ra, rb)
 
 
-def breadboard_groups(rail_splits: bool = True) -> list[list[str]]:
+def breadboard_groups(rail_splits: bool = True, board_count: int = 1) -> list[list[str]]:
+    if type(board_count) is not int or not 1 <= board_count <= 4:
+        raise ValueError("Le circuit accepte de 1 à 4 breadboards.")
     groups = [[f"{row}{col}" for row in side] for col in range(1, 31) for side in ("abcde", "fghij")]
     for position in ("top", "bottom"):
         for polarity in ("p", "n"):
             ranges = ((1, 16), (16, 31)) if rail_splits else ((1, 31),)
             groups.extend([[f"rail_{position}_{polarity}{col}" for col in range(start, stop)] for start, stop in ranges])
-    return groups
+    return [[hole if board == 1 else f"{board}:{hole}" for hole in group] for board in range(1, board_count + 1) for group in groups]
 
 
-def _holes() -> set[str]:
-    return {hole for group in breadboard_groups() for hole in group}
+def _board_count(project: dict) -> int:
+    board = project.get("breadboard")
+    if not isinstance(board, dict):
+        raise ValueError("Configuration de breadboard invalide.")
+    count = board.get("board_count", 1)
+    if type(count) is not int or not 1 <= count <= 4:
+        raise ValueError("Le circuit accepte de 1 à 4 breadboards.")
+    return count
+
+
+def _holes(board_count: int = 1) -> set[str]:
+    return {hole for group in breadboard_groups(board_count=board_count) for hole in group}
 
 
 def topology(project: dict) -> dict:
@@ -215,12 +227,13 @@ def topology(project: dict) -> dict:
     points = terminals | junctions
     for point in points:
         uf.find(point)
-    groups = breadboard_groups(project.get("breadboard", {}).get("rail_splits", True))
+    groups = breadboard_groups(project.get("breadboard", {}).get("rail_splits", True), _board_count(project))
+    known_holes = {hole for group in groups for hole in group}
     for group in groups:
         for hole in group:
             uf.join(group[0], hole)
     for terminal, hole in project.get("breadboard", {}).get("placements", {}).items():
-        if terminal in points and hole in _holes():
+        if terminal in points and hole in known_holes:
             uf.join(terminal, hole)
     for wire in project.get("wires", []):
         if wire["a"] in points and wire["b"] in points:
@@ -247,7 +260,7 @@ def topology(project: dict) -> dict:
             name = explicit[0] if explicit else ("Masse · 0 V" if nid == "0" else anchor)
             nets.append({"id": nid, "name": name, "points": logical, "terminals": sorted(set(logical) & terminals), "holes": sorted(set(all_points) - points)})
     terminal_to_net = {point: root_to_net[uf.find(point)] for point in sorted(points)}
-    hole_to_net = {hole: root_to_net[uf.find(hole)] for hole in sorted(_holes())}
+    hole_to_net = {hole: root_to_net[uf.find(hole)] for hole in sorted(known_holes)}
     return {"nets": nets, "terminal_to_net": terminal_to_net, "hole_to_net": hole_to_net}
 
 
@@ -429,10 +442,11 @@ def validate_project(project: dict) -> dict:
         _make_component(kind, cid, comp["value"], comp["label"], comp.get("model"), comp.get("waveform"))
     if ids & terminals:
         raise ValueError("Un identifiant de composant entre en collision avec une borne.")
+    count = _board_count(project)
     junction_ids = set()
     for junction in project["junctions"]:
         jid = _identifier(junction.get("id"))
-        if jid in _holes():
+        if jid in _holes(count):
             raise ValueError("Un identifiant de jonction ne peut pas être celui d’un trou de breadboard.")
         if jid in ids or jid in terminals:
             raise ValueError(f"Identifiant dupliqué : {jid}.")
@@ -467,10 +481,17 @@ def validate_project(project: dict) -> dict:
     board = project.get("breadboard")
     if not isinstance(board, dict) or not isinstance(board.get("placements"), dict) or not isinstance(board.get("rail_splits"), bool):
         raise ValueError("Configuration de breadboard invalide.")
-    holes = _holes()
+    holes = _holes(count)
     for terminal, hole in board["placements"].items():
         if not isinstance(terminal, str) or not isinstance(hole, str) or terminal not in terminals | junction_ids or hole not in holes:
             raise ValueError(f"Placement breadboard invalide : {terminal} → {hole}.")
+    for component in project["components"]:
+        if component["kind"] in ("voltage_source", "ground", "voltage_probe", "current_probe"):
+            continue
+        locations = [board["placements"][pin] for pin in component["pins"].values() if pin in board["placements"]]
+        boards = {hole.split(":", 1)[0] if ":" in hole else "1" for hole in locations}
+        if len(boards) > 1:
+            raise ValueError(f"Les pattes de {component['id']} doivent rester sur la même plaque. Transférer le composant entier.")
     if len(set(board["placements"].values())) != len(board["placements"]):
         raise ValueError("Deux bornes ne peuvent pas occuper le même trou ; employer deux trous de la même bande.")
     footprints = board.get("footprints", {})
@@ -652,7 +673,7 @@ class Store:
                             | {wire['id'] for wire in candidate['wires']}
                             | {junction['id'] for junction in candidate['junctions']}
                             | {net['id'] for net in topology(candidate)['nets']}
-                            | _holes()
+                            | _holes(_board_count(candidate))
                         )
                         value = [identifier for identifier in value if identifier in known]
                     candidate['ui'][field] = value
@@ -770,7 +791,7 @@ class Store:
             project["wires"] = [w for w in project["wires"] if w["id"] != op["id"]]
         elif kind == "add_junction":
             jid = _identifier(op.get("id") or fresh("J"))
-            if jid in _holes():
+            if jid in _holes(_board_count(project)):
                 raise ValueError("Un identifiant de jonction ne peut pas être celui d’un trou de breadboard.")
             if jid in all_ids or jid in terminals:
                 raise ValueError("Identifiant de jonction déjà utilisé.")
@@ -796,7 +817,7 @@ class Store:
                 raise ValueError("Borne ou jonction absente.")
             if hole is None:
                 project["breadboard"]["placements"].pop(terminal, None)
-            elif hole not in _holes():
+            elif hole not in _holes(_board_count(project)):
                 raise ValueError("Trou de breadboard inconnu.")
             else:
                 occupied = {h: t for t, h in project["breadboard"]["placements"].items() if t != terminal}
@@ -852,6 +873,13 @@ class Store:
             if not isinstance(op.get("title"), str) or not 1 <= len(op["title"].strip()) <= 200:
                 raise ValueError("Titre de 1 à 200 caractères requis.")
             project["title"] = op["title"].strip()
+        elif kind == "set_board_count":
+            count = op.get("count")
+            if type(count) is not int or not 1 <= count <= 4:
+                raise ValueError("Le circuit accepte de 1 à 4 breadboards.")
+            if any((int(hole.split(":", 1)[0]) if ":" in hole else 1) > count for hole in project["breadboard"]["placements"].values()):
+                raise ValueError("Cette plaque porte encore des bornes. Déplacer ou retirer ses composants et cavaliers avant de la supprimer.")
+            project["breadboard"]["board_count"] = count
         elif kind == "set_rail_splits":
             if not isinstance(op.get("enabled"), bool):
                 raise ValueError("enabled doit être un booléen.")

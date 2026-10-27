@@ -563,6 +563,13 @@ function App() {
     (rawSim?.status === "success" ? rawSim.stale : state?.last_success?.stale)
   );
   const tn = state?.topology.terminal_to_net || {};
+  useEffect(() => {
+    if (!state) return;
+    if (pending && !state.topology.terminal_to_net[pending]) setPending(null);
+    if (pinToPlace && !state.topology.terminal_to_net[pinToPlace])
+      setPinToPlace("");
+    if (boardWire && !state.topology.hole_to_net[boardWire]) setBoardWire(null);
+  }, [state?.project.revision, pending, pinToPlace, boardWire]);
   const points = p ? pinPoints(p) : {};
   const movingPoints = new Set<string>();
   if (drag && p) {
@@ -1281,6 +1288,7 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   const loadExample = async (id: string, propagateError = false) => {
+    await mutationQueue.current;
     const current = stateRef.current;
     if (!current || busy || current.running) {
       if (propagateError)
@@ -1299,6 +1307,10 @@ function App() {
           "Le circuit a changé entre-temps. Réessaie de charger l’expérience.",
         );
       centerCircuit(next.project);
+      gestureCleanup.current?.();
+      setPointer(null);
+      setBoardWire(null);
+      setPinToPlace("");
       setTruth(null);
       configureAnalysis(next.project);
       setPending(null);

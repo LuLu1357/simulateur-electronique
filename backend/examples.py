@@ -130,6 +130,14 @@ def potentiometer() -> dict:
     return b.finish()
 
 
+def two_boards() -> dict:
+    project = divider()
+    project.update(id="demo_two_boards", title="Deux plaques · un pont diviseur", description="Deux résistances égales se partagent 5 V sur deux breadboards. Les rails et bandes des plaques restent indépendants ; les fils explicites réunissent la sortie et le retour à la masse.")
+    project["breadboard"]["board_count"] = 2
+    project["breadboard"]["placements"].update({"R2.p": "2:c5", "R2.n": "2:c9", "P1.p": "2:a5", "P1.n": "2:a9"})
+    return project
+
+
 def pulse_rc() -> dict:
     project = rc()
     project.update(id="demo_pulse_rc", title="Créneaux et RC · charger puis décharger", description="Une source alterne entre 0 et 5 V toutes les 6 ms, avec des fronts de 10 µs et un plateau haut de 3 ms. Le réseau 1 kΩ / 1 µF filtre ces créneaux : observer trois cycles de charge et de décharge, τ = 1 ms.")
@@ -187,4 +195,4 @@ def subtractor() -> dict:
 
 
 def example_projects() -> dict[str, dict]:
-    return {"ohm": ohm(), "divider": divider(), "diode": diode(), "npn": transistor(), "pnp": transistor(True), "rc": rc(), "led": led(), "potentiometer": potentiometer(), "pulse_rc": pulse_rc(), "subtractor": subtractor()}
+    return {"ohm": ohm(), "divider": divider(), "diode": diode(), "npn": transistor(), "pnp": transistor(True), "rc": rc(), "led": led(), "potentiometer": potentiometer(), "pulse_rc": pulse_rc(), "two_boards": two_boards(), "subtractor": subtractor()}
