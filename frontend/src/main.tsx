@@ -46,6 +46,7 @@ import {
   selectedInBox,
 } from "./editing";
 import { parseEngineeringValue } from "./units";
+import { downloadSvgView } from "./svgExport";
 import { createSimulationController } from "./simulationController";
 import {
   withMeasurements,
@@ -2913,6 +2914,30 @@ function App() {
                       onClick={() => centerCircuit()}
                     >
                       <Maximize2 size={13} />
+                    </button>
+                    <button
+                      title="Exporter la vue du schéma en SVG"
+                      aria-label="Exporter le schéma en SVG"
+                      disabled={!p}
+                      onClick={() => {
+                        if (svgRef.current && p) {
+                          try {
+                            downloadSvgView(
+                              svgRef.current,
+                              `Schéma — ${p.title}`,
+                              `Vue courante de l’Atelier Électronique. Projet ${p.title}, révision ${p.revision}. ${sim ? `Mesures ngspice de la révision ${sim.project_revision}${stale ? ", obsolètes" : ""}.` : "Aucune mesure calculée."} Animation symbolique omise. Une simulation ne valide pas un montage physique.`,
+                            );
+                            setNotice(
+                              "Schéma exporté en SVG autonome, avec la provenance des mesures.",
+                            );
+                          } catch (cause) {
+                            setError(String(cause));
+                          }
+                        }
+                      }}
+                    >
+                      <Download size={14} />
+                      <span>SVG</span>
                     </button>
                   </div>
                 </div>

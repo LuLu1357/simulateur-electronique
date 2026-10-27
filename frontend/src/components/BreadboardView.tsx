@@ -9,11 +9,13 @@ import {
   Maximize2,
   RotateCw,
   Plus,
+  Download,
   X,
 } from "lucide-react";
 import type { Component, Op, Project, Simulation, State } from "../types";
 import { format } from "../types";
 import { voltageColor } from "../visuals";
+import { downloadSvgView } from "../svgExport";
 import { FlowParticles } from "./FlowParticles";
 import {
   BOARD,
@@ -985,6 +987,30 @@ export function BreadboardView(props: BreadboardViewProps) {
             />
             Rails coupés à 15{boardCount > 1 ? " · toutes les plaques" : ""}
           </label>
+          <button
+            aria-label="Exporter la plaque en SVG"
+            title="Exporter la plaque affichée en SVG"
+            disabled={busy}
+            onClick={() => {
+              if (svgRef.current) {
+                try {
+                  downloadSvgView(
+                    svgRef.current,
+                    `Plaque ${activeBoard} — ${project.title}`,
+                    `Implantation pédagogique, plaque ${activeBoard} sur ${boardCount}, projet ${project.title}, révision ${project.revision}. ${preview ? "Prévisualisation non appliquée. " : ""}${simulation ? `Mesures ngspice de la révision ${simulation.project_revision}${stale ? ", obsolètes" : ""}.` : "Aucune mesure calculée."} Les liaisons vers d’autres plaques sont listées séparément dans l’application. Le brochage constructeur reste à vérifier.`,
+                  );
+                  onNotice(
+                    "Plaque exportée en SVG autonome. Les liaisons entre plaques restent indiquées dans l’application.",
+                  );
+                } catch (cause) {
+                  onError(String(cause));
+                }
+              }
+            }}
+          >
+            <Download size={14} />
+            SVG
+          </button>
           <button
             disabled={disabled}
             aria-label={

@@ -64,6 +64,10 @@ Le mode **Cavalier rigide** permet de choisir un trou, changer de plaque puis ch
 
 Ouvrir une copie remplace le circuit actif et reste annulable. Chaque copie peut être exportée sans l’ouvrir. Supprimer une copie ne modifie pas le circuit ouvert. Ces fichiers résident sur la machine qui exécute l’application : dans une session cloud, ils restent dans cet environnement ; aucune synchronisation GitHub ou publication externe n’est automatique. **Exporter** conserve une copie JSON transportable sur l’appareil de l’utilisateur.
 
+## Conserver une image du montage
+
+Le bouton **SVG** sous le schéma exporte la vue courante ; le bouton **SVG** de la breadboard exporte la plaque affichée. Les dessins conservent les styles, bornes et valeurs visibles dans un fichier vectoriel autonome, avec le titre du projet, la révision et la provenance des mesures. Les animations et poignées d’édition sont retirées. Les images de plaques sont distinctes : le schéma partagé et le panneau des liaisons restent les références pour les connexions entre plaques.
+
 ## Première expérience : vérifier la loi d’Ohm
 
 1. Ouvrir l’exemple **Loi d’Ohm · 5 V / 1 kΩ**. Les deux vues présentent le même modèle électrique.

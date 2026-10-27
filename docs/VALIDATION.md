@@ -19,6 +19,8 @@ Les derniers essais ciblent aussi la fluidité : douze changements de position d
 
 La version multi-plaques vérifie les 420 trous par plaque, l’indépendance des bandes/rails, les transferts atomiques, le refus de corps répartis entre plaques et de suppression d’une plaque occupée, ainsi que l’implantation automatique de treize composants sur deux plaques sans changement de réseaux. Les liaisons inter-plaques alimentent une vraie résistance à 5 mA ; le nouvel exemple de diviseur mesure 2,5 V. Les essais DOM/API vérifient aussi le dépôt sur la bonne plaque, la navigation, le transfert complet et les cavaliers entre plaques.
 
+L’export SVG est vérifié sur le véritable DOM de l’application : schéma et plaque sélectionnée produisent du XML valide, avec provenance et 420 trous ; les couches d’animation et de manipulation sont retirées, les références de marqueurs restent locales et les libellés spéciaux sont échappés. L’export ne modifie pas le circuit. Le rendu graphique de ces fichiers reste à contrôler dans un navigateur ou un éditeur vectoriel.
+
 ## Historique de validation initiale
 
 
