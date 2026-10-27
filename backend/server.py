@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from .domain import Store, catalog, circuit_fingerprint, new_project, topology, validate_topology
 from .examples import example_projects
 from .project_library import ProjectLibrary
+from .sweep import prepare_sweep, run_parameter_sweep
 from .simulation import run_truth_table, simulate
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -330,6 +331,23 @@ def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> F
         current = get_state()
         return {'simulation': current.get('simulation'), 'last_success': current.get('last_success'),
                 'truth_table': application.state.last_truth_table, 'running': application.state.running}
+
+    @application.post('/api/parameter-sweep')
+    async def parameter_sweep(request: Request, body: dict = Body(...)):
+        if set(body) - {'expected_revision', 'component_id', 'values', 'probe'}:
+            raise ValueError('Champs de balayage inconnus.')
+        expected = revision(body)
+        with state_store.lock:
+            if expected != state_store.project['revision']:
+                raise ValueError('Conflit de révision : relisez le circuit avant le balayage.')
+            project = copy.deepcopy(state_store.project)
+        component_id = body.get('component_id')
+        if not isinstance(component_id, str):
+            raise ValueError('Choisissez un composant à balayer.')
+        values = body.get('values')
+        probe = body.get('probe')
+        prepare_sweep(project, component_id, values, probe)
+        return await run_calculation(request, lambda event: run_parameter_sweep(project, component_id, values, probe, event), lambda result: None)
 
     @application.post('/api/truth-table')
     async def truth_table(request: Request, body: dict = Body(default={})):

@@ -40,6 +40,14 @@ Double-clique un fil pour ajouter un point de passage. Ses poignées se déplace
 
 Les valeurs acceptent les unités et préfixes : **4,7 kΩ**, **100 nF**, **1 µF**, **5 V**. Les préréglages accélèrent les essais. L’**Assistant de montage** repère les défauts topologiques démontrés et propose une action adaptée. Le **Calcul automatique**, facultatif, recalcule après une modification électrique ; il ne relance pas le moteur pour une sélection, une couleur ou un déplacement du schéma.
 
+## Explorer une plage de réglages
+
+L’onglet **Balayage** fait varier une résistance, la tension d’une source continue ou la position d’un potentiomètre. Choisis un départ, une arrivée, 2 à 16 points et les deux bornes de la mesure différentielle. L’espacement peut être linéaire ou logarithmique ; le logarithme exige des valeurs strictement positives.
+
+Chaque point lance un véritable calcul **OP** sur une copie indépendante. Le circuit actif et ses dernières mesures sont conservés. Le graphique peut montrer le courant entrant par P ou la tension différentielle ; les flèches permettent de parcourir les points et le CSV conserve leurs valeurs SI exactes. Les points qui n’ont pas convergé restent sans mesure et interrompent les segments du graphe. Le calcul est borné à 45 secondes et le bouton Arrêter interrompt la série.
+
+Les résultats restent visibles avec leur provenance quand le circuit change. Ce balayage ne fait pas d’analyse temporelle, de tolérances statistiques ou de validation physique : les condensateurs sont ouverts en OP et les autres sources à créneaux restent à leur niveau bas. Pour balayer une source, rétablis d’abord son mode continu.
+
 ## Garder plusieurs circuits
 
 **Mes circuits → Conserver une copie** enregistre un instantané indépendant dans la bibliothèque du service, avec sa date et son nombre de composants. Les **12 copies** survivent au redémarrage du serveur dans le même environnement. La bibliothèque est stockée dans `.runtime/projects.json`, séparément du circuit actif. À la limite, une nouvelle copie est refusée plutôt qu’une ancienne effacée.

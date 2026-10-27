@@ -69,3 +69,6 @@ Le serveur MCP peut être lancé par un client sans port entrant supplémentaire
 Les champs `wire.color` et `wire.waypoints` ne participent pas à l’empreinte électrique. `potentiometer.position` et `voltage_source.waveform`, eux, invalident les mesures. Les créneaux sont compilés depuis sept nombres contrôlés et une forme autorisée, jamais depuis une chaîne SPICE fournie par l’utilisateur.
 
 La bibliothèque serveur (`.runtime/projects.json`) conserve douze copies au maximum, distinctes du circuit actif. Les routes `/api/projects`, `/api/projects/save`, `/api/projects/load` et `/api/projects/delete` utilisent les mêmes contrôles d’origine et de jeton. Sauvegarde et chargement vérifient la révision ; le chargement passe par l’historique transactionnel. Un fichier illisible empêche toute écriture pour préserver les copies existantes.
+
+
+`backend/sweep.py` prévalide toutes les variantes puis effectue jusqu’à seize calculs OP sur des copies, avec annulation et échéance globale de 45 secondes. La route `/api/parameter-sweep` utilise le même verrou de calcul que les simulations et tables ; elle n’écrit pas dans les mesures du Store. `ParameterSweep.tsx` garde le rapport séparément du circuit et affiche sa provenance lorsque la signature électrique change. `sweep.ts` ne génère que les valeurs d’entrée et le CSV, sans calcul électrique de remplacement.

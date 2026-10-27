@@ -68,6 +68,8 @@ import { CircuitCoach } from "./components/CircuitCoach";
 import { SourceWaveform } from "./components/SourceWaveform";
 import { WireInspector } from "./components/WireInspector";
 import { ProjectLibrary } from "./components/ProjectLibrary";
+import { ParameterSweep } from "./components/ParameterSweep";
+import type { SweepReport, SweepRequest } from "./sweep";
 import { insertionFootprint } from "./breadboard";
 import { boardLinks, wirePath } from "./connectivity";
 import { colors, format, pinOffsets, pinPoints } from "./types";
@@ -344,6 +346,9 @@ function App() {
     [componentQuery, setComponentQuery] = useState(""),
     [componentCategory, setComponentCategory] = useState("all"),
     [truth, setTruth] = useState<Record<string, unknown> | null>(null),
+    [sweepReport, setSweepReport] = useState<
+      (SweepReport & { sourceSignature: string }) | null
+    >(null),
     [help, setHelp] = useState(false),
     [boardWire, setBoardWire] = useState<string | null>(null),
     [pinToPlace, setPinToPlace] = useState(""),
@@ -1303,6 +1308,37 @@ function App() {
     } catch (e) {
       if ((e as Error)?.name === "AbortError") setNotice("Essais interrompus.");
       else setError(String(e));
+    }
+  };
+  const runSweep = async (
+    request: SweepRequest,
+  ): Promise<SweepReport | null> => {
+    await mutationQueue.current;
+    const current = stateRef.current;
+    if (!current || !control.getSnapshot().canStart) return null;
+    const sourceSignature = electricalSignature(current.project);
+    setError("");
+    try {
+      const report = await control.start((signal) =>
+        api<SweepReport>(
+          "parameter-sweep",
+          { ...request, expected_revision: current.project.revision },
+          { signal },
+        ),
+      );
+      if (report) {
+        setSweepReport({ ...report, sourceSignature });
+        setNotice(
+          `${report.converged}/${report.total} points de balayage calculés. Le circuit actif est conservé.`,
+        );
+      }
+      await refresh();
+      return report || null;
+    } catch (cause) {
+      if ((cause as Error)?.name === "AbortError")
+        setNotice("Balayage interrompu. Le circuit actif est conservé.");
+      else setError(String(cause));
+      return null;
     }
   };
   const diags = [...(state?.diagnostics || []), ...(rawSim?.diagnostics || [])];
@@ -2952,6 +2988,7 @@ function App() {
                   ["measures", "Mesures", Activity],
                   ["scope", "Oscilloscope", Activity],
                   ["notebook", "Carnet de labo", NotebookPen],
+                  ["sweep", "Balayage", Settings2],
                   ["diagnostics", "Diagnostics", ShieldCheck],
                   ["truth", "Table de vérité", Workflow],
                   ["netlist", "Netlist", Copy],
@@ -3080,6 +3117,20 @@ function App() {
                 </div>
               )}
               {tab === "scope" && <Oscilloscope sim={sim} stale={stale} />}
+              {tab === "sweep" && state && (
+                <ParameterSweep
+                  state={state}
+                  busy={calculationBusy}
+                  onRun={runSweep}
+                  report={sweepReport}
+                  stale={
+                    !!sweepReport &&
+                    (sweepReport.project_id !== state.project.id ||
+                      sweepReport.sourceSignature !==
+                        electricalSignature(state.project))
+                  }
+                />
+              )}
               {tab === "notebook" && p && state && (
                 <NotebookPanel
                   project={p}
