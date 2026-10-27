@@ -2,7 +2,7 @@
 
 Cette session a vérifié le projet dans un environnement cloud Debian 13, Python 3.12.14, Node 24.19.0 et ngspice 47 extrait dans un répertoire de travail.
 
-- **252 tests Python et 102 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
+- **258 tests Python et 102 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
 - **139 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
 - **MCP réel**, SDK 2.3.0 / protocole 2026-07-28 : connexion, outils, transactions, conflits, annulation/rétablissement, mesure réelle de 2,5 mA et 16 cas du soustracteur réussis. Projet du serveur d’essai restauré ; serveur de test indépendant des données utilisateur.
 - **React + DOM et vraie API + ngspice**, sur un serveur isolé : saisie SI, sélection multiple, déplacement, duplication/suppression atomique, annulation de gestes, glisser-déposer vers le schéma et la plaque, modèles DEL, curseur du potentiomètre, calcul automatique dédoublonné et arrêt des répétitions après un échec.
@@ -14,6 +14,8 @@ Les vérifications DOM ne remplacent pas une revue visuelle dans un navigateur n
 Les tests du carnet vérifient aussi la compatibilité des anciennes captures, la provenance des modèles/curseurs/signaux, les mesures obsolètes et le stockage refusé. La bibliothèque serveur est testée face aux conflits de révision, fichiers corrompus, limites de capacité, erreurs d’écriture et identifiants de fichier non autorisés.
 
 Le balayage paramétrique est également vérifié : I(1 kΩ)=5 mA, I(2 kΩ)=2,5 mA, I(4 kΩ)=1,25 mA sous 5 V ; positions du potentiomètre 25/50/75 % donnant 3,75/2,5/1,25 V sans charge. Les tests confirment que le circuit actif et son résultat précédent restent strictement identiques après la série. L’intégration React/API contrôle le graphique, son clavier, le CSV, l’état d’obsolescence et l’export direct d’une copie sauvegardée.
+
+Les derniers essais ciblent aussi la fluidité : douze changements de position dans le schéma ne réexécutent pas le composant breadboard inchangé ; le zoom Ctrl/molette annule le zoom navigateur concurrent ; un pointeur secondaire ne peut déplacer, terminer ou annuler le geste principal. L’historique ignore les sélections et changements de vue, conserve Rétablir et retire proprement les sélections d’objets disparus lors d’une annulation.
 
 ## Historique de validation initiale
 

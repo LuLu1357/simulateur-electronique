@@ -45,7 +45,7 @@ La continuité est l’union des fils explicites, des bandes métalliques, des a
 
 ## Révision, transactions et résultats
 
-Une opération métier produit une copie candidate, applique toutes les opérations, valide l’ensemble puis remplace atomiquement l’état et le fichier sauvegardé. Le contrôle `expected_revision` refuse un écrasement concurrent. Une prévisualisation retourne le candidat sans modifier l’état ni son historique. Undo/redo conservent des révisions croissantes.
+Une opération métier produit une copie candidate, applique toutes les opérations, valide l’ensemble puis remplace atomiquement l’état et le fichier sauvegardé. Le contrôle `expected_revision` refuse un écrasement concurrent. Une prévisualisation retourne le candidat sans modifier l’état ni son historique. Undo/redo conservent des révisions croissantes. Les transactions uniquement `set_ui` restent synchronisées et versionnées, sans entrer dans l’historique ni vider Rétablir. Les choix de vue et sélections valides intervenus après une édition sont conservés lors de son annulation dans le même projet.
 
 L’empreinte électrique porte sur composants/valeurs/modèles/connexions/placements/coupures/conditions initiales. Les résultats conservent leur révision d’origine et cette empreinte. Une sélection ou une annotation peut changer la révision sans rendre les mesures obsolètes ; une modification électrique les rend obsolètes. Après annulation, des résultats ayant la même empreinte redeviennent utilisables.
 

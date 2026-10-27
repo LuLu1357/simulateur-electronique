@@ -10,7 +10,7 @@ Après installation, double-cliquez **lancer.command** sur macOS, ou lancez depu
 ./scripts/run.sh --open
 ```
 
-Adresse : **http://127.0.0.1:8765**. Le terminal reste ouvert pendant l’utilisation. `Ctrl+C` arrête le service. Les projets sont enregistrés automatiquement dans `.runtime/project.json` à chaque transaction réussie. Le bouton Sauvegarder réécrit ce fichier ; Exporter crée une copie JSON transportable. Une importation ou un chargement d’exemple est annulable pendant la session. L’historique des 100 dernières transactions reste en mémoire jusqu’à l’arrêt du service.
+Adresse : **http://127.0.0.1:8765**. Le terminal reste ouvert pendant l’utilisation. `Ctrl+C` arrête le service. Les projets sont enregistrés automatiquement dans `.runtime/project.json` à chaque transaction réussie. Le bouton Sauvegarder réécrit ce fichier ; Exporter crée une copie JSON transportable. Une importation ou un chargement d’exemple est annulable pendant la session. L’historique des 100 dernières éditions reste en mémoire jusqu’à l’arrêt du service. Les sélections, changements de vue et surlignages restent synchronisés sans ajouter d’étape Annuler ni effacer Rétablir.
 
 Le service n’écoute que sur la boucle locale. Les fichiers et simulations restent sur cet ordinateur. L’interface compilée fonctionne sans accès Internet et utilise les polices du système.
 

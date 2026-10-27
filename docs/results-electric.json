@@ -274,7 +274,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1076,
+        "elapsed_seconds": 0.0608,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -543,7 +543,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0876,
+        "elapsed_seconds": 0.0629,
         "expected_modulo_4": 3,
         "expected_borrow": 1,
         "observed_modulo_4": 3
@@ -812,7 +812,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1147,
+        "elapsed_seconds": 0.0624,
         "expected_modulo_4": 2,
         "expected_borrow": 1,
         "observed_modulo_4": 2
@@ -1081,7 +1081,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0767,
+        "elapsed_seconds": 0.0606,
         "expected_modulo_4": 1,
         "expected_borrow": 1,
         "observed_modulo_4": 1
@@ -1350,7 +1350,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1144,
+        "elapsed_seconds": 0.0616,
         "expected_modulo_4": 1,
         "expected_borrow": 0,
         "observed_modulo_4": 1
@@ -1619,7 +1619,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0978,
+        "elapsed_seconds": 0.0631,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -1888,7 +1888,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1024,
+        "elapsed_seconds": 0.0619,
         "expected_modulo_4": 3,
         "expected_borrow": 1,
         "observed_modulo_4": 3
@@ -2157,7 +2157,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0763,
+        "elapsed_seconds": 0.0628,
         "expected_modulo_4": 2,
         "expected_borrow": 1,
         "observed_modulo_4": 2
@@ -2426,7 +2426,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1115,
+        "elapsed_seconds": 0.064,
         "expected_modulo_4": 2,
         "expected_borrow": 0,
         "observed_modulo_4": 2
@@ -2695,7 +2695,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1436,
+        "elapsed_seconds": 0.0622,
         "expected_modulo_4": 1,
         "expected_borrow": 0,
         "observed_modulo_4": 1
@@ -2964,7 +2964,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0842,
+        "elapsed_seconds": 0.0628,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -3233,7 +3233,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0835,
+        "elapsed_seconds": 0.0625,
         "expected_modulo_4": 3,
         "expected_borrow": 1,
         "observed_modulo_4": 3
@@ -3502,7 +3502,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1003,
+        "elapsed_seconds": 0.063,
         "expected_modulo_4": 3,
         "expected_borrow": 0,
         "observed_modulo_4": 3
@@ -3771,7 +3771,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1188,
+        "elapsed_seconds": 0.0631,
         "expected_modulo_4": 2,
         "expected_borrow": 0,
         "observed_modulo_4": 2
@@ -4040,7 +4040,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.0999,
+        "elapsed_seconds": 0.0635,
         "expected_modulo_4": 1,
         "expected_borrow": 0,
         "observed_modulo_4": 1
@@ -4309,7 +4309,7 @@
             "targets": []
           }
         ],
-        "elapsed_seconds": 0.1225,
+        "elapsed_seconds": 0.0702,
         "expected_modulo_4": 0,
         "expected_borrow": 0,
         "observed_modulo_4": 0
@@ -4319,7 +4319,7 @@
     "total": 16,
     "completed": 16,
     "diagnostics": [],
-    "elapsed_seconds": 1.6975,
+    "elapsed_seconds": 1.0435,
     "time_limit_seconds": 60.0,
     "assumptions": [
       "Modèles génériques : diode Is=10 fA, N=1 ; BJT β nominal=100, VAF=100 V ; température 27 °C. Ce ne sont pas des modèles constructeur.",

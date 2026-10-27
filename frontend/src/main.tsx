@@ -77,6 +77,7 @@ import type { Component, Wire, Op, Project, State } from "./types";
 import "./style.css";
 import "./workbench.css";
 import "./editor.css";
+const StableBreadboardView = React.memo(BreadboardView);
 const kindNames: Record<string, string> = {
   resistor: "Résistance",
   voltage_source: "Source de tension",
@@ -628,16 +629,19 @@ function App() {
       : netColor(net);
   const animatedMode = stale ? "off" : flowMode;
   const voltage = (terminal: string) => sim?.voltages[tn[terminal] || terminal];
-  const select = (id: string, additive = false) =>
-    act((project) => {
-      const selection = project.ui.selected;
-      const next = additive
-        ? selection.includes(id)
-          ? selection.filter((item) => item !== id)
-          : [...selection, id]
-        : [id];
-      return [{ type: "set_ui", selected: next }];
-    });
+  const select = useCallback(
+    (id: string, additive = false) =>
+      act((project) => {
+        const selection = project.ui.selected;
+        const next = additive
+          ? selection.includes(id)
+            ? selection.filter((item) => item !== id)
+            : [...selection, id]
+          : [id];
+        return [{ type: "set_ui", selected: next }];
+      }),
+    [act],
+  );
   const clickPin = async (id: string) => {
     if (tool === "wire" || pending) {
       if (pending && pending !== id) {
@@ -674,20 +678,29 @@ function App() {
     move: (event: PointerEvent) => void,
     finish: (event: PointerEvent) => void,
     cancel: () => void,
+    pointerId?: number,
   ) => {
     gestureCleanup.current?.();
+    const owns = (event: PointerEvent) =>
+      pointerId === undefined || event.pointerId === pointerId;
+    const onMove = (event: PointerEvent) => {
+      if (owns(event)) move(event);
+    };
     const cleanup = () => {
-      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", abort);
       window.removeEventListener("blur", abort);
       gestureCleanup.current = null;
     };
     const up = (event: PointerEvent) => {
+      if (!owns(event)) return;
       cleanup();
       finish(event);
     };
-    const abort = () => {
+    const abort = (event: Event) => {
+      if (event.type === "pointercancel" && !owns(event as PointerEvent))
+        return;
       cleanup();
       cancel();
     };
@@ -695,10 +708,10 @@ function App() {
       cleanup();
       cancel();
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up, { once: true });
-    window.addEventListener("pointercancel", abort, { once: true });
-    window.addEventListener("blur", abort, { once: true });
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", abort);
+    window.addEventListener("blur", abort);
   };
   const duplicateSelection = () => {
     if (duplicating.current) return;
@@ -730,7 +743,13 @@ function App() {
     event: React.PointerEvent<SVGElement>,
     id: string,
   ) => {
-    if (tool !== "select" || event.button !== 0 || spacePressed.current) return;
+    if (
+      tool !== "select" ||
+      event.button !== 0 ||
+      event.isPrimary === false ||
+      spacePressed.current
+    )
+      return;
     event.stopPropagation();
     event.preventDefault();
     if (event.shiftKey || event.ctrlKey || event.metaKey) {
@@ -759,9 +778,11 @@ function App() {
           void act((project) => moveSelectionOperations(project, ids, dx, dy));
       },
       () => setDrag(null),
+      event.pointerId,
     );
   };
   const startCanvasGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.isPrimary === false) return;
     if (tool === "pan" || event.button === 1 || spacePressed.current) {
       event.preventDefault();
       const start = toSvg(event),
@@ -776,6 +797,7 @@ function App() {
         },
         () => {},
         () => setPan(initial),
+        event.pointerId,
       );
       return;
     }
@@ -824,88 +846,94 @@ function App() {
         ]);
       },
       () => setSelectionBox(null),
+      event.pointerId,
     );
   };
-  const addComponentAt = async (
-    kind: string,
-    point?: { x: number; y: number },
-    hole?: string,
-  ) => {
-    const current = stateRef.current;
-    const entry = current?.catalog[kind];
-    if (!current || !entry) return;
-    const prefix: Record<string, string> = {
-      resistor: "R",
-      voltage_source: "V",
-      switch: "S",
-      button: "B",
-      diode: "D",
-      led: "LED",
-      potentiometer: "RV",
-      npn: "Q",
-      pnp: "Q",
-      capacitor: "C",
-      ground: "G",
-      voltage_probe: "P",
-      current_probe: "I",
-    };
-    const occupied = new Set([
-      ...current.project.components.map((c) => c.id),
-      ...current.project.wires.map((w) => w.id),
-      ...current.project.junctions.map((j) => j.id),
-      ...current.project.components.flatMap((c) => Object.values(c.pins)),
-      ...reservedIds.current,
-    ]);
-    let suffix = 1;
-    while (occupied.has(`${prefix[kind] || "X"}${suffix}`)) suffix++;
-    const id = `${prefix[kind] || "X"}${suffix}`;
-    reservedIds.current.add(id);
-    const location = point || {
-      x: (450 - pan.x) / zoom,
-      y: (180 - pan.y) / zoom,
-    };
-    const component: Component = {
-      id,
-      kind,
-      label: id,
-      value: entry.default_value,
-      model: entry.models[0]?.id,
-      pins: Object.fromEntries(
-        entry.pins.map((pin) => [pin.name, `${id}.${pin.name}`]),
-      ),
-      ...(kind === "potentiometer" ? { position: 0.5 } : {}),
-    };
-    const operations: Op[] = [
-      {
-        type: "add_component",
-        kind,
+  const addComponentAt = useCallback(
+    async (kind: string, point?: { x: number; y: number }, hole?: string) => {
+      const current = stateRef.current;
+      const entry = current?.catalog[kind];
+      if (!current || !entry) return;
+      const prefix: Record<string, string> = {
+        resistor: "R",
+        voltage_source: "V",
+        switch: "S",
+        button: "B",
+        diode: "D",
+        led: "LED",
+        potentiometer: "RV",
+        npn: "Q",
+        pnp: "Q",
+        capacitor: "C",
+        ground: "G",
+        voltage_probe: "P",
+        current_probe: "I",
+      };
+      const occupied = new Set([
+        ...current.project.components.map((c) => c.id),
+        ...current.project.wires.map((w) => w.id),
+        ...current.project.junctions.map((j) => j.id),
+        ...current.project.components.flatMap((c) => Object.values(c.pins)),
+        ...reservedIds.current,
+      ]);
+      let suffix = 1;
+      while (occupied.has(`${prefix[kind] || "X"}${suffix}`)) suffix++;
+      const id = `${prefix[kind] || "X"}${suffix}`;
+      reservedIds.current.add(id);
+      const location = point || {
+        x: (450 - pan.x) / zoom,
+        y: (180 - pan.y) / zoom,
+      };
+      const component: Component = {
         id,
+        kind,
         label: id,
         value: entry.default_value,
-        x: Math.round(location.x / 10) * 10,
-        y: Math.round(location.y / 10) * 10,
-      },
-    ];
-    if (hole) {
-      const proposal = insertionFootprint(current.project, component, hole);
-      if (!proposal.ok) {
-        reservedIds.current.delete(id);
-        setError(proposal.message || "Placement impossible à cet endroit.");
-        return;
+        model: entry.models[0]?.id,
+        pins: Object.fromEntries(
+          entry.pins.map((pin) => [pin.name, `${id}.${pin.name}`]),
+        ),
+        ...(kind === "potentiometer" ? { position: 0.5 } : {}),
+      };
+      const operations: Op[] = [
+        {
+          type: "add_component",
+          kind,
+          id,
+          label: id,
+          value: entry.default_value,
+          x: Math.round(location.x / 10) * 10,
+          y: Math.round(location.y / 10) * 10,
+        },
+      ];
+      if (hole) {
+        const proposal = insertionFootprint(current.project, component, hole);
+        if (!proposal.ok) {
+          reservedIds.current.delete(id);
+          setError(proposal.message || "Placement impossible à cet endroit.");
+          return;
+        }
+        operations.push(...proposal.operations);
       }
-      operations.push(...proposal.operations);
-    }
-    operations.push({ type: "set_ui", selected: [id] });
-    const next = await act(operations);
-    reservedIds.current.delete(id);
-    if (next) {
-      setTool("select");
-      setNotice(
-        `${kindNames[kind]} ajouté${hole ? ` sur la plaque à partir de ${hole}` : " au schéma"}. Relie ses bornes pour l’intégrer au circuit.`,
-      );
-    }
-    setPaletteKind(null);
-  };
+      operations.push({ type: "set_ui", selected: [id] });
+      const next = await act(operations);
+      reservedIds.current.delete(id);
+      if (next) {
+        setTool("select");
+        setNotice(
+          `${kindNames[kind]} ajouté${hole ? ` sur la plaque à partir de ${hole}` : " au schéma"}. Relie ses bornes pour l’intégrer au circuit.`,
+        );
+      }
+      setPaletteKind(null);
+    },
+    [act, zoom, pan.x, pan.y],
+  );
+  const dropBoardComponent = useCallback(
+    (kind: string, hole: string) => {
+      void addComponentAt(kind, undefined, hole);
+    },
+    [addComponentAt],
+  );
   const zoomAt = (factor: number, anchor = { x: 450, y: 180 }) => {
     const next = Math.max(0.03, Math.min(5, zoom * factor));
     setPan({
@@ -914,6 +942,22 @@ function App() {
     });
     setZoom(next);
   };
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const wheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      if (gestureCleanup.current) return;
+      const point = toSvg(event);
+      zoomAt(event.deltaY < 0 ? 1.12 : 1 / 1.12, {
+        x: point.x * zoom + pan.x,
+        y: point.y * zoom + pan.y,
+      });
+    };
+    svg.addEventListener("wheel", wheel, { passive: false });
+    return () => svg.removeEventListener("wheel", wheel);
+  }, [zoom, pan.x, pan.y]);
   const applyComponentValue = async (input = draftValue) => {
     if (!comp) return;
     const unit = state?.catalog[comp.kind]?.unit || "";
@@ -932,16 +976,19 @@ function App() {
       );
     }
   };
-  const applyPotPosition = (id: string, position: number) => {
-    const current = stateRef.current?.project.components.find(
-      (c) => c.id === id,
-    );
-    if (
-      current?.kind === "potentiometer" &&
-      position !== (current.position ?? 0.5)
-    )
-      void act([{ type: "set_position", id, position }]);
-  };
+  const applyPotPosition = useCallback(
+    (id: string, position: number) => {
+      const current = stateRef.current?.project.components.find(
+        (c) => c.id === id,
+      );
+      if (
+        current?.kind === "potentiometer" &&
+        position !== (current.position ?? 0.5)
+      )
+        void act([{ type: "set_position", id, position }]);
+    },
+    [act],
+  );
   const addWireBend = (event: React.MouseEvent<SVGGElement>, wire: Wire) => {
     if (tool !== "select") return;
     event.stopPropagation();
@@ -1000,7 +1047,7 @@ function App() {
     wire: Wire,
     index: number,
   ) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || event.isPrimary === false) return;
     event.preventDefault();
     event.stopPropagation();
     const original = wire.waypoints || [];
@@ -1024,6 +1071,7 @@ function App() {
         ]);
       },
       () => setRouteDrag(null),
+      event.pointerId,
     );
   };
   const runSimulation = async (background = false) => {
@@ -1261,7 +1309,7 @@ function App() {
       if (propagateError) throw e;
     }
   };
-  const previewBoardLayout = async () => {
+  const previewBoardLayout = useCallback(async () => {
     if (!stateRef.current || busy) return;
     const candidate = await act([{ type: "layout_breadboard" }], true);
     if (candidate) {
@@ -1272,7 +1320,7 @@ function App() {
         "Aperçu de l’implantation : vérifie la plaque puis applique le placement.",
       );
     }
-  };
+  }, [act, busy]);
   const applyBoardLayout = async () => {
     if (!boardPreview || busy) return;
     try {
@@ -2285,15 +2333,6 @@ function App() {
                       setPaletteKind(null);
                       setPointer(null);
                     }}
-                    onWheel={(event) => {
-                      if (event.ctrlKey || event.metaKey) {
-                        const point = toSvg(event);
-                        zoomAt(event.deltaY < 0 ? 1.12 : 1 / 1.12, {
-                          x: point.x * zoom + pan.x,
-                          y: point.y * zoom + pan.y,
-                        });
-                      }
-                    }}
                   >
                     <defs>
                       <pattern
@@ -2913,7 +2952,7 @@ function App() {
                       </div>
                     </div>
                   )}
-                  <BreadboardView
+                  <StableBreadboardView
                     state={boardPreview || state}
                     simulation={boardPreview ? null : sim}
                     stale={!!boardPreview || stale}
@@ -2935,9 +2974,7 @@ function App() {
                     onError={setError}
                     onLayout={previewBoardLayout}
                     act={act}
-                    onDropComponent={(kind, hole) =>
-                      void addComponentAt(kind, undefined, hole)
-                    }
+                    onDropComponent={dropBoardComponent}
                     onPosition={applyPotPosition}
                   />
                 </>

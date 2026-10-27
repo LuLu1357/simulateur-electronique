@@ -287,7 +287,7 @@ export function BreadboardView(props: BreadboardViewProps) {
       : placeBoardPin(project, current.terminal, hole);
   }
   function startBody(event: React.PointerEvent<SVGGElement>, c: Component) {
-    if (disabled || event.button !== 0) return;
+    if (disabled || event.button !== 0 || event.isPrimary === false) return;
     event.stopPropagation();
     event.preventDefault();
     suppressClick.current = false;
@@ -320,7 +320,7 @@ export function BreadboardView(props: BreadboardViewProps) {
     c: Component,
     terminal: string,
   ) {
-    if (disabled || event.button !== 0) return;
+    if (disabled || event.button !== 0 || event.isPrimary === false) return;
     event.stopPropagation();
     event.preventDefault();
     suppressClick.current = false;
@@ -342,7 +342,12 @@ export function BreadboardView(props: BreadboardViewProps) {
     });
   }
   function finishDrag(event: React.PointerEvent<SVGSVGElement>) {
-    if (!drag) return;
+    if (
+      !drag ||
+      (capturedPointer.current &&
+        capturedPointer.current.id !== event.pointerId)
+    )
+      return;
     const xy = point(event);
     const moved =
       drag.moved ||
@@ -1176,6 +1181,11 @@ export function BreadboardView(props: BreadboardViewProps) {
             }
           }}
           onPointerMove={(event) => {
+            if (
+              capturedPointer.current &&
+              capturedPointer.current.id !== event.pointerId
+            )
+              return;
             const xy = point(event);
             const hole = snapBoardHole(...xy);
             setHoverHole(hole);
@@ -1189,7 +1199,12 @@ export function BreadboardView(props: BreadboardViewProps) {
               });
           }}
           onPointerUp={finishDrag}
-          onPointerCancel={() => {
+          onPointerCancel={(event) => {
+            if (
+              capturedPointer.current &&
+              capturedPointer.current.id !== event.pointerId
+            )
+              return;
             releaseCapture();
             setDrag(null);
             setHoverHole(null);

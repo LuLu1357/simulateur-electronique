@@ -549,6 +549,7 @@ class Store:
         self.simulation: dict = {"status": "idle", "voltages": {}, "currents": {}, "curves": [], "time": [], "diagnostics": [], "project_revision": None}
         self._undo: list[dict] = []
         self._redo: list[dict] = []
+        self._transient_ui_fields: set[str] = set()
 
     def get_state(self) -> dict:
         with self.lock:
@@ -588,6 +589,7 @@ class Store:
             self._undo.append(deepcopy(self.project))
             self._undo = self._undo[-100:]
             self._redo.clear()
+            self._transient_ui_fields.clear()
             self.project = candidate
             return self.get_state()
 
@@ -614,9 +616,17 @@ class Store:
                 result["base_revision"] = self.project["revision"]
                 return result
             self._persist(candidate)
-            self._undo.append(deepcopy(self.project))
-            self._undo = self._undo[-100:]
-            self._redo.clear()
+            presentation_only = all(operation['type'] == 'set_ui' for operation in operations)
+            if presentation_only:
+                self._transient_ui_fields.update(
+                    field for operation in operations
+                    for field in ('selected', 'view', 'highlights') if field in operation
+                )
+            else:
+                self._undo.append(deepcopy(self.project))
+                self._undo = self._undo[-100:]
+                self._redo.clear()
+                self._transient_ui_fields.clear()
             self.project = candidate
             return self.get_state()
 
@@ -632,11 +642,26 @@ class Store:
             if not source:
                 raise ValueError(f"Aucune modification à {action}.")
             candidate = deepcopy(source[-1])
+            if candidate['id'] == self.project['id']:
+                for field in self._transient_ui_fields:
+                    value = deepcopy(self.project['ui'][field])
+                    if field in ('selected', 'highlights'):
+                        known = (
+                            {component['id'] for component in candidate['components']}
+                            | {pin for component in candidate['components'] for pin in component['pins'].values()}
+                            | {wire['id'] for wire in candidate['wires']}
+                            | {junction['id'] for junction in candidate['junctions']}
+                            | {net['id'] for net in topology(candidate)['nets']}
+                            | _holes()
+                        )
+                        value = [identifier for identifier in value if identifier in known]
+                    candidate['ui'][field] = value
             candidate["revision"] = self.project["revision"] + 1
             validate_project(candidate)
             self._persist(candidate)
             source.pop()
             target.append(deepcopy(self.project))
+            self._transient_ui_fields.clear()
             self.project = candidate
             return self.get_state()
 
