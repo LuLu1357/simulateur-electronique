@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "id": "demo_pnp",
+  "title": "Commande d’un PNP",
+  "revision": 0,
+  "components": [
+    {
+      "id": "V1",
+      "kind": "voltage_source",
+      "label": "V1",
+      "value": 5,
+      "model": null,
+      "pins": {
+        "p": "V1.p",
+        "n": "V1.n"
+      }
+    },
+    {
+      "id": "Vin",
+      "kind": "voltage_source",
+      "label": "Vin",
+      "value": 0,
+      "model": null,
+      "pins": {
+        "p": "Vin.p",
+        "n": "Vin.n"
+      }
+    },
+    {
+      "id": "RB",
+      "kind": "resistor",
+      "label": "RB",
+      "value": 10000,
+      "model": null,
+      "pins": {
+        "p": "RB.p",
+        "n": "RB.n"
+      }
+    },
+    {
+      "id": "RC",
+      "kind": "resistor",
+      "label": "RC",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "RC.p",
+        "n": "RC.n"
+      }
+    },
+    {
+      "id": "Q1",
+      "kind": "pnp",
+      "label": "Q1",
+      "value": 0.0,
+      "model": "generic_pnp",
+      "pins": {
+        "c": "Q1.c",
+        "b": "Q1.b",
+        "e": "Q1.e"
+      }
+    },
+    {
+      "id": "G1",
+      "kind": "ground",
+      "label": "G1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "g": "G1.g"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "W1",
+      "a": "V1.p",
+      "b": "Q1.e"
+    },
+    {
+      "id": "W2",
+      "a": "V1.n",
+      "b": "Vin.n"
+    },
+    {
+      "id": "W3",
+      "a": "V1.n",
+      "b": "RC.n"
+    },
+    {
+      "id": "W4",
+      "a": "V1.n",
+      "b": "G1.g"
+    },
+    {
+      "id": "W5",
+      "a": "Vin.p",
+      "b": "RB.p"
+    },
+    {
+      "id": "W6",
+      "a": "RB.n",
+      "b": "Q1.b"
+    },
+    {
+      "id": "W7",
+      "a": "RC.p",
+      "b": "Q1.c"
+    }
+  ],
+  "junctions": [],
+  "schematic": {
+    "V1": {
+      "x": 80,
+      "y": 260,
+      "rotation": 0
+    },
+    "Vin": {
+      "x": 100,
+      "y": 100,
+      "rotation": 0
+    },
+    "RB": {
+      "x": 300,
+      "y": 100,
+      "rotation": 0
+    },
+    "RC": {
+      "x": 500,
+      "y": 320,
+      "rotation": 0
+    },
+    "Q1": {
+      "x": 500,
+      "y": 220,
+      "rotation": 0
+    },
+    "G1": {
+      "x": 300,
+      "y": 420,
+      "rotation": 0
+    }
+  },
+  "net_labels": {},
+  "breadboard": {
+    "placements": {
+      "V1.p": "rail_top_p1",
+      "Q1.e": "rail_top_p2",
+      "V1.n": "rail_top_n1",
+      "Vin.n": "rail_top_n2",
+      "RC.n": "rail_top_n3",
+      "G1.g": "rail_top_n4",
+      "Vin.p": "a1",
+      "RB.p": "b1",
+      "RB.n": "f1",
+      "Q1.b": "g1",
+      "RC.p": "a2",
+      "Q1.c": "b2"
+    },
+    "rail_splits": true
+  },
+  "ui": {
+    "selected": [],
+    "view": "split",
+    "highlights": [],
+    "annotations": []
+  },
+  "description": "Le courant de base commande le courant collecteur. Modèle générique et brochage pédagogique explicite C/B/E ; consulter la fiche du boîtier réel avant toute construction.",
+  "default_analysis": {
+    "kind": "op"
+  }
+}

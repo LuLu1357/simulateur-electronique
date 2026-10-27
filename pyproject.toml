@@ -1,0 +1,10 @@
+[project]
+name = "atelier-electronique"
+version = "0.1.0"
+description = "Simulation électronique pédagogique locale, schéma, breadboard et MCP"
+requires-python = ">=3.11"
+dependencies = ["fastapi==0.162.0", "uvicorn==0.54.0", "mcp==2.3.0", "httpx==0.28.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

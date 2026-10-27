@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "id": "demo_rc",
+  "title": "Charge RC · τ = 1 ms",
+  "revision": 0,
+  "components": [
+    {
+      "id": "V1",
+      "kind": "voltage_source",
+      "label": "V1",
+      "value": 5,
+      "model": null,
+      "pins": {
+        "p": "V1.p",
+        "n": "V1.n"
+      }
+    },
+    {
+      "id": "R1",
+      "kind": "resistor",
+      "label": "R1",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "R1.p",
+        "n": "R1.n"
+      }
+    },
+    {
+      "id": "C1",
+      "kind": "capacitor",
+      "label": "C1",
+      "value": 1e-06,
+      "model": null,
+      "pins": {
+        "p": "C1.p",
+        "n": "C1.n"
+      },
+      "initial_voltage": 0
+    },
+    {
+      "id": "G1",
+      "kind": "ground",
+      "label": "G1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "g": "G1.g"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "W1",
+      "a": "V1.p",
+      "b": "R1.p"
+    },
+    {
+      "id": "W2",
+      "a": "V1.n",
+      "b": "C1.n"
+    },
+    {
+      "id": "W3",
+      "a": "V1.n",
+      "b": "G1.g"
+    },
+    {
+      "id": "W4",
+      "a": "R1.n",
+      "b": "C1.p"
+    }
+  ],
+  "junctions": [],
+  "schematic": {
+    "V1": {
+      "x": 100,
+      "y": 220,
+      "rotation": 0
+    },
+    "R1": {
+      "x": 300,
+      "y": 130,
+      "rotation": 0
+    },
+    "C1": {
+      "x": 500,
+      "y": 250,
+      "rotation": 0
+    },
+    "G1": {
+      "x": 300,
+      "y": 400,
+      "rotation": 0
+    }
+  },
+  "net_labels": {},
+  "breadboard": {
+    "placements": {
+      "V1.p": "rail_top_p1",
+      "R1.p": "rail_top_p2",
+      "V1.n": "rail_top_n1",
+      "C1.n": "rail_top_n2",
+      "G1.g": "rail_top_n3",
+      "R1.n": "a1",
+      "C1.p": "b1"
+    },
+    "rail_splits": true
+  },
+  "ui": {
+    "selected": [],
+    "view": "split",
+    "highlights": [],
+    "annotations": []
+  },
+  "description": "5 V, R = 1 kΩ et C = 1 µF, initialement déchargé. À t = RC = 1 ms, la tension du condensateur vaut environ 63,2 % de 5 V.",
+  "default_analysis": {
+    "kind": "tran",
+    "step": 1e-05,
+    "stop": 0.006,
+    "startup": true
+  }
+}

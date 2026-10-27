@@ -1,0 +1,182 @@
+Construis une application locale de simulation électronique pédagogique, avec deux vues synchronisées — schéma électrique et breadboard — et un serveur MCP permettant à un assistant IA d’inspecter, comprendre, tester et modifier le circuit.
+
+Je veux un logiciel fonctionnel et extensible. Commence par une première version utilisable de bout en bout, puis enrichis-la progressivement. Ne t’arrête pas à une maquette ou à un plan.
+
+OBJECTIF PÉDAGOGIQUE
+
+L’application doit m’aider à comprendre :
+- les connexions électriques réelles ;
+- le chemin du courant ;
+- les tensions aux différents points ;
+- le fonctionnement des diodes et des transistors ;
+- les erreurs de câblage et les problèmes de simulation.
+
+Utilise le français dans l’interface, les explications et la documentation. Présente les diagnostics avec des observations précises et des explications causales.
+
+ARCHITECTURE
+
+Choisis une architecture locale maintenable. Une interface TypeScript/React et un service local Python constituent une possibilité ; justifie brièvement ton choix avant de commencer.
+
+Utilise ngspice comme moteur principal. Consulte sa documentation officielle actuelle avant l’intégration.
+
+Sépare clairement :
+1. Le modèle du circuit.
+2. La représentation schématique.
+3. Le placement sur breadboard.
+4. La génération de la netlist et l’exécution du simulateur.
+5. Les mesures et diagnostics.
+6. L’interface MCP.
+
+Le modèle du circuit doit être la source de vérité partagée. L’interface et le MCP doivent appeler les mêmes opérations métier.
+
+Attribue des identifiants stables aux composants, bornes, fils et réseaux. Prévois un format de projet versionné et sauvegardable.
+
+LES DEUX VUES
+
+Vue schématique :
+- Placement et déplacement des composants.
+- Câblage avec points de jonction explicites.
+- Distinction entre croisement et connexion.
+- Noms des composants, valeurs et noms des réseaux.
+- Zoom, déplacement, sélection et suppression.
+
+Vue breadboard :
+- Représentation correcte des groupes de trous connectés.
+- Gestion des rails d’alimentation et de leurs éventuelles coupures.
+- Placement des composants et des fils dans les trous.
+- Visualisation des groupes électriquement communs.
+- Brochage visible au survol.
+
+Les deux vues doivent représenter le même circuit. Une sélection doit pouvoir être retrouvée et surlignée dans l’autre vue.
+
+Ne déduis jamais le brochage d’un transistor de son apparence. Chaque composant doit définir explicitement ses bornes électriques, son modèle et leur correspondance avec son boîtier.
+
+MOTEUR ÉLECTRIQUE
+
+Commence par :
+- Résistances.
+- Sources continues.
+- Interrupteurs et boutons.
+- Diodes.
+- Transistors NPN et PNP.
+- Condensateurs.
+- Masse.
+- Sondes de tension et de courant.
+
+Implémente :
+- Le calcul du point de fonctionnement continu.
+- La simulation temporelle.
+- Les courbes de tension et de courant.
+- L’arrêt d’une simulation.
+- Des limites de durée et de ressources.
+- La récupération des diagnostics du moteur.
+
+Distingue les modèles génériques des modèles constructeur. Affiche les hypothèses importantes.
+
+Lorsqu’une simulation échoue, conserve le circuit et les informations utiles. Indique clairement si les mesures affichées proviennent du dernier calcul réussi.
+
+Ne déclare jamais qu’une simulation valide automatiquement le montage physique.
+
+MESURES ET EXPLICATIONS
+
+Permets :
+- De mesurer une tension entre deux points.
+- De mesurer le courant dans une branche.
+- D’afficher les tensions sur les réseaux.
+- De visualiser le courant conventionnel avec une légende explicite.
+- De sélectionner un composant pour consulter ses tensions et courants.
+- D’afficher un oscilloscope avec plusieurs courbes.
+
+Les diagnostics doivent distinguer :
+- Une erreur de connexion démontrée.
+- Un problème numérique du solveur.
+- Une hypothèse nécessitant une mesure ou un essai.
+
+Par exemple, un nœud très peu chargé peut rendre le calcul difficile. L’application doit pouvoir montrer les composants concernés et expliquer l’effet d’une résistance de rappel, sans présenter automatiquement cet ajout comme une correction certaine.
+
+MCP : FONCTION CENTRALE
+
+Intègre un véritable serveur MCP local utilisant le protocole et un SDK officiels actuels.
+
+L’assistant doit pouvoir, par des outils documentés :
+- Lire le circuit complet et sa révision.
+- Inspecter un composant, ses bornes et ses connexions.
+- Lire la sélection et la vue affichée.
+- Suivre un réseau et retrouver tous ses points connectés.
+- Vérifier la continuité de la breadboard.
+- Lire les modèles et valeurs des composants.
+- Valider la topologie.
+- Lancer et arrêter les simulations.
+- Lire les tensions, courants, courbes et diagnostics.
+- Tester automatiquement une liste de combinaisons d’entrées.
+- Comparer les résultats mesurés à une table de vérité attendue.
+- Surligner un composant, un réseau ou un trajet dans l’interface.
+- Ajouter une annotation pédagogique.
+- Ajouter, déplacer, connecter ou retirer des composants.
+- Modifier des valeurs.
+- Annuler et rétablir une modification.
+
+Les opérations de modification doivent :
+- Être validées avant application.
+- Accepter une révision attendue pour éviter d’écraser une modification récente.
+- Pouvoir être regroupées dans une transaction.
+- Être annulables.
+- Retourner l’état réellement obtenu et les éventuelles erreurs.
+
+Prévois une prévisualisation des modifications lorsque cela aide à les comprendre.
+
+Le MCP doit rester limité aux fonctions du simulateur et aux projets autorisés. Évite tout outil permettant une exécution arbitraire de commandes ou un accès général aux fichiers.
+
+Privilégie un transport local adapté au client MCP. Si un transport HTTP est utilisé, protège son accès et limite son exposition.
+
+Fournis la configuration de connexion et un test d’intégration avec un client MCP. Distingue explicitement :
+- Le serveur est démarré.
+- Le client est connecté.
+- Les outils sont effectivement accessibles.
+
+VALIDATION
+
+Crée des vérifications électriques indépendantes de l’interface :
+- Loi d’Ohm : 5 V sur 1 kΩ donne 5 mA.
+- Pont diviseur.
+- Sens de conduction d’une diode.
+- Commande d’un NPN et d’un PNP.
+- Charge d’un condensateur dans un circuit RC.
+- Continuité et coupures des rails de breadboard.
+- Correspondance des connexions entre les deux vues.
+- Annulation et transactions du MCP.
+
+Ajoute comme exemple pédagogique un soustracteur à deux bits :
+A = A1 A0
+B = B1 B0
+Sorties = D1 D0 et emprunt final.
+
+Teste les 16 combinaisons de A et B avec emprunt d’entrée nul.
+
+Pour chaque combinaison, conserve :
+- Les entrées appliquées.
+- Les tensions réellement calculées.
+- Leur interprétation logique et les seuils utilisés.
+- Le résultat attendu.
+- Le résultat observé.
+- Le statut de convergence.
+
+Pour A < B, affiche correctement le résultat modulo 4 et l’emprunt final. Ne confonds pas cet affichage avec un nombre signé.
+
+L’assistant doit pouvoir effectuer ces essais entièrement par MCP.
+
+LIVRABLES
+
+Livre :
+- Le code source organisé.
+- Une procédure d’installation et de lancement.
+- Un projet de démonstration utilisable.
+- Le serveur MCP et sa configuration.
+- Les tests et leurs résultats.
+- Une documentation courte de l’architecture.
+- Les limites connues et les prochaines fonctions à développer.
+
+Commence par inspecter le dossier de travail et respecter les fichiers existants. Si des informations manquent, avance avec des choix raisonnables et explicites.
+
+Ta première étape doit aboutir à cette chaîne fonctionnelle :
+créer un circuit → l’éditer visuellement → le simuler → afficher les mesures → l’inspecter et le modifier par MCP → constater les changements dans l’interface.

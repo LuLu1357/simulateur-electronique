@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "atelier-electronique": {
+      "command": "/path/to/simulateur-electronique/.venv/bin/python",
+      "args": ["-m", "backend.mcp_server"],
+      "cwd": "/path/to/simulateur-electronique"
+    }
+  }
+}

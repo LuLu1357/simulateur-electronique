@@ -1,0 +1,3052 @@
+{
+  "schema_version": 1,
+  "id": "demo_subtractor",
+  "title": "Soustracteur à 2 bits · logique discrète",
+  "revision": 0,
+  "components": [
+    {
+      "id": "VCC",
+      "kind": "voltage_source",
+      "label": "VCC",
+      "value": 5,
+      "model": null,
+      "pins": {
+        "p": "VCC.p",
+        "n": "VCC.n"
+      }
+    },
+    {
+      "id": "VA0",
+      "kind": "voltage_source",
+      "label": "VA0",
+      "value": 0,
+      "model": null,
+      "pins": {
+        "p": "VA0.p",
+        "n": "VA0.n"
+      }
+    },
+    {
+      "id": "VA1",
+      "kind": "voltage_source",
+      "label": "VA1",
+      "value": 0,
+      "model": null,
+      "pins": {
+        "p": "VA1.p",
+        "n": "VA1.n"
+      }
+    },
+    {
+      "id": "VB0",
+      "kind": "voltage_source",
+      "label": "VB0",
+      "value": 0,
+      "model": null,
+      "pins": {
+        "p": "VB0.p",
+        "n": "VB0.n"
+      }
+    },
+    {
+      "id": "VB1",
+      "kind": "voltage_source",
+      "label": "VB1",
+      "value": 0,
+      "model": null,
+      "pins": {
+        "p": "VB1.p",
+        "n": "VB1.n"
+      }
+    },
+    {
+      "id": "G1",
+      "kind": "ground",
+      "label": "G1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "g": "G1.g"
+      }
+    },
+    {
+      "id": "N1_RP",
+      "kind": "resistor",
+      "label": "N1_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N1_RP.p",
+        "n": "N1_RP.n"
+      }
+    },
+    {
+      "id": "N1_RA",
+      "kind": "resistor",
+      "label": "N1_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N1_RA.p",
+        "n": "N1_RA.n"
+      }
+    },
+    {
+      "id": "N1_RB",
+      "kind": "resistor",
+      "label": "N1_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N1_RB.p",
+        "n": "N1_RB.n"
+      }
+    },
+    {
+      "id": "N1_QA",
+      "kind": "npn",
+      "label": "N1_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N1_QA.c",
+        "b": "N1_QA.b",
+        "e": "N1_QA.e"
+      }
+    },
+    {
+      "id": "N1_QB",
+      "kind": "npn",
+      "label": "N1_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N1_QB.c",
+        "b": "N1_QB.b",
+        "e": "N1_QB.e"
+      }
+    },
+    {
+      "id": "N2_RP",
+      "kind": "resistor",
+      "label": "N2_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N2_RP.p",
+        "n": "N2_RP.n"
+      }
+    },
+    {
+      "id": "N2_RA",
+      "kind": "resistor",
+      "label": "N2_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N2_RA.p",
+        "n": "N2_RA.n"
+      }
+    },
+    {
+      "id": "N2_RB",
+      "kind": "resistor",
+      "label": "N2_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N2_RB.p",
+        "n": "N2_RB.n"
+      }
+    },
+    {
+      "id": "N2_QA",
+      "kind": "npn",
+      "label": "N2_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N2_QA.c",
+        "b": "N2_QA.b",
+        "e": "N2_QA.e"
+      }
+    },
+    {
+      "id": "N2_QB",
+      "kind": "npn",
+      "label": "N2_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N2_QB.c",
+        "b": "N2_QB.b",
+        "e": "N2_QB.e"
+      }
+    },
+    {
+      "id": "N3_RP",
+      "kind": "resistor",
+      "label": "N3_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N3_RP.p",
+        "n": "N3_RP.n"
+      }
+    },
+    {
+      "id": "N3_RA",
+      "kind": "resistor",
+      "label": "N3_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N3_RA.p",
+        "n": "N3_RA.n"
+      }
+    },
+    {
+      "id": "N3_RB",
+      "kind": "resistor",
+      "label": "N3_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N3_RB.p",
+        "n": "N3_RB.n"
+      }
+    },
+    {
+      "id": "N3_QA",
+      "kind": "npn",
+      "label": "N3_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N3_QA.c",
+        "b": "N3_QA.b",
+        "e": "N3_QA.e"
+      }
+    },
+    {
+      "id": "N3_QB",
+      "kind": "npn",
+      "label": "N3_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N3_QB.c",
+        "b": "N3_QB.b",
+        "e": "N3_QB.e"
+      }
+    },
+    {
+      "id": "N4_RP",
+      "kind": "resistor",
+      "label": "N4_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N4_RP.p",
+        "n": "N4_RP.n"
+      }
+    },
+    {
+      "id": "N4_RA",
+      "kind": "resistor",
+      "label": "N4_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N4_RA.p",
+        "n": "N4_RA.n"
+      }
+    },
+    {
+      "id": "N4_RB",
+      "kind": "resistor",
+      "label": "N4_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N4_RB.p",
+        "n": "N4_RB.n"
+      }
+    },
+    {
+      "id": "N4_QA",
+      "kind": "npn",
+      "label": "N4_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N4_QA.c",
+        "b": "N4_QA.b",
+        "e": "N4_QA.e"
+      }
+    },
+    {
+      "id": "N4_QB",
+      "kind": "npn",
+      "label": "N4_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N4_QB.c",
+        "b": "N4_QB.b",
+        "e": "N4_QB.e"
+      }
+    },
+    {
+      "id": "N5_RP",
+      "kind": "resistor",
+      "label": "N5_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N5_RP.p",
+        "n": "N5_RP.n"
+      }
+    },
+    {
+      "id": "N5_RA",
+      "kind": "resistor",
+      "label": "N5_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N5_RA.p",
+        "n": "N5_RA.n"
+      }
+    },
+    {
+      "id": "N5_RB",
+      "kind": "resistor",
+      "label": "N5_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N5_RB.p",
+        "n": "N5_RB.n"
+      }
+    },
+    {
+      "id": "N5_QA",
+      "kind": "npn",
+      "label": "N5_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N5_QA.c",
+        "b": "N5_QA.b",
+        "e": "N5_QA.e"
+      }
+    },
+    {
+      "id": "N5_QB",
+      "kind": "npn",
+      "label": "N5_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N5_QB.c",
+        "b": "N5_QB.b",
+        "e": "N5_QB.e"
+      }
+    },
+    {
+      "id": "N6_RP",
+      "kind": "resistor",
+      "label": "N6_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N6_RP.p",
+        "n": "N6_RP.n"
+      }
+    },
+    {
+      "id": "N6_RA",
+      "kind": "resistor",
+      "label": "N6_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N6_RA.p",
+        "n": "N6_RA.n"
+      }
+    },
+    {
+      "id": "N6_RB",
+      "kind": "resistor",
+      "label": "N6_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N6_RB.p",
+        "n": "N6_RB.n"
+      }
+    },
+    {
+      "id": "N6_QA",
+      "kind": "npn",
+      "label": "N6_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N6_QA.c",
+        "b": "N6_QA.b",
+        "e": "N6_QA.e"
+      }
+    },
+    {
+      "id": "N6_QB",
+      "kind": "npn",
+      "label": "N6_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N6_QB.c",
+        "b": "N6_QB.b",
+        "e": "N6_QB.e"
+      }
+    },
+    {
+      "id": "N7_RP",
+      "kind": "resistor",
+      "label": "N7_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N7_RP.p",
+        "n": "N7_RP.n"
+      }
+    },
+    {
+      "id": "N7_RA",
+      "kind": "resistor",
+      "label": "N7_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N7_RA.p",
+        "n": "N7_RA.n"
+      }
+    },
+    {
+      "id": "N7_RB",
+      "kind": "resistor",
+      "label": "N7_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N7_RB.p",
+        "n": "N7_RB.n"
+      }
+    },
+    {
+      "id": "N7_QA",
+      "kind": "npn",
+      "label": "N7_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N7_QA.c",
+        "b": "N7_QA.b",
+        "e": "N7_QA.e"
+      }
+    },
+    {
+      "id": "N7_QB",
+      "kind": "npn",
+      "label": "N7_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N7_QB.c",
+        "b": "N7_QB.b",
+        "e": "N7_QB.e"
+      }
+    },
+    {
+      "id": "N8_RP",
+      "kind": "resistor",
+      "label": "N8_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N8_RP.p",
+        "n": "N8_RP.n"
+      }
+    },
+    {
+      "id": "N8_RA",
+      "kind": "resistor",
+      "label": "N8_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N8_RA.p",
+        "n": "N8_RA.n"
+      }
+    },
+    {
+      "id": "N8_RB",
+      "kind": "resistor",
+      "label": "N8_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N8_RB.p",
+        "n": "N8_RB.n"
+      }
+    },
+    {
+      "id": "N8_QA",
+      "kind": "npn",
+      "label": "N8_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N8_QA.c",
+        "b": "N8_QA.b",
+        "e": "N8_QA.e"
+      }
+    },
+    {
+      "id": "N8_QB",
+      "kind": "npn",
+      "label": "N8_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N8_QB.c",
+        "b": "N8_QB.b",
+        "e": "N8_QB.e"
+      }
+    },
+    {
+      "id": "N9_RP",
+      "kind": "resistor",
+      "label": "N9_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N9_RP.p",
+        "n": "N9_RP.n"
+      }
+    },
+    {
+      "id": "N9_RA",
+      "kind": "resistor",
+      "label": "N9_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N9_RA.p",
+        "n": "N9_RA.n"
+      }
+    },
+    {
+      "id": "N9_RB",
+      "kind": "resistor",
+      "label": "N9_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N9_RB.p",
+        "n": "N9_RB.n"
+      }
+    },
+    {
+      "id": "N9_QA",
+      "kind": "npn",
+      "label": "N9_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N9_QA.c",
+        "b": "N9_QA.b",
+        "e": "N9_QA.e"
+      }
+    },
+    {
+      "id": "N9_QB",
+      "kind": "npn",
+      "label": "N9_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N9_QB.c",
+        "b": "N9_QB.b",
+        "e": "N9_QB.e"
+      }
+    },
+    {
+      "id": "N10_RP",
+      "kind": "resistor",
+      "label": "N10_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N10_RP.p",
+        "n": "N10_RP.n"
+      }
+    },
+    {
+      "id": "N10_RA",
+      "kind": "resistor",
+      "label": "N10_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N10_RA.p",
+        "n": "N10_RA.n"
+      }
+    },
+    {
+      "id": "N10_RB",
+      "kind": "resistor",
+      "label": "N10_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N10_RB.p",
+        "n": "N10_RB.n"
+      }
+    },
+    {
+      "id": "N10_QA",
+      "kind": "npn",
+      "label": "N10_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N10_QA.c",
+        "b": "N10_QA.b",
+        "e": "N10_QA.e"
+      }
+    },
+    {
+      "id": "N10_QB",
+      "kind": "npn",
+      "label": "N10_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N10_QB.c",
+        "b": "N10_QB.b",
+        "e": "N10_QB.e"
+      }
+    },
+    {
+      "id": "N11_RP",
+      "kind": "resistor",
+      "label": "N11_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N11_RP.p",
+        "n": "N11_RP.n"
+      }
+    },
+    {
+      "id": "N11_RA",
+      "kind": "resistor",
+      "label": "N11_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N11_RA.p",
+        "n": "N11_RA.n"
+      }
+    },
+    {
+      "id": "N11_RB",
+      "kind": "resistor",
+      "label": "N11_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N11_RB.p",
+        "n": "N11_RB.n"
+      }
+    },
+    {
+      "id": "N11_QA",
+      "kind": "npn",
+      "label": "N11_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N11_QA.c",
+        "b": "N11_QA.b",
+        "e": "N11_QA.e"
+      }
+    },
+    {
+      "id": "N11_QB",
+      "kind": "npn",
+      "label": "N11_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N11_QB.c",
+        "b": "N11_QB.b",
+        "e": "N11_QB.e"
+      }
+    },
+    {
+      "id": "N12_RP",
+      "kind": "resistor",
+      "label": "N12_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N12_RP.p",
+        "n": "N12_RP.n"
+      }
+    },
+    {
+      "id": "N12_RA",
+      "kind": "resistor",
+      "label": "N12_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N12_RA.p",
+        "n": "N12_RA.n"
+      }
+    },
+    {
+      "id": "N12_RB",
+      "kind": "resistor",
+      "label": "N12_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N12_RB.p",
+        "n": "N12_RB.n"
+      }
+    },
+    {
+      "id": "N12_QA",
+      "kind": "npn",
+      "label": "N12_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N12_QA.c",
+        "b": "N12_QA.b",
+        "e": "N12_QA.e"
+      }
+    },
+    {
+      "id": "N12_QB",
+      "kind": "npn",
+      "label": "N12_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N12_QB.c",
+        "b": "N12_QB.b",
+        "e": "N12_QB.e"
+      }
+    },
+    {
+      "id": "N13_RP",
+      "kind": "resistor",
+      "label": "N13_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N13_RP.p",
+        "n": "N13_RP.n"
+      }
+    },
+    {
+      "id": "N13_RA",
+      "kind": "resistor",
+      "label": "N13_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N13_RA.p",
+        "n": "N13_RA.n"
+      }
+    },
+    {
+      "id": "N13_RB",
+      "kind": "resistor",
+      "label": "N13_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N13_RB.p",
+        "n": "N13_RB.n"
+      }
+    },
+    {
+      "id": "N13_QA",
+      "kind": "npn",
+      "label": "N13_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N13_QA.c",
+        "b": "N13_QA.b",
+        "e": "N13_QA.e"
+      }
+    },
+    {
+      "id": "N13_QB",
+      "kind": "npn",
+      "label": "N13_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N13_QB.c",
+        "b": "N13_QB.b",
+        "e": "N13_QB.e"
+      }
+    },
+    {
+      "id": "N14_RP",
+      "kind": "resistor",
+      "label": "N14_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N14_RP.p",
+        "n": "N14_RP.n"
+      }
+    },
+    {
+      "id": "N14_RA",
+      "kind": "resistor",
+      "label": "N14_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N14_RA.p",
+        "n": "N14_RA.n"
+      }
+    },
+    {
+      "id": "N14_RB",
+      "kind": "resistor",
+      "label": "N14_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N14_RB.p",
+        "n": "N14_RB.n"
+      }
+    },
+    {
+      "id": "N14_QA",
+      "kind": "npn",
+      "label": "N14_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N14_QA.c",
+        "b": "N14_QA.b",
+        "e": "N14_QA.e"
+      }
+    },
+    {
+      "id": "N14_QB",
+      "kind": "npn",
+      "label": "N14_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N14_QB.c",
+        "b": "N14_QB.b",
+        "e": "N14_QB.e"
+      }
+    },
+    {
+      "id": "N15_RP",
+      "kind": "resistor",
+      "label": "N15_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N15_RP.p",
+        "n": "N15_RP.n"
+      }
+    },
+    {
+      "id": "N15_RA",
+      "kind": "resistor",
+      "label": "N15_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N15_RA.p",
+        "n": "N15_RA.n"
+      }
+    },
+    {
+      "id": "N15_RB",
+      "kind": "resistor",
+      "label": "N15_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N15_RB.p",
+        "n": "N15_RB.n"
+      }
+    },
+    {
+      "id": "N15_QA",
+      "kind": "npn",
+      "label": "N15_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N15_QA.c",
+        "b": "N15_QA.b",
+        "e": "N15_QA.e"
+      }
+    },
+    {
+      "id": "N15_QB",
+      "kind": "npn",
+      "label": "N15_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N15_QB.c",
+        "b": "N15_QB.b",
+        "e": "N15_QB.e"
+      }
+    },
+    {
+      "id": "N16_RP",
+      "kind": "resistor",
+      "label": "N16_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N16_RP.p",
+        "n": "N16_RP.n"
+      }
+    },
+    {
+      "id": "N16_RA",
+      "kind": "resistor",
+      "label": "N16_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N16_RA.p",
+        "n": "N16_RA.n"
+      }
+    },
+    {
+      "id": "N16_RB",
+      "kind": "resistor",
+      "label": "N16_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N16_RB.p",
+        "n": "N16_RB.n"
+      }
+    },
+    {
+      "id": "N16_QA",
+      "kind": "npn",
+      "label": "N16_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N16_QA.c",
+        "b": "N16_QA.b",
+        "e": "N16_QA.e"
+      }
+    },
+    {
+      "id": "N16_QB",
+      "kind": "npn",
+      "label": "N16_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N16_QB.c",
+        "b": "N16_QB.b",
+        "e": "N16_QB.e"
+      }
+    },
+    {
+      "id": "N17_RP",
+      "kind": "resistor",
+      "label": "N17_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N17_RP.p",
+        "n": "N17_RP.n"
+      }
+    },
+    {
+      "id": "N17_RA",
+      "kind": "resistor",
+      "label": "N17_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N17_RA.p",
+        "n": "N17_RA.n"
+      }
+    },
+    {
+      "id": "N17_RB",
+      "kind": "resistor",
+      "label": "N17_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N17_RB.p",
+        "n": "N17_RB.n"
+      }
+    },
+    {
+      "id": "N17_QA",
+      "kind": "npn",
+      "label": "N17_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N17_QA.c",
+        "b": "N17_QA.b",
+        "e": "N17_QA.e"
+      }
+    },
+    {
+      "id": "N17_QB",
+      "kind": "npn",
+      "label": "N17_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N17_QB.c",
+        "b": "N17_QB.b",
+        "e": "N17_QB.e"
+      }
+    },
+    {
+      "id": "N18_RP",
+      "kind": "resistor",
+      "label": "N18_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N18_RP.p",
+        "n": "N18_RP.n"
+      }
+    },
+    {
+      "id": "N18_RA",
+      "kind": "resistor",
+      "label": "N18_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N18_RA.p",
+        "n": "N18_RA.n"
+      }
+    },
+    {
+      "id": "N18_RB",
+      "kind": "resistor",
+      "label": "N18_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N18_RB.p",
+        "n": "N18_RB.n"
+      }
+    },
+    {
+      "id": "N18_QA",
+      "kind": "npn",
+      "label": "N18_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N18_QA.c",
+        "b": "N18_QA.b",
+        "e": "N18_QA.e"
+      }
+    },
+    {
+      "id": "N18_QB",
+      "kind": "npn",
+      "label": "N18_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N18_QB.c",
+        "b": "N18_QB.b",
+        "e": "N18_QB.e"
+      }
+    },
+    {
+      "id": "N19_RP",
+      "kind": "resistor",
+      "label": "N19_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N19_RP.p",
+        "n": "N19_RP.n"
+      }
+    },
+    {
+      "id": "N19_RA",
+      "kind": "resistor",
+      "label": "N19_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N19_RA.p",
+        "n": "N19_RA.n"
+      }
+    },
+    {
+      "id": "N19_RB",
+      "kind": "resistor",
+      "label": "N19_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N19_RB.p",
+        "n": "N19_RB.n"
+      }
+    },
+    {
+      "id": "N19_QA",
+      "kind": "npn",
+      "label": "N19_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N19_QA.c",
+        "b": "N19_QA.b",
+        "e": "N19_QA.e"
+      }
+    },
+    {
+      "id": "N19_QB",
+      "kind": "npn",
+      "label": "N19_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N19_QB.c",
+        "b": "N19_QB.b",
+        "e": "N19_QB.e"
+      }
+    },
+    {
+      "id": "N20_RP",
+      "kind": "resistor",
+      "label": "N20_RP",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "N20_RP.p",
+        "n": "N20_RP.n"
+      }
+    },
+    {
+      "id": "N20_RA",
+      "kind": "resistor",
+      "label": "N20_RA",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N20_RA.p",
+        "n": "N20_RA.n"
+      }
+    },
+    {
+      "id": "N20_RB",
+      "kind": "resistor",
+      "label": "N20_RB",
+      "value": 47000,
+      "model": null,
+      "pins": {
+        "p": "N20_RB.p",
+        "n": "N20_RB.n"
+      }
+    },
+    {
+      "id": "N20_QA",
+      "kind": "npn",
+      "label": "N20_QA",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N20_QA.c",
+        "b": "N20_QA.b",
+        "e": "N20_QA.e"
+      }
+    },
+    {
+      "id": "N20_QB",
+      "kind": "npn",
+      "label": "N20_QB",
+      "value": 0.0,
+      "model": "generic_npn",
+      "pins": {
+        "c": "N20_QB.c",
+        "b": "N20_QB.b",
+        "e": "N20_QB.e"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "W1",
+      "a": "VCC.p",
+      "b": "N1_RP.p"
+    },
+    {
+      "id": "W2",
+      "a": "VCC.p",
+      "b": "N2_RP.p"
+    },
+    {
+      "id": "W3",
+      "a": "VCC.p",
+      "b": "N3_RP.p"
+    },
+    {
+      "id": "W4",
+      "a": "VCC.p",
+      "b": "N4_RP.p"
+    },
+    {
+      "id": "W5",
+      "a": "VCC.p",
+      "b": "N5_RP.p"
+    },
+    {
+      "id": "W6",
+      "a": "VCC.p",
+      "b": "N6_RP.p"
+    },
+    {
+      "id": "W7",
+      "a": "VCC.p",
+      "b": "N7_RP.p"
+    },
+    {
+      "id": "W8",
+      "a": "VCC.p",
+      "b": "N8_RP.p"
+    },
+    {
+      "id": "W9",
+      "a": "VCC.p",
+      "b": "N9_RP.p"
+    },
+    {
+      "id": "W10",
+      "a": "VCC.p",
+      "b": "N10_RP.p"
+    },
+    {
+      "id": "W11",
+      "a": "VCC.p",
+      "b": "N11_RP.p"
+    },
+    {
+      "id": "W12",
+      "a": "VCC.p",
+      "b": "N12_RP.p"
+    },
+    {
+      "id": "W13",
+      "a": "VCC.p",
+      "b": "N13_RP.p"
+    },
+    {
+      "id": "W14",
+      "a": "VCC.p",
+      "b": "N14_RP.p"
+    },
+    {
+      "id": "W15",
+      "a": "VCC.p",
+      "b": "N15_RP.p"
+    },
+    {
+      "id": "W16",
+      "a": "VCC.p",
+      "b": "N16_RP.p"
+    },
+    {
+      "id": "W17",
+      "a": "VCC.p",
+      "b": "N17_RP.p"
+    },
+    {
+      "id": "W18",
+      "a": "VCC.p",
+      "b": "N18_RP.p"
+    },
+    {
+      "id": "W19",
+      "a": "VCC.p",
+      "b": "N19_RP.p"
+    },
+    {
+      "id": "W20",
+      "a": "VCC.p",
+      "b": "N20_RP.p"
+    },
+    {
+      "id": "W21",
+      "a": "VCC.n",
+      "b": "VA0.n"
+    },
+    {
+      "id": "W22",
+      "a": "VCC.n",
+      "b": "VA1.n"
+    },
+    {
+      "id": "W23",
+      "a": "VCC.n",
+      "b": "VB0.n"
+    },
+    {
+      "id": "W24",
+      "a": "VCC.n",
+      "b": "VB1.n"
+    },
+    {
+      "id": "W25",
+      "a": "VCC.n",
+      "b": "G1.g"
+    },
+    {
+      "id": "W26",
+      "a": "VCC.n",
+      "b": "N1_QB.e"
+    },
+    {
+      "id": "W27",
+      "a": "VCC.n",
+      "b": "N2_QB.e"
+    },
+    {
+      "id": "W28",
+      "a": "VCC.n",
+      "b": "N3_QB.e"
+    },
+    {
+      "id": "W29",
+      "a": "VCC.n",
+      "b": "N4_QB.e"
+    },
+    {
+      "id": "W30",
+      "a": "VCC.n",
+      "b": "N5_QB.e"
+    },
+    {
+      "id": "W31",
+      "a": "VCC.n",
+      "b": "N6_QB.e"
+    },
+    {
+      "id": "W32",
+      "a": "VCC.n",
+      "b": "N7_QB.e"
+    },
+    {
+      "id": "W33",
+      "a": "VCC.n",
+      "b": "N8_QB.e"
+    },
+    {
+      "id": "W34",
+      "a": "VCC.n",
+      "b": "N9_QB.e"
+    },
+    {
+      "id": "W35",
+      "a": "VCC.n",
+      "b": "N10_QB.e"
+    },
+    {
+      "id": "W36",
+      "a": "VCC.n",
+      "b": "N11_QB.e"
+    },
+    {
+      "id": "W37",
+      "a": "VCC.n",
+      "b": "N12_QB.e"
+    },
+    {
+      "id": "W38",
+      "a": "VCC.n",
+      "b": "N13_QB.e"
+    },
+    {
+      "id": "W39",
+      "a": "VCC.n",
+      "b": "N14_QB.e"
+    },
+    {
+      "id": "W40",
+      "a": "VCC.n",
+      "b": "N15_QB.e"
+    },
+    {
+      "id": "W41",
+      "a": "VCC.n",
+      "b": "N16_QB.e"
+    },
+    {
+      "id": "W42",
+      "a": "VCC.n",
+      "b": "N17_QB.e"
+    },
+    {
+      "id": "W43",
+      "a": "VCC.n",
+      "b": "N18_QB.e"
+    },
+    {
+      "id": "W44",
+      "a": "VCC.n",
+      "b": "N19_QB.e"
+    },
+    {
+      "id": "W45",
+      "a": "VCC.n",
+      "b": "N20_QB.e"
+    },
+    {
+      "id": "W46",
+      "a": "VA0.p",
+      "b": "N1_RA.p"
+    },
+    {
+      "id": "W47",
+      "a": "VA0.p",
+      "b": "N2_RA.p"
+    },
+    {
+      "id": "W48",
+      "a": "VA0.p",
+      "b": "N5_RA.p"
+    },
+    {
+      "id": "W49",
+      "a": "VA0.p",
+      "b": "N5_RB.p"
+    },
+    {
+      "id": "W50",
+      "a": "VA1.p",
+      "b": "N8_RA.p"
+    },
+    {
+      "id": "W51",
+      "a": "VA1.p",
+      "b": "N9_RA.p"
+    },
+    {
+      "id": "W52",
+      "a": "VA1.p",
+      "b": "N16_RA.p"
+    },
+    {
+      "id": "W53",
+      "a": "VA1.p",
+      "b": "N16_RB.p"
+    },
+    {
+      "id": "W54",
+      "a": "VB0.p",
+      "b": "N1_RB.p"
+    },
+    {
+      "id": "W55",
+      "a": "VB0.p",
+      "b": "N3_RA.p"
+    },
+    {
+      "id": "W56",
+      "a": "VB0.p",
+      "b": "N6_RB.p"
+    },
+    {
+      "id": "W57",
+      "a": "VB1.p",
+      "b": "N8_RB.p"
+    },
+    {
+      "id": "W58",
+      "a": "VB1.p",
+      "b": "N10_RA.p"
+    },
+    {
+      "id": "W59",
+      "a": "VB1.p",
+      "b": "N17_RB.p"
+    },
+    {
+      "id": "W60",
+      "a": "N1_RP.n",
+      "b": "N1_QA.c"
+    },
+    {
+      "id": "W61",
+      "a": "N1_RP.n",
+      "b": "N2_RB.p"
+    },
+    {
+      "id": "W62",
+      "a": "N1_RP.n",
+      "b": "N3_RB.p"
+    },
+    {
+      "id": "W63",
+      "a": "N1_RA.n",
+      "b": "N1_QA.b"
+    },
+    {
+      "id": "W64",
+      "a": "N1_RB.n",
+      "b": "N1_QB.b"
+    },
+    {
+      "id": "W65",
+      "a": "N1_QA.e",
+      "b": "N1_QB.c"
+    },
+    {
+      "id": "W66",
+      "a": "N2_RP.n",
+      "b": "N2_QA.c"
+    },
+    {
+      "id": "W67",
+      "a": "N2_RP.n",
+      "b": "N4_RA.p"
+    },
+    {
+      "id": "W68",
+      "a": "N2_RA.n",
+      "b": "N2_QA.b"
+    },
+    {
+      "id": "W69",
+      "a": "N2_RB.n",
+      "b": "N2_QB.b"
+    },
+    {
+      "id": "W70",
+      "a": "N2_QA.e",
+      "b": "N2_QB.c"
+    },
+    {
+      "id": "W71",
+      "a": "N3_RP.n",
+      "b": "N3_QA.c"
+    },
+    {
+      "id": "W72",
+      "a": "N3_RP.n",
+      "b": "N4_RB.p"
+    },
+    {
+      "id": "W73",
+      "a": "N3_RA.n",
+      "b": "N3_QA.b"
+    },
+    {
+      "id": "W74",
+      "a": "N3_RB.n",
+      "b": "N3_QB.b"
+    },
+    {
+      "id": "W75",
+      "a": "N3_QA.e",
+      "b": "N3_QB.c"
+    },
+    {
+      "id": "W76",
+      "a": "N4_RP.n",
+      "b": "N4_QA.c"
+    },
+    {
+      "id": "W77",
+      "a": "N4_RA.n",
+      "b": "N4_QA.b"
+    },
+    {
+      "id": "W78",
+      "a": "N4_RB.n",
+      "b": "N4_QB.b"
+    },
+    {
+      "id": "W79",
+      "a": "N4_QA.e",
+      "b": "N4_QB.c"
+    },
+    {
+      "id": "W80",
+      "a": "N5_RP.n",
+      "b": "N5_QA.c"
+    },
+    {
+      "id": "W81",
+      "a": "N5_RP.n",
+      "b": "N6_RA.p"
+    },
+    {
+      "id": "W82",
+      "a": "N5_RA.n",
+      "b": "N5_QA.b"
+    },
+    {
+      "id": "W83",
+      "a": "N5_RB.n",
+      "b": "N5_QB.b"
+    },
+    {
+      "id": "W84",
+      "a": "N5_QA.e",
+      "b": "N5_QB.c"
+    },
+    {
+      "id": "W85",
+      "a": "N6_RP.n",
+      "b": "N6_QA.c"
+    },
+    {
+      "id": "W86",
+      "a": "N6_RP.n",
+      "b": "N7_RA.p"
+    },
+    {
+      "id": "W87",
+      "a": "N6_RP.n",
+      "b": "N7_RB.p"
+    },
+    {
+      "id": "W88",
+      "a": "N6_RA.n",
+      "b": "N6_QA.b"
+    },
+    {
+      "id": "W89",
+      "a": "N6_RB.n",
+      "b": "N6_QB.b"
+    },
+    {
+      "id": "W90",
+      "a": "N6_QA.e",
+      "b": "N6_QB.c"
+    },
+    {
+      "id": "W91",
+      "a": "N7_RP.n",
+      "b": "N7_QA.c"
+    },
+    {
+      "id": "W92",
+      "a": "N7_RP.n",
+      "b": "N12_RB.p"
+    },
+    {
+      "id": "W93",
+      "a": "N7_RP.n",
+      "b": "N14_RA.p"
+    },
+    {
+      "id": "W94",
+      "a": "N7_RP.n",
+      "b": "N19_RB.p"
+    },
+    {
+      "id": "W95",
+      "a": "N7_RA.n",
+      "b": "N7_QA.b"
+    },
+    {
+      "id": "W96",
+      "a": "N7_RB.n",
+      "b": "N7_QB.b"
+    },
+    {
+      "id": "W97",
+      "a": "N7_QA.e",
+      "b": "N7_QB.c"
+    },
+    {
+      "id": "W98",
+      "a": "N8_RP.n",
+      "b": "N8_QA.c"
+    },
+    {
+      "id": "W99",
+      "a": "N8_RP.n",
+      "b": "N9_RB.p"
+    },
+    {
+      "id": "W100",
+      "a": "N8_RP.n",
+      "b": "N10_RB.p"
+    },
+    {
+      "id": "W101",
+      "a": "N8_RA.n",
+      "b": "N8_QA.b"
+    },
+    {
+      "id": "W102",
+      "a": "N8_RB.n",
+      "b": "N8_QB.b"
+    },
+    {
+      "id": "W103",
+      "a": "N8_QA.e",
+      "b": "N8_QB.c"
+    },
+    {
+      "id": "W104",
+      "a": "N9_RP.n",
+      "b": "N9_QA.c"
+    },
+    {
+      "id": "W105",
+      "a": "N9_RP.n",
+      "b": "N11_RA.p"
+    },
+    {
+      "id": "W106",
+      "a": "N9_RA.n",
+      "b": "N9_QA.b"
+    },
+    {
+      "id": "W107",
+      "a": "N9_RB.n",
+      "b": "N9_QB.b"
+    },
+    {
+      "id": "W108",
+      "a": "N9_QA.e",
+      "b": "N9_QB.c"
+    },
+    {
+      "id": "W109",
+      "a": "N10_RP.n",
+      "b": "N10_QA.c"
+    },
+    {
+      "id": "W110",
+      "a": "N10_RP.n",
+      "b": "N11_RB.p"
+    },
+    {
+      "id": "W111",
+      "a": "N10_RA.n",
+      "b": "N10_QA.b"
+    },
+    {
+      "id": "W112",
+      "a": "N10_RB.n",
+      "b": "N10_QB.b"
+    },
+    {
+      "id": "W113",
+      "a": "N10_QA.e",
+      "b": "N10_QB.c"
+    },
+    {
+      "id": "W114",
+      "a": "N11_RP.n",
+      "b": "N11_QA.c"
+    },
+    {
+      "id": "W115",
+      "a": "N11_RP.n",
+      "b": "N12_RA.p"
+    },
+    {
+      "id": "W116",
+      "a": "N11_RP.n",
+      "b": "N13_RA.p"
+    },
+    {
+      "id": "W117",
+      "a": "N11_RP.n",
+      "b": "N18_RA.p"
+    },
+    {
+      "id": "W118",
+      "a": "N11_RP.n",
+      "b": "N18_RB.p"
+    },
+    {
+      "id": "W119",
+      "a": "N11_RA.n",
+      "b": "N11_QA.b"
+    },
+    {
+      "id": "W120",
+      "a": "N11_RB.n",
+      "b": "N11_QB.b"
+    },
+    {
+      "id": "W121",
+      "a": "N11_QA.e",
+      "b": "N11_QB.c"
+    },
+    {
+      "id": "W122",
+      "a": "N12_RP.n",
+      "b": "N12_QA.c"
+    },
+    {
+      "id": "W123",
+      "a": "N12_RP.n",
+      "b": "N13_RB.p"
+    },
+    {
+      "id": "W124",
+      "a": "N12_RP.n",
+      "b": "N14_RB.p"
+    },
+    {
+      "id": "W125",
+      "a": "N12_RA.n",
+      "b": "N12_QA.b"
+    },
+    {
+      "id": "W126",
+      "a": "N12_RB.n",
+      "b": "N12_QB.b"
+    },
+    {
+      "id": "W127",
+      "a": "N12_QA.e",
+      "b": "N12_QB.c"
+    },
+    {
+      "id": "W128",
+      "a": "N13_RP.n",
+      "b": "N13_QA.c"
+    },
+    {
+      "id": "W129",
+      "a": "N13_RP.n",
+      "b": "N15_RA.p"
+    },
+    {
+      "id": "W130",
+      "a": "N13_RA.n",
+      "b": "N13_QA.b"
+    },
+    {
+      "id": "W131",
+      "a": "N13_RB.n",
+      "b": "N13_QB.b"
+    },
+    {
+      "id": "W132",
+      "a": "N13_QA.e",
+      "b": "N13_QB.c"
+    },
+    {
+      "id": "W133",
+      "a": "N14_RP.n",
+      "b": "N14_QA.c"
+    },
+    {
+      "id": "W134",
+      "a": "N14_RP.n",
+      "b": "N15_RB.p"
+    },
+    {
+      "id": "W135",
+      "a": "N14_RA.n",
+      "b": "N14_QA.b"
+    },
+    {
+      "id": "W136",
+      "a": "N14_RB.n",
+      "b": "N14_QB.b"
+    },
+    {
+      "id": "W137",
+      "a": "N14_QA.e",
+      "b": "N14_QB.c"
+    },
+    {
+      "id": "W138",
+      "a": "N15_RP.n",
+      "b": "N15_QA.c"
+    },
+    {
+      "id": "W139",
+      "a": "N15_RA.n",
+      "b": "N15_QA.b"
+    },
+    {
+      "id": "W140",
+      "a": "N15_RB.n",
+      "b": "N15_QB.b"
+    },
+    {
+      "id": "W141",
+      "a": "N15_QA.e",
+      "b": "N15_QB.c"
+    },
+    {
+      "id": "W142",
+      "a": "N16_RP.n",
+      "b": "N16_QA.c"
+    },
+    {
+      "id": "W143",
+      "a": "N16_RP.n",
+      "b": "N17_RA.p"
+    },
+    {
+      "id": "W144",
+      "a": "N16_RA.n",
+      "b": "N16_QA.b"
+    },
+    {
+      "id": "W145",
+      "a": "N16_RB.n",
+      "b": "N16_QB.b"
+    },
+    {
+      "id": "W146",
+      "a": "N16_QA.e",
+      "b": "N16_QB.c"
+    },
+    {
+      "id": "W147",
+      "a": "N17_RP.n",
+      "b": "N17_QA.c"
+    },
+    {
+      "id": "W148",
+      "a": "N17_RP.n",
+      "b": "N20_RA.p"
+    },
+    {
+      "id": "W149",
+      "a": "N17_RA.n",
+      "b": "N17_QA.b"
+    },
+    {
+      "id": "W150",
+      "a": "N17_RB.n",
+      "b": "N17_QB.b"
+    },
+    {
+      "id": "W151",
+      "a": "N17_QA.e",
+      "b": "N17_QB.c"
+    },
+    {
+      "id": "W152",
+      "a": "N18_RP.n",
+      "b": "N18_QA.c"
+    },
+    {
+      "id": "W153",
+      "a": "N18_RP.n",
+      "b": "N19_RA.p"
+    },
+    {
+      "id": "W154",
+      "a": "N18_RA.n",
+      "b": "N18_QA.b"
+    },
+    {
+      "id": "W155",
+      "a": "N18_RB.n",
+      "b": "N18_QB.b"
+    },
+    {
+      "id": "W156",
+      "a": "N18_QA.e",
+      "b": "N18_QB.c"
+    },
+    {
+      "id": "W157",
+      "a": "N19_RP.n",
+      "b": "N19_QA.c"
+    },
+    {
+      "id": "W158",
+      "a": "N19_RP.n",
+      "b": "N20_RB.p"
+    },
+    {
+      "id": "W159",
+      "a": "N19_RA.n",
+      "b": "N19_QA.b"
+    },
+    {
+      "id": "W160",
+      "a": "N19_RB.n",
+      "b": "N19_QB.b"
+    },
+    {
+      "id": "W161",
+      "a": "N19_QA.e",
+      "b": "N19_QB.c"
+    },
+    {
+      "id": "W162",
+      "a": "N20_RP.n",
+      "b": "N20_QA.c"
+    },
+    {
+      "id": "W163",
+      "a": "N20_RA.n",
+      "b": "N20_QA.b"
+    },
+    {
+      "id": "W164",
+      "a": "N20_RB.n",
+      "b": "N20_QB.b"
+    },
+    {
+      "id": "W165",
+      "a": "N20_QA.e",
+      "b": "N20_QB.c"
+    }
+  ],
+  "junctions": [],
+  "schematic": {
+    "VCC": {
+      "x": 70,
+      "y": 90,
+      "rotation": 0
+    },
+    "VA0": {
+      "x": 70,
+      "y": 220,
+      "rotation": 0
+    },
+    "VA1": {
+      "x": 70,
+      "y": 350,
+      "rotation": 0
+    },
+    "VB0": {
+      "x": 70,
+      "y": 480,
+      "rotation": 0
+    },
+    "VB1": {
+      "x": 70,
+      "y": 610,
+      "rotation": 0
+    },
+    "G1": {
+      "x": 70,
+      "y": 780,
+      "rotation": 0
+    },
+    "N1_RP": {
+      "x": 380,
+      "y": 100,
+      "rotation": 0
+    },
+    "N1_RA": {
+      "x": 270,
+      "y": 185,
+      "rotation": 0
+    },
+    "N1_RB": {
+      "x": 270,
+      "y": 300,
+      "rotation": 0
+    },
+    "N1_QA": {
+      "x": 380,
+      "y": 185,
+      "rotation": 0
+    },
+    "N1_QB": {
+      "x": 380,
+      "y": 300,
+      "rotation": 0
+    },
+    "N2_RP": {
+      "x": 630,
+      "y": 100,
+      "rotation": 0
+    },
+    "N2_RA": {
+      "x": 520,
+      "y": 185,
+      "rotation": 0
+    },
+    "N2_RB": {
+      "x": 520,
+      "y": 300,
+      "rotation": 0
+    },
+    "N2_QA": {
+      "x": 630,
+      "y": 185,
+      "rotation": 0
+    },
+    "N2_QB": {
+      "x": 630,
+      "y": 300,
+      "rotation": 0
+    },
+    "N3_RP": {
+      "x": 880,
+      "y": 100,
+      "rotation": 0
+    },
+    "N3_RA": {
+      "x": 770,
+      "y": 185,
+      "rotation": 0
+    },
+    "N3_RB": {
+      "x": 770,
+      "y": 300,
+      "rotation": 0
+    },
+    "N3_QA": {
+      "x": 880,
+      "y": 185,
+      "rotation": 0
+    },
+    "N3_QB": {
+      "x": 880,
+      "y": 300,
+      "rotation": 0
+    },
+    "N4_RP": {
+      "x": 1130,
+      "y": 100,
+      "rotation": 0
+    },
+    "N4_RA": {
+      "x": 1020,
+      "y": 185,
+      "rotation": 0
+    },
+    "N4_RB": {
+      "x": 1020,
+      "y": 300,
+      "rotation": 0
+    },
+    "N4_QA": {
+      "x": 1130,
+      "y": 185,
+      "rotation": 0
+    },
+    "N4_QB": {
+      "x": 1130,
+      "y": 300,
+      "rotation": 0
+    },
+    "N5_RP": {
+      "x": 1380,
+      "y": 100,
+      "rotation": 0
+    },
+    "N5_RA": {
+      "x": 1270,
+      "y": 185,
+      "rotation": 0
+    },
+    "N5_RB": {
+      "x": 1270,
+      "y": 300,
+      "rotation": 0
+    },
+    "N5_QA": {
+      "x": 1380,
+      "y": 185,
+      "rotation": 0
+    },
+    "N5_QB": {
+      "x": 1380,
+      "y": 300,
+      "rotation": 0
+    },
+    "N6_RP": {
+      "x": 380,
+      "y": 430,
+      "rotation": 0
+    },
+    "N6_RA": {
+      "x": 270,
+      "y": 515,
+      "rotation": 0
+    },
+    "N6_RB": {
+      "x": 270,
+      "y": 630,
+      "rotation": 0
+    },
+    "N6_QA": {
+      "x": 380,
+      "y": 515,
+      "rotation": 0
+    },
+    "N6_QB": {
+      "x": 380,
+      "y": 630,
+      "rotation": 0
+    },
+    "N7_RP": {
+      "x": 630,
+      "y": 430,
+      "rotation": 0
+    },
+    "N7_RA": {
+      "x": 520,
+      "y": 515,
+      "rotation": 0
+    },
+    "N7_RB": {
+      "x": 520,
+      "y": 630,
+      "rotation": 0
+    },
+    "N7_QA": {
+      "x": 630,
+      "y": 515,
+      "rotation": 0
+    },
+    "N7_QB": {
+      "x": 630,
+      "y": 630,
+      "rotation": 0
+    },
+    "N8_RP": {
+      "x": 880,
+      "y": 430,
+      "rotation": 0
+    },
+    "N8_RA": {
+      "x": 770,
+      "y": 515,
+      "rotation": 0
+    },
+    "N8_RB": {
+      "x": 770,
+      "y": 630,
+      "rotation": 0
+    },
+    "N8_QA": {
+      "x": 880,
+      "y": 515,
+      "rotation": 0
+    },
+    "N8_QB": {
+      "x": 880,
+      "y": 630,
+      "rotation": 0
+    },
+    "N9_RP": {
+      "x": 1130,
+      "y": 430,
+      "rotation": 0
+    },
+    "N9_RA": {
+      "x": 1020,
+      "y": 515,
+      "rotation": 0
+    },
+    "N9_RB": {
+      "x": 1020,
+      "y": 630,
+      "rotation": 0
+    },
+    "N9_QA": {
+      "x": 1130,
+      "y": 515,
+      "rotation": 0
+    },
+    "N9_QB": {
+      "x": 1130,
+      "y": 630,
+      "rotation": 0
+    },
+    "N10_RP": {
+      "x": 1380,
+      "y": 430,
+      "rotation": 0
+    },
+    "N10_RA": {
+      "x": 1270,
+      "y": 515,
+      "rotation": 0
+    },
+    "N10_RB": {
+      "x": 1270,
+      "y": 630,
+      "rotation": 0
+    },
+    "N10_QA": {
+      "x": 1380,
+      "y": 515,
+      "rotation": 0
+    },
+    "N10_QB": {
+      "x": 1380,
+      "y": 630,
+      "rotation": 0
+    },
+    "N11_RP": {
+      "x": 380,
+      "y": 760,
+      "rotation": 0
+    },
+    "N11_RA": {
+      "x": 270,
+      "y": 845,
+      "rotation": 0
+    },
+    "N11_RB": {
+      "x": 270,
+      "y": 960,
+      "rotation": 0
+    },
+    "N11_QA": {
+      "x": 380,
+      "y": 845,
+      "rotation": 0
+    },
+    "N11_QB": {
+      "x": 380,
+      "y": 960,
+      "rotation": 0
+    },
+    "N12_RP": {
+      "x": 630,
+      "y": 760,
+      "rotation": 0
+    },
+    "N12_RA": {
+      "x": 520,
+      "y": 845,
+      "rotation": 0
+    },
+    "N12_RB": {
+      "x": 520,
+      "y": 960,
+      "rotation": 0
+    },
+    "N12_QA": {
+      "x": 630,
+      "y": 845,
+      "rotation": 0
+    },
+    "N12_QB": {
+      "x": 630,
+      "y": 960,
+      "rotation": 0
+    },
+    "N13_RP": {
+      "x": 880,
+      "y": 760,
+      "rotation": 0
+    },
+    "N13_RA": {
+      "x": 770,
+      "y": 845,
+      "rotation": 0
+    },
+    "N13_RB": {
+      "x": 770,
+      "y": 960,
+      "rotation": 0
+    },
+    "N13_QA": {
+      "x": 880,
+      "y": 845,
+      "rotation": 0
+    },
+    "N13_QB": {
+      "x": 880,
+      "y": 960,
+      "rotation": 0
+    },
+    "N14_RP": {
+      "x": 1130,
+      "y": 760,
+      "rotation": 0
+    },
+    "N14_RA": {
+      "x": 1020,
+      "y": 845,
+      "rotation": 0
+    },
+    "N14_RB": {
+      "x": 1020,
+      "y": 960,
+      "rotation": 0
+    },
+    "N14_QA": {
+      "x": 1130,
+      "y": 845,
+      "rotation": 0
+    },
+    "N14_QB": {
+      "x": 1130,
+      "y": 960,
+      "rotation": 0
+    },
+    "N15_RP": {
+      "x": 1380,
+      "y": 760,
+      "rotation": 0
+    },
+    "N15_RA": {
+      "x": 1270,
+      "y": 845,
+      "rotation": 0
+    },
+    "N15_RB": {
+      "x": 1270,
+      "y": 960,
+      "rotation": 0
+    },
+    "N15_QA": {
+      "x": 1380,
+      "y": 845,
+      "rotation": 0
+    },
+    "N15_QB": {
+      "x": 1380,
+      "y": 960,
+      "rotation": 0
+    },
+    "N16_RP": {
+      "x": 380,
+      "y": 1090,
+      "rotation": 0
+    },
+    "N16_RA": {
+      "x": 270,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N16_RB": {
+      "x": 270,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N16_QA": {
+      "x": 380,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N16_QB": {
+      "x": 380,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N17_RP": {
+      "x": 630,
+      "y": 1090,
+      "rotation": 0
+    },
+    "N17_RA": {
+      "x": 520,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N17_RB": {
+      "x": 520,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N17_QA": {
+      "x": 630,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N17_QB": {
+      "x": 630,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N18_RP": {
+      "x": 880,
+      "y": 1090,
+      "rotation": 0
+    },
+    "N18_RA": {
+      "x": 770,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N18_RB": {
+      "x": 770,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N18_QA": {
+      "x": 880,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N18_QB": {
+      "x": 880,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N19_RP": {
+      "x": 1130,
+      "y": 1090,
+      "rotation": 0
+    },
+    "N19_RA": {
+      "x": 1020,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N19_RB": {
+      "x": 1020,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N19_QA": {
+      "x": 1130,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N19_QB": {
+      "x": 1130,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N20_RP": {
+      "x": 1380,
+      "y": 1090,
+      "rotation": 0
+    },
+    "N20_RA": {
+      "x": 1270,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N20_RB": {
+      "x": 1270,
+      "y": 1290,
+      "rotation": 0
+    },
+    "N20_QA": {
+      "x": 1380,
+      "y": 1175,
+      "rotation": 0
+    },
+    "N20_QB": {
+      "x": 1380,
+      "y": 1290,
+      "rotation": 0
+    }
+  },
+  "net_labels": {},
+  "breadboard": {
+    "placements": {
+      "VCC.p": "rail_top_p1",
+      "N1_RP.p": "rail_top_p2",
+      "N2_RP.p": "rail_top_p3",
+      "N3_RP.p": "rail_top_p4",
+      "N4_RP.p": "rail_top_p5",
+      "N5_RP.p": "rail_top_p6",
+      "N6_RP.p": "rail_top_p7",
+      "N7_RP.p": "rail_top_p8",
+      "N8_RP.p": "rail_top_p9",
+      "N9_RP.p": "rail_top_p10",
+      "N10_RP.p": "rail_top_p11",
+      "N11_RP.p": "rail_top_p12",
+      "N12_RP.p": "rail_top_p13",
+      "N13_RP.p": "rail_top_p14",
+      "N14_RP.p": "rail_top_p15",
+      "N15_RP.p": "rail_top_p16",
+      "N16_RP.p": "rail_top_p17",
+      "N17_RP.p": "rail_top_p18",
+      "N18_RP.p": "rail_top_p19",
+      "N19_RP.p": "rail_top_p20",
+      "N20_RP.p": "rail_top_p21",
+      "VCC.n": "rail_top_n1",
+      "VA0.n": "rail_top_n2",
+      "VA1.n": "rail_top_n3",
+      "VB0.n": "rail_top_n4",
+      "VB1.n": "rail_top_n5",
+      "G1.g": "rail_top_n6",
+      "N1_QB.e": "rail_top_n7",
+      "N2_QB.e": "rail_top_n8",
+      "N3_QB.e": "rail_top_n9",
+      "N4_QB.e": "rail_top_n10",
+      "N5_QB.e": "rail_top_n11",
+      "N6_QB.e": "rail_top_n12",
+      "N7_QB.e": "rail_top_n13",
+      "N8_QB.e": "rail_top_n14",
+      "N9_QB.e": "rail_top_n15",
+      "N10_QB.e": "rail_top_n16",
+      "N11_QB.e": "rail_top_n17",
+      "N12_QB.e": "rail_top_n18",
+      "N13_QB.e": "rail_top_n19",
+      "N14_QB.e": "rail_top_n20",
+      "N15_QB.e": "rail_top_n21",
+      "N16_QB.e": "rail_top_n22",
+      "N17_QB.e": "rail_top_n23",
+      "N18_QB.e": "rail_top_n24",
+      "N19_QB.e": "rail_top_n25",
+      "N20_QB.e": "rail_top_n26",
+      "VA0.p": "a1",
+      "N1_RA.p": "b1",
+      "N2_RA.p": "c1",
+      "N5_RA.p": "d1",
+      "N5_RB.p": "e1",
+      "VA1.p": "f1",
+      "N8_RA.p": "g1",
+      "N9_RA.p": "h1",
+      "N16_RA.p": "i1",
+      "N16_RB.p": "j1",
+      "VB0.p": "a2",
+      "N1_RB.p": "b2",
+      "N3_RA.p": "c2",
+      "N6_RB.p": "d2",
+      "VB1.p": "f2",
+      "N8_RB.p": "g2",
+      "N10_RA.p": "h2",
+      "N17_RB.p": "i2",
+      "N1_RP.n": "a3",
+      "N1_QA.c": "b3",
+      "N2_RB.p": "c3",
+      "N3_RB.p": "d3",
+      "N1_RA.n": "f3",
+      "N1_QA.b": "g3",
+      "N1_RB.n": "a4",
+      "N1_QB.b": "b4",
+      "N1_QA.e": "f4",
+      "N1_QB.c": "g4",
+      "N2_RP.n": "a5",
+      "N2_QA.c": "b5",
+      "N4_RA.p": "c5",
+      "N2_RA.n": "f5",
+      "N2_QA.b": "g5",
+      "N2_RB.n": "a6",
+      "N2_QB.b": "b6",
+      "N2_QA.e": "f6",
+      "N2_QB.c": "g6",
+      "N3_RP.n": "a7",
+      "N3_QA.c": "b7",
+      "N4_RB.p": "c7",
+      "N3_RA.n": "f7",
+      "N3_QA.b": "g7",
+      "N3_RB.n": "a8",
+      "N3_QB.b": "b8",
+      "N3_QA.e": "f8",
+      "N3_QB.c": "g8",
+      "N4_RP.n": "a9",
+      "N4_QA.c": "b9",
+      "N4_RA.n": "f9",
+      "N4_QA.b": "g9",
+      "N4_RB.n": "a10",
+      "N4_QB.b": "b10",
+      "N4_QA.e": "f10",
+      "N4_QB.c": "g10",
+      "N5_RP.n": "a11",
+      "N5_QA.c": "b11",
+      "N6_RA.p": "c11",
+      "N5_RA.n": "f11",
+      "N5_QA.b": "g11",
+      "N5_RB.n": "a12",
+      "N5_QB.b": "b12",
+      "N5_QA.e": "f12",
+      "N5_QB.c": "g12",
+      "N6_RP.n": "a13",
+      "N6_QA.c": "b13",
+      "N7_RA.p": "c13",
+      "N7_RB.p": "d13",
+      "N6_RA.n": "f13",
+      "N6_QA.b": "g13",
+      "N6_RB.n": "a14",
+      "N6_QB.b": "b14",
+      "N6_QA.e": "f14",
+      "N6_QB.c": "g14",
+      "N7_RP.n": "a15",
+      "N7_QA.c": "b15",
+      "N12_RB.p": "c15",
+      "N14_RA.p": "d15",
+      "N19_RB.p": "e15",
+      "N7_RA.n": "f15",
+      "N7_QA.b": "g15",
+      "N7_RB.n": "a16",
+      "N7_QB.b": "b16",
+      "N7_QA.e": "f16",
+      "N7_QB.c": "g16",
+      "N8_RP.n": "a17",
+      "N8_QA.c": "b17",
+      "N9_RB.p": "c17",
+      "N10_RB.p": "d17",
+      "N8_RA.n": "f17",
+      "N8_QA.b": "g17",
+      "N8_RB.n": "a18",
+      "N8_QB.b": "b18",
+      "N8_QA.e": "f18",
+      "N8_QB.c": "g18",
+      "N9_RP.n": "a19",
+      "N9_QA.c": "b19",
+      "N11_RA.p": "c19",
+      "N9_RA.n": "f19",
+      "N9_QA.b": "g19",
+      "N9_RB.n": "a20",
+      "N9_QB.b": "b20",
+      "N9_QA.e": "f20",
+      "N9_QB.c": "g20",
+      "N10_RP.n": "a21",
+      "N10_QA.c": "b21",
+      "N11_RB.p": "c21",
+      "N10_RA.n": "f21",
+      "N10_QA.b": "g21",
+      "N10_RB.n": "a22",
+      "N10_QB.b": "b22",
+      "N10_QA.e": "f22",
+      "N10_QB.c": "g22",
+      "N11_RP.n": "a23",
+      "N11_QA.c": "b23",
+      "N12_RA.p": "c23",
+      "N13_RA.p": "d23",
+      "N18_RA.p": "e23",
+      "N18_RB.p": "f23",
+      "N11_RA.n": "a24",
+      "N11_QA.b": "b24",
+      "N11_RB.n": "f24",
+      "N11_QB.b": "g24",
+      "N11_QA.e": "a25",
+      "N11_QB.c": "b25",
+      "N12_RP.n": "f25",
+      "N12_QA.c": "g25",
+      "N13_RB.p": "h25",
+      "N14_RB.p": "i25",
+      "N12_RA.n": "a26",
+      "N12_QA.b": "b26",
+      "N12_RB.n": "f26",
+      "N12_QB.b": "g26",
+      "N12_QA.e": "a27",
+      "N12_QB.c": "b27",
+      "N13_RP.n": "f27",
+      "N13_QA.c": "g27",
+      "N15_RA.p": "h27",
+      "N13_RA.n": "a28",
+      "N13_QA.b": "b28",
+      "N13_RB.n": "f28",
+      "N13_QB.b": "g28",
+      "N13_QA.e": "a29",
+      "N13_QB.c": "b29",
+      "N14_RP.n": "f29",
+      "N14_QA.c": "g29",
+      "N15_RB.p": "h29",
+      "N14_RA.n": "a30",
+      "N14_QA.b": "b30",
+      "N14_RB.n": "f30",
+      "N14_QB.b": "g30"
+    },
+    "rail_splits": true
+  },
+  "ui": {
+    "selected": [],
+    "view": "split",
+    "highlights": [],
+    "annotations": []
+  },
+  "description": "A = A1 A0, B = B1 B0. Sortie D1 D0 modulo 4 et emprunt final séparé. Vingt portes NAND à transistors NPN, aucun calcul Python des sorties observées.",
+  "default_analysis": {
+    "kind": "op"
+  },
+  "breadboard_note": "54 bornes hors plaque : ce montage nécessite plusieurs breadboards. Les fils du modèle conservent le circuit complet ; les bornes hors plaque doivent encore être placées physiquement.",
+  "truth_table": {
+    "inputs": {
+      "A0": "VA0",
+      "A1": "VA1",
+      "B0": "VB0",
+      "B1": "VB1"
+    },
+    "outputs": {
+      "D0": "N4_RP.n",
+      "D1": "N15_RP.n",
+      "Borrow": "N20_RP.n"
+    },
+    "cases": [
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 0,
+          "B0": 0,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 0,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 0,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 0,
+          "B0": 1,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 1,
+          "Borrow": 1
+        },
+        "expected_modulo_4": 3,
+        "expected_borrow": 1
+      },
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 0,
+          "B0": 0,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 1,
+          "Borrow": 1
+        },
+        "expected_modulo_4": 2,
+        "expected_borrow": 1
+      },
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 0,
+          "B0": 1,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 0,
+          "Borrow": 1
+        },
+        "expected_modulo_4": 1,
+        "expected_borrow": 1
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 0,
+          "B0": 0,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 0,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 1,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 0,
+          "B0": 1,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 0,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 0,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 0,
+          "B0": 0,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 1,
+          "Borrow": 1
+        },
+        "expected_modulo_4": 3,
+        "expected_borrow": 1
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 0,
+          "B0": 1,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 1,
+          "Borrow": 1
+        },
+        "expected_modulo_4": 2,
+        "expected_borrow": 1
+      },
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 1,
+          "B0": 0,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 1,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 2,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 1,
+          "B0": 1,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 0,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 1,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 1,
+          "B0": 0,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 0,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 0,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 0,
+          "A1": 1,
+          "B0": 1,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 1,
+          "Borrow": 1
+        },
+        "expected_modulo_4": 3,
+        "expected_borrow": 1
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 1,
+          "B0": 0,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 1,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 3,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 1,
+          "B0": 1,
+          "B1": 0
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 1,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 2,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 1,
+          "B0": 0,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 1,
+          "D1": 0,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 1,
+        "expected_borrow": 0
+      },
+      {
+        "inputs": {
+          "A0": 1,
+          "A1": 1,
+          "B0": 1,
+          "B1": 1
+        },
+        "expected": {
+          "D0": 0,
+          "D1": 0,
+          "Borrow": 0
+        },
+        "expected_modulo_4": 0,
+        "expected_borrow": 0
+      }
+    ],
+    "thresholds": {
+      "low": 1.5,
+      "high": 3.5
+    }
+  },
+  "pedagogy": {
+    "gates": 20,
+    "pull_up_ohms": 1000,
+    "base_resistor_ohms": 47000,
+    "explanation": "Chaque NAND comporte deux NPN en série vers la masse et une résistance de rappel au +5 V. Les deux entrées hautes permettent le courant dans les deux transistors et abaissent la sortie. Une entrée basse interrompt ce trajet : la résistance remonte la sortie. Les étages restent soumis à la charge des portes suivantes."
+  }
+}

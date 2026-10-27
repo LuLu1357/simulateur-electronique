@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "id": "demo_ohm",
+  "title": "Loi d’Ohm · 5 V / 1 kΩ",
+  "revision": 0,
+  "components": [
+    {
+      "id": "V1",
+      "kind": "voltage_source",
+      "label": "V1",
+      "value": 5,
+      "model": null,
+      "pins": {
+        "p": "V1.p",
+        "n": "V1.n"
+      }
+    },
+    {
+      "id": "R1",
+      "kind": "resistor",
+      "label": "R1",
+      "value": 1000,
+      "model": null,
+      "pins": {
+        "p": "R1.p",
+        "n": "R1.n"
+      }
+    },
+    {
+      "id": "G1",
+      "kind": "ground",
+      "label": "G1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "g": "G1.g"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "W1",
+      "a": "V1.p",
+      "b": "R1.p"
+    },
+    {
+      "id": "W2",
+      "a": "V1.n",
+      "b": "R1.n"
+    },
+    {
+      "id": "W3",
+      "a": "V1.n",
+      "b": "G1.g"
+    }
+  ],
+  "junctions": [],
+  "schematic": {
+    "V1": {
+      "x": 180,
+      "y": 180,
+      "rotation": 90
+    },
+    "R1": {
+      "x": 400,
+      "y": 130,
+      "rotation": 0
+    },
+    "G1": {
+      "x": 300,
+      "y": 300,
+      "rotation": 0
+    }
+  },
+  "net_labels": {},
+  "breadboard": {
+    "placements": {
+      "V1.p": "rail_top_p1",
+      "R1.p": "rail_top_p2",
+      "V1.n": "rail_top_n1",
+      "R1.n": "rail_top_n2",
+      "G1.g": "rail_top_n3"
+    },
+    "rail_splits": true
+  },
+  "ui": {
+    "selected": [],
+    "view": "split",
+    "highlights": [],
+    "annotations": []
+  },
+  "description": "Suivre le courant de la borne positive de la source, dans la résistance, puis jusqu’au retour : I = 5 V / 1 000 Ω = 5 mA.",
+  "default_analysis": {
+    "kind": "op"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "server_started": true,
+  "client_connected": true,
+  "tools_accessible": true,
+  "protocol": "2026-07-28",
+  "project_revision": 43,
+  "resistance": 1000,
+  "resistor_current": 0.005,
+  "wire_status": {
+    "W1": "underdetermined",
+    "W2": "underdetermined",
+    "W3": "underdetermined"
+  },
+  "wire_hints": {
+    "W1": 0.005,
+    "W2": -0.005,
+    "W3": -0.0
+  },
+  "ui_selection": [
+    "R1"
+  ],
+  "browser_checks": {
+    "created_empty_circuit_and_wired_three_components": true,
+    "ohm_5mA": true,
+    "visual_resistance_edit_2kohm_2_5mA": true,
+    "voltage_colours_and_symbolic_particles_rendered": true,
+    "electron_and_conventional_directions_reversed": true,
+    "pause_removes_animated_groups": true,
+    "rc_voltage_and_current_axes_separate": true,
+    "truth_table_rows": 16,
+    "truth_table_passed": 16,
+    "negative_5V_wire_colour": "#55a1ff",
+    "negative_source_reverses_electron_direction": true
+  },
+  "final_demo": {
+    "revision": 58,
+    "title": "Loi d’Ohm · 5 V / 1 kΩ",
+    "source_volts": 5.0,
+    "resistor_ohms": 1000,
+    "net_labels": {
+      "R1.p": "VCC"
+    },
+    "screenshot": "apercu-atelier.png"
+  }
+}

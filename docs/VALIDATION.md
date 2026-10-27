@@ -1,0 +1,56 @@
+# Vérifications du 27 octobre 2026
+
+## Résultats exécutés
+
+- **121 tests Python réussis, 90 sous-tests réussis**, sur le modèle, les entrées invalides, la connectivité, les transactions, la sécurité API, les vrais calculs électriques et les flux des fils.
+- **9 tests TypeScript/Node réussis** : potentiels positifs/négatifs/nuls/inconnus, saturation de l’échelle, bornes de vitesse et inversion électrons/courant conventionnel.
+- **Compilation TypeScript et production Vite réussies**.
+- **Client MCP officiel 2.3.0** : négociation du protocole `2026-07-28`, 23 outils listés et 11 contrôles d’intégration réussis ; 16 vrais calculs analogiques du soustracteur réussis.
+
+Environnement observé : macOS arm64, Python 3.14.6, ngspice 47. Les autres versions et systèmes n’ont pas été exécutés dans cette mission.
+
+## Électricité, indépendamment du navigateur
+
+Les tests utilisent le vrai exécutable ngspice et comparent ses résultats à des références indépendantes :
+
+| Cas | Résultat vérifié |
+| --- | --- |
+| 5 V sur 1 kΩ | 5 mA |
+| Diviseur de deux résistances égales | 2,5 V |
+| Diode générique en direct/inverse | Conduction directe et blocage inverse |
+| NPN et PNP | Commande active, blocage, courants C/B/E et bilan de Kirchhoff |
+| RC 1 kΩ / 1 µF | Évolution comparée à l’exponentielle de charge, constante de temps 1 ms |
+| Interrupteurs/boutons et sondes | États ouverts/fermés, courant et tension différentielle |
+| Breadboard | Bandes A–E / F–J, canal, rails séparés/coupés et mise en correspondance des vues |
+| Échecs et arrêt | Netlist/journal conservés, limites vérifiées, arrêt après lancement réel d’un processus |
+| Soustracteur discret | 16/16 combinaisons, valeurs de sortie réellement calculées ; résultat modulo 4 et emprunt séparé |
+| Flux des conducteurs | Courants uniques sur les ponts, ambiguïté des cycles et trajets illustratifs séparés |
+
+Le rapport `results-electric.json` conserve les 16 entrées, tensions, seuils, résultats attendus/observés et statuts. Les modèles sont génériques ; ces vérifications ne qualifient aucun montage physique ni brochage constructeur.
+
+## Chaîne observée dans l’interface
+
+1. Création d’un circuit vide par le bouton Nouveau circuit.
+2. Ajout à la souris d’une source continue, d’une résistance et d’une masse.
+3. Connexion des trois branches par clics sur les bornes.
+4. Simulation et observation de **5 mA** dans R1.
+5. Modification visuelle d’une résistance de 1 kΩ à 2 kΩ, puis observation de **2,5 mA** après recalcul.
+6. Modification et sélection du circuit par un vrai client MCP, puis affichage de son nom de réseau **VCC**, de R1 sélectionnée et des **5 mA** dans le navigateur. Trace : `results-ui-mcp.json`.
+7. Affichage des fils selon leurs tensions, des points animés et de la légende des trajets indicatifs.
+8. Contrôle des attributs SVG : à courant positif identique, `electrons` donne `reverse`, `conventional` donne `forward`. Le mode pause retire les groupes animés. Une source passée à −5 V produit le fil bleu `#55a1ff` et inverse le sens des points ; la source a ensuite été rétablie à +5 V.
+9. Chargement de l’exemple RC, choix automatique du mode temporel, calcul et affichage de plusieurs courbes. Ajouter I(R1) affiche un graphe en ampères distinct du graphe en volts.
+10. Lancement des essais du soustracteur depuis l’interface et observation de **16 lignes conformes**.
+
+## Ce qui est prouvé par le test MCP
+
+`results-mcp.json` distingue serveur démarré, client connecté et outils accessibles. Il conserve la liste des outils, les contrôles et la table complète. Le client utilise le transport stdio réel dans un processus distinct, puis les mêmes opérations API que l’interface.
+
+Le test valide prévisualisation sans mutation, conflit de révision rejeté, annulation atomique sur une opération invalide, undo/redo, modification de valeur, mesure de 5 V et 2,5 mA, continuité et coupure des rails, annotation/surlignage visibles, maintien des mesures lors d’une modification visuelle et les 16 cas du soustracteur. Le contenu du projet initial est restauré à la fin.
+
+La configuration personnelle de Codex n’a pas été modifiée : la configuration de connexion et les commandes nécessaires sont livrées dans `docs/mcp.md` et `mcp-config.example.json`.
+
+## Limites de la preuve visuelle
+
+L’animation est symbolique, liée au signe des courants du dernier point calculé ; elle ne simule pas des particules microscopiques et ne rejoue pas encore l’évolution complète d’un transitoire. Dans les boucles idéales, les trajets d’animation ne prétendent pas mesurer une répartition unique entre les fils.
+
+La vérification navigateur a été menée dans le navigateur intégré local. Les tests ne constituent pas une validation de tous les navigateurs, écrans tactiles ou contraintes d’accessibilité. Les boîtiers rigides et l’implantation sur plusieurs plaques restent à développer.

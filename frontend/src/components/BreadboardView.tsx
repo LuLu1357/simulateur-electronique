@@ -1,0 +1,1256 @@
+import React, { useMemo, useRef, useState } from "react";
+import {
+  Check,
+  CircuitBoard,
+  Hand,
+  Info,
+  Link2,
+  MousePointer2,
+  Maximize2,
+  RotateCw,
+  X,
+} from "lucide-react";
+import type { Component, Op, Project, Simulation, State } from "../types";
+import { format } from "../types";
+import { voltageColor } from "../visuals";
+import { FlowParticles } from "./FlowParticles";
+import {
+  BOARD,
+  adjacentBoardHole,
+  boardGroup,
+  boardHolePoint,
+  boardHoles,
+  defaultFootprint,
+  externalComponent,
+  orderedPins,
+  placeBoardPin,
+  rigidJumperPath,
+  rotateFootprint,
+  snapBoardHole,
+  translateFootprint,
+} from "../breadboard";
+import type { BoardPoint, PlacementProposal } from "../breadboard";
+import "../breadboard.css";
+
+export type BreadboardViewProps = {
+  state: State;
+  simulation: Simulation | null;
+  stale: boolean;
+  flowMode: string;
+  flowSpeed: number;
+  voltageColors: boolean;
+  voltageRange: number;
+  pending: string | null;
+  pinToPlace: string | null;
+  tool: string;
+  boardWire: string | null;
+  preview?: boolean;
+  onSelect: (id: string) => void;
+  onPin: (id: string) => void;
+  onTool: (tool: string) => void;
+  onBoardWire: (hole: string | null) => void;
+  onPending: (id: string | null) => void;
+  onNotice: (message: string) => void;
+  onError: (message: string) => void;
+  onLayout: () => void;
+  act: (operations: Op[], preview?: boolean) => Promise<State | undefined>;
+};
+
+type Drag = {
+  mode: "body" | "pin";
+  componentId: string;
+  terminal: string;
+  start: BoardPoint;
+  anchor: BoardPoint;
+  moved: boolean;
+  proposal: PlacementProposal | null;
+};
+const kindNames: Record<string, string> = {
+  resistor: "Résistance",
+  diode: "Diode",
+  capacitor: "Condensateur",
+  npn: "NPN",
+  pnp: "PNP",
+  switch: "Interrupteur",
+  button: "Bouton",
+  voltage_source: "Alimentation",
+  ground: "Masse",
+  voltage_probe: "Sonde V",
+  current_probe: "Sonde A",
+};
+const rejected = (message: string): PlacementProposal => ({
+  ok: false,
+  operations: [],
+  placements: {},
+  message,
+});
+
+export function BreadboardView(props: BreadboardViewProps) {
+  const {
+    state,
+    simulation,
+    stale,
+    flowMode,
+    flowSpeed,
+    voltageColors,
+    voltageRange,
+    pending,
+    pinToPlace,
+    tool,
+    boardWire,
+    preview = false,
+    onSelect,
+    onPin,
+    onTool,
+    onBoardWire,
+    onPending,
+    onNotice,
+    onError,
+    onLayout,
+    act,
+  } = props;
+  const project = state.project;
+  const placements = project.breadboard.placements;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const suppressClick = useRef(false);
+  const jumperCounter = useRef(0);
+  const [hoverHole, setHoverHole] = useState<string | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const [placingId, setPlacingId] = useState<string | null>(null);
+  const [trayDragId, setTrayDragId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [holeDraft, setHoleDraft] = useState("");
+  const disabled = preview || busy;
+  const selected = project.ui.selected;
+  const highlights = project.ui.highlights.filter(
+    (id): id is string => typeof id === "string",
+  );
+  const activePin = pending || pinToPlace || "";
+  const activeComponent = project.components.find((c) =>
+    selected.includes(c.id),
+  );
+  const unplaced = project.components.filter((c) =>
+    Object.values(c.pins).some((pin) => !placements[pin]),
+  );
+  const hiddenWires = project.wires.filter(
+    (wire) => !placements[wire.a] || !placements[wire.b],
+  ).length;
+  const selectedNets = useMemo(
+    () =>
+      new Set(
+        project.components
+          .filter((c) => selected.includes(c.id))
+          .flatMap((c) =>
+            Object.values(c.pins).map(
+              (id) => state.topology.terminal_to_net[id],
+            ),
+          ),
+      ),
+    [project.components, selected, state.topology.terminal_to_net],
+  );
+  const point = (event: { clientX: number; clientY: number }): BoardPoint => {
+    const svg = svgRef.current;
+    if (!svg) return [0, 0];
+    const p = svg.createSVGPoint();
+    p.x = event.clientX;
+    p.y = event.clientY;
+    const matrix = svg.getScreenCTM();
+    if (!matrix) return [0, 0];
+    const transformed = p.matrixTransform(matrix.inverse());
+    return [transformed.x, transformed.y];
+  };
+  const paint = (terminal: string) => {
+    const net = state.topology.terminal_to_net[terminal];
+    if (voltageColors && simulation && !stale && !preview)
+      return voltageColor(simulation.voltages[net], voltageRange);
+    return net === "0" ? "#477ca7" : "#33866b";
+  };
+  const reset = () => {
+    setDrag(null);
+    setPlacingId(null);
+    setTrayDragId(null);
+    onPending(null);
+    onPin("");
+    onBoardWire(null);
+  };
+  async function commit(
+    proposal: PlacementProposal,
+    componentId?: string,
+    clearPin = true,
+  ) {
+    if (disabled) return;
+    if (!proposal.ok) {
+      onError(proposal.message);
+      return;
+    }
+    setBusy(true);
+    try {
+      const operations = componentId
+        ? [...proposal.operations, { type: "set_ui", selected: [componentId] }]
+        : proposal.operations;
+      const result = await act(operations);
+      if (!result) {
+        onNotice(
+          "Placement non appliqué : les bornes et la sélection en attente sont conservées.",
+        );
+        return;
+      }
+      if (clearPin) {
+        onPending(null);
+        onPin("");
+      }
+      setPlacingId(null);
+      setTrayDragId(null);
+      onNotice(
+        "Implantation mise à jour. Les fils suivent leurs bornes ; vérifie les nouvelles continuités avant de recalculer.",
+      );
+    } catch (error) {
+      onError(String(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  function proposalAt(current: Drag, xy: BoardPoint): PlacementProposal {
+    const anchor =
+      current.mode === "body"
+        ? [
+            current.anchor[0] + xy[0] - current.start[0],
+            current.anchor[1] + xy[1] - current.start[1],
+          ]
+        : xy;
+    const hole = snapBoardHole(anchor[0], anchor[1]);
+    if (!hole)
+      return rejected(
+        "Aucun trou sous la patte : déplacement annulé, implantation conservée.",
+      );
+    return current.mode === "body"
+      ? translateFootprint(project, current.componentId, hole)
+      : placeBoardPin(project, current.terminal, hole);
+  }
+  function startBody(event: React.PointerEvent<SVGGElement>, c: Component) {
+    if (disabled || event.button !== 0) return;
+    event.stopPropagation();
+    event.preventDefault();
+    suppressClick.current = false;
+    const terminal = orderedPins(c)[0]?.[1];
+    const anchor = boardHolePoint(placements[terminal] || "");
+    if (!anchor || orderedPins(c).some(([, id]) => !placements[id])) {
+      setPlacingId(c.id);
+      onNotice(
+        `${c.label} : choisis un trou pour placer l’ensemble de ses bornes.`,
+      );
+      return;
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDrag({
+      mode: "body",
+      componentId: c.id,
+      terminal,
+      start: point(event),
+      anchor,
+      moved: false,
+      proposal: null,
+    });
+  }
+  function startPin(
+    event: React.PointerEvent<SVGGElement>,
+    c: Component,
+    terminal: string,
+  ) {
+    if (disabled || event.button !== 0) return;
+    event.stopPropagation();
+    event.preventDefault();
+    suppressClick.current = false;
+    const anchor = boardHolePoint(placements[terminal] || "");
+    if (!anchor) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDrag({
+      mode: "pin",
+      componentId: c.id,
+      terminal,
+      start: point(event),
+      anchor,
+      moved: false,
+      proposal: null,
+    });
+  }
+  function finishDrag(event: React.PointerEvent<SVGSVGElement>) {
+    if (!drag) return;
+    const xy = point(event);
+    const moved =
+      drag.moved ||
+      Math.hypot(xy[0] - drag.start[0], xy[1] - drag.start[1]) > 4;
+    suppressClick.current = true;
+    setDrag(null);
+    if (!moved) {
+      onSelect(drag.componentId);
+      if (drag.mode === "pin") {
+        onPin(drag.terminal);
+        onPending(drag.terminal);
+        setPlacingId(null);
+      }
+      return;
+    }
+    const proposal = proposalAt(drag, xy);
+    if (drag.mode === "pin") {
+      // Conserver la patte en attente aussi si le serveur refuse une révision
+      // périmée ; commit ne la libère qu'après confirmation de l'état obtenu.
+      onPin(drag.terminal);
+      onPending(drag.terminal);
+    }
+    void commit(proposal, drag.componentId, drag.mode === "pin");
+  }
+  async function clickHole(hole: string) {
+    if (disabled || drag) return;
+    if (tool === "board-wire") {
+      if (!boardWire) {
+        onBoardWire(hole);
+        onNotice(`Départ du cavalier : ${hole}. Choisis son arrivée.`);
+        return;
+      }
+      if (boardWire === hole) {
+        onNotice("Choisis deux trous différents pour le cavalier.");
+        return;
+      }
+      const ops: Op[] = [];
+      const stamp = `${Date.now().toString(36)}_${++jumperCounter.current}`;
+      const endpoint = (target: string, suffix: string) => {
+        const existing = Object.entries(placements).find(
+          ([, occupied]) => occupied === target,
+        );
+        if (existing) return existing[0];
+        const id = `Jboard_${stamp}_${suffix}`;
+        ops.push(
+          { type: "add_junction", id, x: suffix === "a" ? 100 : 220, y: 320 },
+          { type: "place_pin", terminal: id, hole: target },
+        );
+        return id;
+      };
+      const a = endpoint(boardWire, "a"),
+        b = endpoint(hole, "b");
+      ops.push({ type: "connect", a, b });
+      setBusy(true);
+      try {
+        if (await act(ops)) {
+          onBoardWire(null);
+          onNotice(
+            "Cavalier rigide ajouté entre les deux trous, visible aussi dans le schéma.",
+          );
+        }
+      } catch (error) {
+        onError(String(error));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (placingId) {
+      await commit(defaultFootprint(project, placingId, hole), placingId);
+      return;
+    }
+    if (activePin) {
+      await commit(placeBoardPin(project, activePin, hole));
+      return;
+    }
+    const owner = project.components.find((c) =>
+      Object.values(c.pins).some((pin) => placements[pin] === hole),
+    );
+    if (owner) onSelect(owner.id);
+    else
+      onNotice(
+        `${hole} · clique une borne à déplacer, ou active « Cavalier rigide ».`,
+      );
+  }
+  const hoverProposal =
+    !disabled && hoverHole && (placingId || trayDragId)
+      ? defaultFootprint(project, placingId || trayDragId!, hoverHole)
+      : !disabled && hoverHole && activePin
+        ? placeBoardPin(project, activePin, hoverHole)
+        : null;
+  const ghost = drag?.proposal || hoverProposal;
+  const ghostComponent = drag?.componentId || placingId || trayDragId;
+  const hoverNet = hoverHole ? state.topology.hole_to_net[hoverHole] : null;
+  const activatePin = (c: Component, terminal: string) => {
+    if (disabled) return;
+    onSelect(c.id);
+    onPin(terminal);
+    onPending(terminal);
+    setPlacingId(null);
+    onNotice(`${terminal} : déplace la patte ou clique son nouveau trou.`);
+  };
+  function renderComponent(
+    c: Component,
+    locations: Record<string, string>,
+    isGhost = false,
+  ) {
+    const entries = orderedPins(c).flatMap(([name, terminal]) => {
+      const xy = boardHolePoint(locations[terminal] || "");
+      return xy ? [{ name, terminal, xy }] : [];
+    });
+    if (!entries.length) return null;
+    const points = entries.map((p) => p.xy);
+    const minX = Math.min(...points.map((p) => p[0])),
+      maxX = Math.max(...points.map((p) => p[0]));
+    const minY = Math.min(...points.map((p) => p[1])),
+      maxY = Math.max(...points.map((p) => p[1]));
+    const cx = (minX + maxX) / 2,
+      cy = (minY + maxY) / 2;
+    const isSelected =
+      selected.includes(c.id) ||
+      highlights.includes(c.id) ||
+      drag?.componentId === c.id;
+    const isExternal = externalComponent(c);
+    const partial = entries.length < Object.keys(c.pins).length;
+    const bipolar = c.kind === "npn" || c.kind === "pnp";
+    const a = entries[0].xy,
+      b = entries[1]?.xy || a;
+    const angle = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
+    const distance = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const bodyLength = Math.max(22, Math.min(52, distance - 20));
+    const labelY = bipolar ? minY - 51 : minY - 24;
+    const detail =
+      c.kind === "resistor"
+        ? format(c.value, "Ω")
+        : c.kind === "capacitor"
+          ? format(c.value, "F")
+          : c.kind === "voltage_source"
+            ? format(c.value, "V")
+            : ["switch", "button"].includes(c.kind)
+              ? c.value
+                ? "fermé"
+                : "ouvert"
+              : kindNames[c.kind];
+    return (
+      <g
+        key={`${isGhost ? "ghost_" : ""}${c.id}`}
+        className={`bb-component ${isSelected ? "selected" : ""} ${isGhost ? "bb-ghost" : ""} ${partial ? "partial" : ""}`}
+        data-component-id={c.id}
+        role={isGhost ? undefined : "button"}
+        tabIndex={isGhost || preview ? -1 : 0}
+        aria-label={`${c.label}, ${kindNames[c.kind]}, ${partial ? "implantation partielle" : "glisser le corps pour déplacer toutes les bornes"}`}
+        onPointerDown={isGhost ? undefined : (event) => startBody(event, c)}
+        onClick={
+          isGhost
+            ? undefined
+            : (event) => {
+                event.stopPropagation();
+                if (suppressClick.current) {
+                  suppressClick.current = false;
+                  return;
+                }
+                onSelect(c.id);
+              }
+        }
+        onKeyDown={
+          isGhost
+            ? undefined
+            : (event) => {
+                if (event.target !== event.currentTarget || disabled) return;
+                const delta: Record<string, [number, number]> = {
+                  ArrowLeft: [-1, 0],
+                  ArrowRight: [1, 0],
+                  ArrowUp: [0, -1],
+                  ArrowDown: [0, 1],
+                };
+                if (delta[event.key]) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const target = adjacentBoardHole(
+                    locations[orderedPins(c)[0][1]] || "",
+                    ...delta[event.key],
+                  );
+                  if (target)
+                    void commit(
+                      translateFootprint(project, c.id, target),
+                      c.id,
+                      false,
+                    );
+                } else if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSelect(c.id);
+                }
+              }
+        }
+      >
+        <rect
+          className="bb-selection"
+          x={minX - 17}
+          y={labelY - 15}
+          width={Math.max(44, maxX - minX + 34)}
+          height={maxY - labelY + 40}
+          rx="4"
+        />
+        {!partial && !isExternal && !bipolar && (
+          <g
+            transform={`translate(${a[0]} ${a[1]}) rotate(${angle})`}
+            className="bb-body"
+          >
+            <line x1="0" y1="0" x2={distance} y2="0" className="bb-lead" />
+            {c.kind === "capacitor" ? (
+              <circle
+                cx={distance / 2}
+                cy="0"
+                r="16"
+                className="bb-capacitor"
+              />
+            ) : (
+              <rect
+                x={(distance - bodyLength) / 2}
+                y={c.kind === "button" || c.kind === "switch" ? -11 : -8}
+                width={bodyLength}
+                height={c.kind === "button" || c.kind === "switch" ? 22 : 16}
+                rx="2"
+                className={
+                  c.kind === "diode"
+                    ? "bb-diode"
+                    : ["switch", "button"].includes(c.kind)
+                      ? "bb-switch"
+                      : "bb-resistor"
+                }
+              />
+            )}
+            {c.kind === "diode" && (
+              <rect
+                x={(distance + bodyLength) / 2 - 6}
+                y="-8"
+                width="3"
+                height="16"
+                className="bb-cathode"
+              />
+            )}
+            {["switch", "button"].includes(c.kind) && (
+              <path
+                d={
+                  c.value
+                    ? `M${distance / 2 - 8} 0h16`
+                    : `M${distance / 2 - 8} 0l16 -7`
+                }
+                className="bb-switch-contact"
+              />
+            )}
+          </g>
+        )}
+        {!partial && bipolar && (
+          <g className="bb-body">
+            {entries.map(({ xy, name }) => (
+              <path
+                key={name}
+                d={`M${xy[0]} ${xy[1]}V${minY - 10}L${cx + (name === "c" ? -13 : name === "e" ? 13 : 0)} ${minY - 24}`}
+                className="bb-lead"
+              />
+            ))}
+            <rect
+              x={cx - 30}
+              y={minY - 42}
+              width="60"
+              height="25"
+              rx="3"
+              className="bb-transistor"
+            />
+            <text
+              x={cx}
+              y={minY - 25}
+              textAnchor="middle"
+              className="bb-package-text"
+            >
+              {c.kind.toUpperCase()}
+            </text>
+          </g>
+        )}
+        {!partial && isExternal && (
+          <g className="bb-external-symbol">
+            {entries.map(({ xy, name }) => (
+              <line
+                key={name}
+                x1={xy[0]}
+                y1={xy[1]}
+                x2={cx}
+                y2={cy}
+                className="bb-external-lead"
+              />
+            ))}
+            <rect
+              x={cx - 15}
+              y={cy - 11}
+              width="30"
+              height="22"
+              rx="2"
+              className="bb-external-box"
+            />
+            <text x={cx} y={cy + 5} textAnchor="middle">
+              {c.kind === "voltage_source"
+                ? "+/−"
+                : c.kind === "ground"
+                  ? "0V"
+                  : c.kind === "voltage_probe"
+                    ? "V"
+                    : "A"}
+            </text>
+          </g>
+        )}
+        <text x={cx} y={labelY} textAnchor="middle" className="bb-part-label">
+          {c.label || c.id}
+          <tspan className="bb-part-value">
+            {" "}
+            · {partial ? "à compléter" : detail}
+          </tspan>
+        </text>
+        {entries.map(({ name, terminal, xy }) => (
+          <g
+            key={terminal}
+            className={`bb-pin ${activePin === terminal ? "pending" : ""}`}
+            role={isGhost ? undefined : "button"}
+            tabIndex={isGhost || preview ? -1 : 0}
+            aria-label={`${terminal}, trou ${locations[terminal]}, cliquer puis choisir un trou pour déplacer la patte`}
+            onPointerDown={
+              isGhost ? undefined : (event) => startPin(event, c, terminal)
+            }
+            onClick={
+              isGhost
+                ? undefined
+                : (event) => {
+                    event.stopPropagation();
+                    if (suppressClick.current) {
+                      suppressClick.current = false;
+                      return;
+                    }
+                    activatePin(c, terminal);
+                  }
+            }
+            onKeyDown={
+              isGhost
+                ? undefined
+                : (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      activatePin(c, terminal);
+                    }
+                  }
+            }
+          >
+            <circle cx={xy[0]} cy={xy[1]} r="8" fill="transparent" />
+            <circle cx={xy[0]} cy={xy[1]} r="4.8" className="bb-pin-metal" />
+            <text
+              x={xy[0]}
+              y={xy[1] + 18}
+              textAnchor="middle"
+              className="bb-pin-label"
+            >
+              {name.toUpperCase()}
+            </text>
+            <title>
+              {terminal} ·{" "}
+              {state.catalog[c.kind]?.pins.find((p) => p.name === name)?.role} ·{" "}
+              {locations[terminal]} ·{" "}
+              {format(
+                simulation?.voltages[state.topology.terminal_to_net[terminal]],
+              )}
+            </title>
+          </g>
+        ))}
+        <title>
+          {c.label} · {c.model || kindNames[c.kind]} ·{" "}
+          {isExternal
+            ? "Connecteur pédagogique virtuel, aucun boîtier physique simulé."
+            : "Empreinte pédagogique ; correspondance des bornes définie par le modèle, jamais par la silhouette."}
+        </title>
+      </g>
+    );
+  }
+  return (
+    <section
+      className={`breadboard-panel bb-panel ${preview ? "is-preview" : ""}`}
+      aria-label="Implantation breadboard à plat"
+      onKeyDownCapture={(event) => {
+        if (
+          event.key === "Escape" &&
+          (drag || placingId || activePin || boardWire)
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          reset();
+          onNotice("Placement annulé, circuit conservé.");
+        }
+      }}
+    >
+      <div className="view-heading">
+        <div>
+          <span className="view-number">02</span>
+          <h2>Breadboard à plat</h2>
+          <span className="board-tag">30 colonnes · vue de dessus</span>
+        </div>
+        <div className="view-options">
+          <button disabled={disabled} onClick={onLayout}>
+            <CircuitBoard size={15} />
+            Implanter depuis le schéma
+          </button>
+          <button
+            disabled={disabled}
+            aria-pressed={tool === "board-wire"}
+            onClick={() => {
+              onTool(tool === "board-wire" ? "select" : "board-wire");
+              onBoardWire(null);
+              onPending(null);
+              onPin("");
+              setPlacingId(null);
+              onNotice(
+                "Cavalier rigide : clique deux trous. Les courbes Dupont ne sont pas utilisées.",
+              );
+            }}
+          >
+            <Link2 size={15} />
+            Cavalier rigide
+          </button>
+          <label>
+            <input
+              type="checkbox"
+              checked={project.breadboard.rail_splits}
+              disabled={disabled}
+              onChange={(event) =>
+                void act([
+                  { type: "set_rail_splits", enabled: event.target.checked },
+                ])
+              }
+            />
+            Rails coupés à 15
+          </label>
+          <button
+            disabled={disabled}
+            aria-label={
+              project.ui.view === "breadboard"
+                ? "Voir les deux vues"
+                : "Agrandir la breadboard"
+            }
+            onClick={() =>
+              void act([
+                {
+                  type: "set_ui",
+                  view:
+                    project.ui.view === "breadboard" ? "split" : "breadboard",
+                },
+              ])
+            }
+          >
+            <Maximize2 size={15} />
+            {project.ui.view === "breadboard"
+              ? "Voir les deux vues"
+              : "Agrandir la breadboard"}
+          </button>
+        </div>
+      </div>
+      <div className="bb-instructions">
+        <Hand size={17} />
+        <p>
+          <strong>Glisse le corps</strong> pour déplacer toutes ses pattes.{" "}
+          <strong>Glisse une patte</strong> pour la déplacer seule. La sélection
+          est partagée avec le schéma ; les fils restent attachés aux bornes.
+        </p>
+      </div>
+      {(placingId || activePin || boardWire) && (
+        <div className="bb-placement-status">
+          <MousePointer2 size={16} />
+          <span>
+            {placingId
+              ? `${placingId} : choisis le trou de sa première patte.`
+              : boardWire
+                ? `Cavalier depuis ${boardWire} : choisis son arrivée.`
+                : `${activePin} : choisis le nouveau trou.`}
+          </span>
+          <button disabled={busy} onClick={reset}>
+            <X size={15} />
+            Annuler · Échap
+          </button>
+        </div>
+      )}
+      {activeComponent && (
+        <div className="bb-selected-controls">
+          <span>
+            <strong>{activeComponent.label}</strong> ·{" "}
+            {kindNames[activeComponent.kind]}
+          </span>
+          <button
+            disabled={disabled}
+            onClick={() => {
+              setPlacingId(activeComponent.id);
+              onPending(null);
+              onPin("");
+              onTool("select");
+            }}
+          >
+            <Hand size={14} />
+            Placer l’ensemble
+          </button>
+          {!externalComponent(activeComponent) && (
+            <button
+              disabled={
+                disabled ||
+                Object.values(activeComponent.pins).some(
+                  (pin) => !placements[pin],
+                )
+              }
+              onClick={() =>
+                void commit(
+                  rotateFootprint(project, activeComponent.id),
+                  activeComponent.id,
+                  false,
+                )
+              }
+            >
+              <RotateCw size={14} />
+              Tourner 90°
+            </button>
+          )}
+          {["switch", "button"].includes(activeComponent.kind) && (
+            <button
+              disabled={disabled}
+              onClick={() =>
+                void act([
+                  {
+                    type: "set_value",
+                    id: activeComponent.id,
+                    value: activeComponent.value ? 0 : 1,
+                  },
+                ])
+              }
+            >
+              {activeComponent.value ? "Ouvrir" : "Fermer"}
+            </button>
+          )}
+          {orderedPins(activeComponent).map(([name, terminal]) => (
+            <button
+              key={terminal}
+              disabled={disabled}
+              className={activePin === terminal ? "active" : ""}
+              onClick={() => activatePin(activeComponent, terminal)}
+            >
+              {name.toUpperCase()} · {placements[terminal] || "hors plaque"}
+            </button>
+          ))}
+        </div>
+      )}
+      {activePin && (
+        <form
+          className="bb-hole-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void commit(
+              placeBoardPin(project, activePin, holeDraft.trim().toLowerCase()),
+            );
+          }}
+        >
+          <label htmlFor="bb-target-hole">
+            Déplacer {activePin} dans le trou
+          </label>
+          <input
+            id="bb-target-hole"
+            value={holeDraft}
+            onChange={(event) => setHoleDraft(event.target.value)}
+            placeholder="ex. c12"
+            autoComplete="off"
+            disabled={disabled}
+          />
+          <button className="outline" disabled={disabled || !holeDraft.trim()}>
+            <Check size={14} />
+            Placer la patte
+          </button>
+        </form>
+      )}
+      <div
+        className="bb-board-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="Plaque à plat défilable horizontalement"
+      >
+        <svg
+          ref={svgRef}
+          className="bb-board"
+          viewBox={`0 0 ${BOARD.width} ${BOARD.height}`}
+          aria-label="Breadboard plane, groupes A–E et F–J, rails séparés"
+          onPointerMove={(event) => {
+            const xy = point(event);
+            const hole = snapBoardHole(...xy);
+            setHoverHole(hole);
+            if (drag)
+              setDrag({
+                ...drag,
+                moved:
+                  drag.moved ||
+                  Math.hypot(xy[0] - drag.start[0], xy[1] - drag.start[1]) > 4,
+                proposal: proposalAt(drag, xy),
+              });
+          }}
+          onPointerUp={finishDrag}
+          onPointerCancel={() => {
+            setDrag(null);
+            onNotice("Geste interrompu : aucun déplacement appliqué.");
+          }}
+          onPointerLeave={() => {
+            if (!drag) setHoverHole(null);
+          }}
+          onDragOver={(event) => {
+            if (disabled || !trayDragId) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            setHoverHole(snapBoardHole(...point(event)));
+          }}
+          onDrop={(event) => {
+            if (disabled) return;
+            event.preventDefault();
+            const id =
+              trayDragId ||
+              event.dataTransfer.getData("application/x-atelier-component");
+            const hole = snapBoardHole(...point(event));
+            if (id && hole)
+              void commit(defaultFootprint(project, id, hole), id);
+            else onNotice("Dépose la première patte sur un trou de la plaque.");
+            setTrayDragId(null);
+          }}
+        >
+          <rect
+            x="28"
+            y="17"
+            width="874"
+            height="492"
+            rx="5"
+            className="bb-flat-surface"
+          />
+          <rect
+            x="55"
+            y="244"
+            width="820"
+            height="31"
+            rx="1"
+            className="bb-center-gap"
+          />
+          <text x="465" y="265" textAnchor="middle" className="bb-gap-label">
+            A–E et F–J sont séparés
+          </text>
+          {Array.from({ length: 30 }, (_, index) => {
+            const x = BOARD.firstColumnX + index * BOARD.pitch;
+            return (
+              <g key={index}>
+                <text
+                  x={x}
+                  y="100"
+                  textAnchor="middle"
+                  className="bb-coordinate"
+                >
+                  {index + 1}
+                </text>
+                <text
+                  x={x}
+                  y="431"
+                  textAnchor="middle"
+                  className="bb-coordinate"
+                >
+                  {index + 1}
+                </text>
+              </g>
+            );
+          })}
+          {"abcdefghij".split("").map((row) => (
+            <text
+              key={row}
+              x="64"
+              y={boardHolePoint(`${row}1`)![1] + 4}
+              textAnchor="middle"
+              className="bb-coordinate"
+            >
+              {row.toUpperCase()}
+            </text>
+          ))}
+          {(["top", "bottom"] as const).flatMap((side) =>
+            (["p", "n"] as const).map((polarity) => {
+              const y = boardHolePoint(`rail_${side}_${polarity}1`)![1];
+              return (
+                <g key={`${side}${polarity}`}>
+                  <text
+                    x="62"
+                    y={y + 4}
+                    className={`bb-rail-label ${polarity}`}
+                  >
+                    {polarity === "p" ? "+" : "−"}
+                  </text>
+                  {(project.breadboard.rail_splits
+                    ? [
+                        [1, 15],
+                        [16, 30],
+                      ]
+                    : [[1, 30]]
+                  ).map(([from, to]) => (
+                    <line
+                      key={from}
+                      x1={
+                        boardHolePoint(`rail_${side}_${polarity}${from}`)![0] -
+                        9
+                      }
+                      x2={
+                        boardHolePoint(`rail_${side}_${polarity}${to}`)![0] + 9
+                      }
+                      y1={y - 10}
+                      y2={y - 10}
+                      className={`bb-rail-line ${polarity}`}
+                    />
+                  ))}
+                  {project.breadboard.rail_splits && (
+                    <text
+                      x={
+                        (boardHolePoint("a15")![0] +
+                          boardHolePoint("a16")![0]) /
+                        2
+                      }
+                      y={y - 9}
+                      className="bb-cut-label"
+                      textAnchor="middle"
+                    >
+                      //
+                    </text>
+                  )}
+                </g>
+              );
+            }),
+          )}
+          {Array.from({ length: 30 }, (_, index) =>
+            ["a", "f"].map((row) => {
+              const first = `${row}${index + 1}`,
+                end = `${row === "a" ? "e" : "j"}${index + 1}`;
+              const net = state.topology.hole_to_net[first];
+              const active = net && (net === hoverNet || selectedNets.has(net));
+              return (
+                <line
+                  key={first}
+                  x1={boardHolePoint(first)![0]}
+                  y1={boardHolePoint(first)![1]}
+                  x2={boardHolePoint(end)![0]}
+                  y2={boardHolePoint(end)![1]}
+                  className={`bb-metal-band ${active ? "active" : ""}`}
+                />
+              );
+            }),
+          )}
+          {boardHoles.map((hole) => {
+            const xy = boardHolePoint(hole)!;
+            const net = state.topology.hole_to_net[hole];
+            const occupied = Object.entries(placements).find(
+              ([, current]) => current === hole,
+            );
+            const active =
+              hole === hoverHole ||
+              hole === boardWire ||
+              Boolean(net && (net === hoverNet || selectedNets.has(net)));
+            return (
+              <g
+                key={hole}
+                className={`bb-hole ${active ? "active" : ""}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (suppressClick.current) {
+                    suppressClick.current = false;
+                    return;
+                  }
+                  void clickHole(hole);
+                }}
+              >
+                <circle cx={xy[0]} cy={xy[1]} r="9" fill="transparent" />
+                <circle
+                  cx={xy[0]}
+                  cy={xy[1]}
+                  r={active ? 5.2 : 3.4}
+                  className="bb-hole-dot"
+                />
+                <title>
+                  {hole} · {boardGroup(hole, project.breadboard.rail_splits)}
+                  {occupied ? ` · ${occupied[0]}` : " · libre"} ·{" "}
+                  {format(net ? simulation?.voltages[net] : undefined)}
+                </title>
+              </g>
+            );
+          })}
+          <g className="bb-jumpers">
+            {project.wires.map((wire, index) => {
+              const a = boardHolePoint(placements[wire.a] || ""),
+                b = boardHolePoint(placements[wire.b] || "");
+              if (!a || !b) return null;
+              const path = rigidJumperPath(a, b, index);
+              const isSelected =
+                selected.includes(wire.id) || highlights.includes(wire.id);
+              return (
+                <g
+                  key={wire.id}
+                  role="button"
+                  tabIndex={preview ? -1 : 0}
+                  aria-label={`Cavalier ${wire.id} entre ${placements[wire.a]} et ${placements[wire.b]}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (!disabled) onSelect(wire.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      !disabled &&
+                      (event.key === "Enter" || event.key === " ")
+                    ) {
+                      event.preventDefault();
+                      onSelect(wire.id);
+                    }
+                  }}
+                >
+                  <path
+                    className={`bb-jumper ${isSelected ? "selected" : ""}`}
+                    d={path}
+                    stroke={paint(wire.a)}
+                  />
+                  <path
+                    d={path}
+                    stroke="transparent"
+                    strokeWidth="12"
+                    fill="none"
+                  />
+                  <title>
+                    {wire.id} · {wire.a} ↔ {wire.b} ·{" "}
+                    {simulation?.wire_current_status?.[wire.id] === "unique"
+                      ? `courant ${format(simulation.wire_currents?.[wire.id] ?? undefined, "A")}`
+                      : "répartition du courant indéterminée dans les boucles de conducteurs idéaux"}
+                  </title>
+                  <FlowParticles
+                    path={path}
+                    current={
+                      simulation?.wire_currents?.[wire.id] ??
+                      simulation?.wire_flow_hints?.[wire.id]
+                    }
+                    mode={stale || preview ? "off" : flowMode}
+                    speed={flowSpeed}
+                    indicative={
+                      simulation?.wire_current_status?.[wire.id] !== "unique"
+                    }
+                  />
+                </g>
+              );
+            })}
+          </g>
+          {project.components.map((component) =>
+            renderComponent(component, placements),
+          )}
+          {ghost?.ok &&
+            ghostComponent &&
+            project.components
+              .filter((c) => c.id === ghostComponent)
+              .map((component) =>
+                renderComponent(
+                  component,
+                  { ...placements, ...ghost.placements },
+                  true,
+                ),
+              )}
+          {ghost &&
+            Object.values(ghost.placements).map((hole) => {
+              const p = boardHolePoint(hole);
+              return (
+                p && (
+                  <circle
+                    key={hole}
+                    cx={p[0]}
+                    cy={p[1]}
+                    r="9"
+                    className={`bb-ghost-target ${ghost.ok ? "valid" : "invalid"}`}
+                  />
+                )
+              );
+            })}
+          {hoverHole && ghost && !ghost.ok && (
+            <circle
+              cx={boardHolePoint(hoverHole)![0]}
+              cy={boardHolePoint(hoverHole)![1]}
+              r="10"
+              className="bb-ghost-target invalid"
+            />
+          )}
+        </svg>
+      </div>
+      <p className={`bb-board-feedback ${ghost && !ghost.ok ? "invalid" : ""}`}>
+        {preview
+          ? "Prévisualisation : aucune modification n’est appliquée avant confirmation."
+          : drag
+            ? ghost?.message ||
+              "Glisse vers un trou libre. Toutes les pattes du corps se déplacent ensemble."
+            : hoverProposal
+              ? hoverProposal.message
+              : "A–E d’une colonne sont reliés ; F–J forment un groupe distinct. Un déplacement peut créer ou supprimer une connexion physique."}
+      </p>
+      {unplaced.length > 0 && (
+        <div className="bb-unplaced">
+          <h3>
+            <CircuitBoard size={16} />À implanter · {unplaced.length} composant
+            {unplaced.length > 1 ? "s" : ""}
+          </h3>
+          <p>
+            Glisse un composant vers un trou, ou choisis « Placer l’ensemble ».
+            Aucune implantation automatique silencieuse.
+          </p>
+          <div className="bb-tray">
+            {unplaced.map((c) => (
+              <div
+                key={c.id}
+                className={`bb-tray-part ${selected.includes(c.id) ? "selected" : ""}`}
+                draggable={!disabled}
+                onDragStart={(event) => {
+                  if (disabled) return;
+                  event.dataTransfer.setData(
+                    "application/x-atelier-component",
+                    c.id,
+                  );
+                  event.dataTransfer.effectAllowed = "move";
+                  setTrayDragId(c.id);
+                }}
+                onDragEnd={() => {
+                  setTrayDragId(null);
+                  setHoverHole(null);
+                }}
+              >
+                <strong>
+                  {c.label} <span>{kindNames[c.kind]}</span>
+                </strong>
+                <div className="bb-tray-pins">
+                  {orderedPins(c).map(([name, pin]) => (
+                    <button
+                      key={pin}
+                      disabled={disabled}
+                      onClick={() => activatePin(c, pin)}
+                    >
+                      {name.toUpperCase()} · {placements[pin] || "hors plaque"}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  disabled={disabled}
+                  onClick={() => {
+                    onSelect(c.id);
+                    setPlacingId(c.id);
+                    onPending(null);
+                    onPin("");
+                    onTool("select");
+                  }}
+                >
+                  <Hand size={14} />
+                  Placer l’ensemble
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="bb-legend">
+        <Info size={16} />
+        <p>
+          Boîtiers pédagogiques à plat ; A/K et C/B/E viennent du modèle
+          explicite. Alimentation, masse et sondes sont des{" "}
+          <strong>connecteurs virtuels</strong>, pas des boîtiers réels. Les
+          cavaliers sont des segments rigides à angle droit.
+          {hiddenWires > 0 &&
+            ` ${hiddenWires} liaison(s) restent hors plaque jusqu’au placement de leurs extrémités.`}
+        </p>
+      </div>
+    </section>
+  );
+}

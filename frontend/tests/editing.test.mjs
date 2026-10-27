@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import ts from 'typescript';
+const source=await readFile(new URL('../src/editing.ts',import.meta.url),'utf8');
+const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}});
+const {rotationOperations}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputText).toString('base64'));
+const project={components:[{id:'R1',pins:{p:'R1.p',n:'R1.n'}},{id:'V1',pins:{p:'V1.p',n:'V1.n'}}],schematic:{R1:{x:100,y:200},V1:{x:300,y:80,rotation:270}},wires:[{id:'W1',a:'R1.p',b:'V1.p'}]};
+test('la rotation horaire conserve les positions, les bornes et le projet',()=>{const before=JSON.stringify(project);assert.deepEqual(rotationOperations(project,['R1']),[{type:'move_component',id:'R1',x:100,y:200,rotation:90}]);assert.equal(JSON.stringify(project),before);});
+test('la rotation boucle de 270 à 0 et fonctionne dans le sens inverse',()=>{assert.equal(rotationOperations(project,['V1'])[0].rotation,0);assert.equal(rotationOperations(project,['R1'],-1)[0].rotation,270);});
+test('les fils et sélections absentes ne produisent aucune rotation',()=>{assert.deepEqual(rotationOperations(project,['W1','absent']),[]);assert.equal(rotationOperations(project,['R1','V1']).length,2);});

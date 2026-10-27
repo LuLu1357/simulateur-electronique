@@ -1,0 +1,452 @@
+/* Vue de dessus volontairement plane : aucune perspective, ombre ou texture 3D. */
+.bb-panel {
+  min-width: 0;
+  background: #152032;
+}
+.bb-panel .view-heading {
+  align-items: flex-start;
+}
+.bb-panel .view-options {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.bb-panel .view-options button {
+  border: 1px solid #3e5b6b;
+  border-radius: 4px;
+  padding: 7px 9px;
+  color: #bad4dc;
+}
+.bb-panel .view-options button[aria-pressed="true"] {
+  background: #244d44;
+  color: #d0f2e3;
+}
+.bb-instructions,
+.bb-placement-status,
+.bb-selected-controls,
+.bb-legend,
+.bb-hole-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px 12px;
+  padding: 11px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.bb-instructions {
+  color: #b6cbd8;
+  border-bottom: 1px solid #30495b;
+  background: #1b2c3b;
+}
+.bb-instructions > svg,
+.bb-legend > svg {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.bb-instructions p,
+.bb-legend p {
+  flex: 1 1 300px;
+}
+.bb-instructions strong {
+  color: #e0ece8;
+  font-weight: 600;
+}
+.bb-placement-status {
+  background: #25453f;
+  color: #d4f1df;
+  border-bottom: 1px solid #54826b;
+}
+.bb-placement-status > span {
+  flex: 1 1 280px;
+}
+.bb-placement-status button,
+.bb-selected-controls button {
+  min-height: 34px;
+  border: 1px solid #4b716d;
+  border-radius: 4px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+.bb-selected-controls {
+  background: #17293a;
+  border-bottom: 1px solid #344e62;
+}
+.bb-selected-controls > span {
+  margin-right: auto;
+  color: #b8d0de;
+}
+.bb-selected-controls button.active {
+  background: #315b4b;
+  border-color: #8ec8a8;
+  color: #e2f6e9;
+}
+.bb-hole-form {
+  background: #1b303e;
+  border-bottom: 1px solid #38576a;
+}
+.bb-hole-form label {
+  color: #c8dce6;
+}
+.bb-hole-form input {
+  width: 125px;
+  min-height: 34px;
+}
+.bb-board-scroll {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #7d9bab #25394a;
+  overscroll-behavior-x: contain;
+  background: #dfe6e6;
+}
+.bb-board-scroll:focus-visible {
+  outline: 2px solid #9ee6c9;
+  outline-offset: -3px;
+}
+.bb-board {
+  display: block;
+  width: 100%;
+  min-width: 820px;
+  height: auto;
+  max-height: none;
+  touch-action: pan-x pan-y;
+  user-select: none;
+}
+.bb-board .flow-particles {
+  filter: none;
+}
+.bb-flat-surface {
+  fill: #f0f2ef;
+  stroke: #97a7ad;
+  stroke-width: 1;
+}
+.bb-center-gap {
+  fill: #d6dddb;
+}
+.bb-gap-label {
+  fill: #607170;
+  font:
+    12px "DM Sans",
+    sans-serif;
+  letter-spacing: 0.3px;
+}
+.bb-coordinate {
+  fill: #4b5e67;
+  font:
+    12px "DM Sans",
+    sans-serif;
+  font-weight: 600;
+}
+.bb-rail-label {
+  font:
+    17px "DM Sans",
+    sans-serif;
+  font-weight: 650;
+}
+.bb-rail-label.p {
+  fill: #b04048;
+}
+.bb-rail-label.n {
+  fill: #376789;
+}
+.bb-rail-line {
+  stroke-width: 2;
+}
+.bb-rail-line.p {
+  stroke: #b65b60;
+}
+.bb-rail-line.n {
+  stroke: #4b7c9c;
+}
+.bb-cut-label {
+  font: 11px monospace;
+  fill: #5a676d;
+}
+.bb-metal-band {
+  stroke: #d3dcd6;
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+.bb-metal-band.active {
+  stroke: #a3cdb2;
+}
+.bb-hole {
+  cursor: crosshair;
+}
+.bb-hole-dot {
+  fill: #6b7e82;
+  stroke: none;
+}
+.bb-hole.active .bb-hole-dot {
+  fill: #236c4d;
+}
+.bb-jumper {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  cursor: pointer;
+}
+.bb-jumper.selected {
+  stroke-width: 5;
+}
+.bb-jumpers > g {
+  cursor: pointer;
+}
+.bb-jumpers > g:focus-visible {
+  outline: none;
+}
+.bb-jumpers > g:focus-visible .bb-jumper {
+  stroke-width: 6;
+}
+.bb-component {
+  cursor: grab;
+  touch-action: none;
+}
+.bb-component:active {
+  cursor: grabbing;
+}
+.bb-component:focus-visible {
+  outline: none;
+}
+.bb-selection {
+  fill: transparent;
+  stroke: none;
+}
+.bb-component.selected .bb-selection,
+.bb-component:focus-visible .bb-selection {
+  fill: #a4d9b12b;
+  stroke: #26724c;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.bb-body {
+  pointer-events: all;
+}
+.bb-lead {
+  fill: none;
+  stroke: #6c7879;
+  stroke-width: 2.5;
+}
+.bb-resistor {
+  fill: #e4d7b7;
+  stroke: #786c51;
+  stroke-width: 1.5;
+}
+.bb-diode {
+  fill: #5c6570;
+  stroke: #313b47;
+  stroke-width: 1.5;
+}
+.bb-cathode {
+  fill: #d9e2e7;
+}
+.bb-capacitor {
+  fill: #c4dbe2;
+  stroke: #56727f;
+  stroke-width: 1.5;
+}
+.bb-switch {
+  fill: #c4cfcd;
+  stroke: #52635e;
+  stroke-width: 1.5;
+}
+.bb-switch-contact {
+  stroke: #364b44;
+  stroke-width: 2;
+  fill: none;
+}
+.bb-transistor {
+  fill: #465450;
+  stroke: #223d33;
+  stroke-width: 1.5;
+}
+.bb-package-text {
+  font:
+    12px "DM Sans",
+    sans-serif;
+  font-weight: 650;
+  fill: #eff5ed;
+}
+.bb-part-label {
+  fill: #203e38;
+  font:
+    13px "DM Sans",
+    sans-serif;
+  font-weight: 650;
+  paint-order: stroke;
+  stroke: #f0f2ef;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.bb-part-value {
+  font-size: 12px;
+  font-weight: 500;
+  fill: #39574f;
+}
+.bb-pin {
+  cursor: crosshair;
+  touch-action: none;
+}
+.bb-pin:focus-visible {
+  outline: none;
+}
+.bb-pin-metal {
+  fill: #5d6f68;
+  stroke: #e5eee5;
+  stroke-width: 1;
+}
+.bb-pin.pending .bb-pin-metal,
+.bb-pin:focus-visible .bb-pin-metal {
+  fill: #bb7d23;
+  stroke: #73450e;
+  stroke-width: 2;
+}
+.bb-pin-label {
+  fill: #264e41;
+  font:
+    11px "DM Sans",
+    sans-serif;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #f0f2ef;
+  stroke-width: 3;
+  pointer-events: none;
+}
+.bb-external-lead {
+  stroke: #52757b;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+.bb-external-box {
+  fill: #e8efec;
+  stroke: #52757b;
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+.bb-external-symbol text {
+  fill: #28585a;
+  font:
+    12px "DM Sans",
+    sans-serif;
+  font-weight: 650;
+}
+.bb-component.partial .bb-selection {
+  stroke: #ac833b;
+  stroke-dasharray: 3 3;
+}
+.bb-ghost {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.bb-ghost .bb-selection {
+  fill: #91d7a832;
+  stroke: #32724c;
+  stroke-dasharray: 4 3;
+}
+.bb-ghost-target {
+  fill: none;
+  stroke-width: 2;
+  pointer-events: none;
+}
+.bb-ghost-target.valid {
+  stroke: #24804b;
+}
+.bb-ghost-target.invalid {
+  stroke: #b34742;
+}
+.bb-board-feedback {
+  margin: 0;
+  padding: 9px 16px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #b5d0d5;
+  border-bottom: 1px solid #385263;
+  background: #203641;
+}
+.bb-board-feedback.invalid {
+  color: #f1c8c2;
+  background: #4a3036;
+}
+.bb-unplaced {
+  padding: 15px 16px;
+  border-bottom: 1px solid #354b5f;
+  background: #172737;
+}
+.bb-unplaced h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 7px;
+  color: #cfdfdf;
+  font-size: 13px;
+}
+.bb-unplaced > p {
+  color: #a8bdcf;
+  font-size: 12px;
+  line-height: 1.65;
+  margin: 0 0 12px;
+}
+.bb-tray {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+.bb-tray-part {
+  flex: 0 0 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid #446171;
+  border-radius: 5px;
+  background: #1d3343;
+  cursor: grab;
+}
+.bb-tray-part.selected {
+  border-color: #91c2a8;
+}
+.bb-tray-part > strong {
+  font-size: 13px;
+  color: #dae8df;
+}
+.bb-tray-part > strong span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #a5becc;
+}
+.bb-tray-part button {
+  justify-content: flex-start;
+  min-height: 32px;
+  padding: 5px 7px;
+  border: 1px solid #476675;
+  border-radius: 3px;
+  color: #c5dedc;
+  font-size: 12px;
+}
+.bb-tray-pins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.bb-legend {
+  align-items: flex-start;
+  color: #a8c0ce;
+  background: #182c3b;
+}
+.bb-legend strong {
+  color: #c8dedf;
+}
+.bb-panel.is-preview .bb-board {
+  cursor: default;
+}
+.bb-panel.is-preview .bb-component,
+.bb-panel.is-preview .bb-pin,
+.bb-panel.is-preview .bb-hole {
+  cursor: default;
+}
