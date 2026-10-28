@@ -38,6 +38,7 @@ Client MCP ─ SDK officiel stdio ─ pont HTTP
 | `frontend/src/visuals.ts` / `components/FlowParticles.tsx` | Couleurs de potentiel et points animés, sens des charges, vitesse symbolique |
 | `frontend/src/api.ts` | Accès au service et jeton local |
 | `frontend/src/main.tsx` | Orchestration de l’éditeur, gestes, sélection, calcul et intégration des panneaux |
+| `frontend/src/clipboard.ts` | Fragments de circuit versionnés, champs autorisés, brochages, taille et placement du collage |
 
 Le projet JSON v1 est la source de vérité. Composants, bornes, fils et jonctions ont des identifiants stables. Les réseaux ont une identité déterministe ancrée sur une borne ; séparer ou fusionner des réseaux peut modifier cette identité, les bornes conservent leur ID. Un nom de réseau ne crée jamais à lui seul une connexion.
 
@@ -65,6 +66,8 @@ Le serveur MCP peut être lancé par un client sans port entrant supplémentaire
 `components/Oscilloscope.tsx` et `scope.ts` portent le curseur, le zoom et l’export CSV ; ils n’interpolent aucune mesure présentée comme un résultat exact. `coach.ts` interprète les diagnostics et les mesures réelles pour le panneau d’aide. `notebook.ts` conserve des captures bornées dans le navigateur, avec valeurs et provenance des modèles, curseurs et stimuli. Les anciens carnets restent lisibles ; une provenance manquante est signalée.
 
 `editing.ts` calcule des transactions de déplacement et de duplication sans modifier le modèle vivant. `units.ts` parse une notation SI limitée sans évaluer d’expression. Les gestes de pointeur sont nettoyés à l’annulation, à la perte de focus et au changement de projet. Le calcul automatique est retardé et dédoublonné sur la signature électrique, avec une seule tentative par état en cas d’échec.
+
+Le copier-coller utilise les événements natifs `copy`/`paste` dans l’éditeur, hors champs et dialogues. Le fragment `atelier.circuit-fragment` version 1 contient uniquement composants, jonctions, positions et fils internes. Le lecteur reconstruit des champs autorisés et valide types, bornes canoniques, modèles et limites ; il n’accepte jamais une liste d’opérations du presse-papiers. Les identifiants du collage sont générés quand la file exécute sa transaction, en réservant les objets et bornes du projet destinataire. La sélection finale fait partie de cette édition atomique. La validation métier serveur reste l’autorité sur le circuit résultant.
 
 Les champs `wire.color` et `wire.waypoints` ne participent pas à l’empreinte électrique. `potentiometer.position` et `voltage_source.waveform`, eux, invalident les mesures. Les créneaux sont compilés depuis sept nombres contrôlés et une forme autorisée, jamais depuis une chaîne SPICE fournie par l’utilisateur.
 

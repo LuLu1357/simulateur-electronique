@@ -279,6 +279,31 @@ test("la copie de fils internes conserve la couleur et translate les points de p
   assert.deepEqual(project.wires[0].waypoints, [{ x: 150, y: 50 }]);
 });
 
+test("un collage réserve aussi les identifiants et bornes du projet destinataire", () => {
+  const copy = duplicateSelectionOperations(
+    selectedProject,
+    ["R1", "C1", "J1"],
+    { x: 0, y: 0 },
+    ["R1_copy.p", "C1_copy", "J1_copy", "W1_copy"],
+  );
+  assert.deepEqual(copy.selected, [
+    "R1_copy2",
+    "C1_copy2",
+    "J1_copy2",
+    "W1_copy2",
+    "W2_copy",
+  ]);
+  assert.deepEqual(
+    copy.operations.find((op) => op.id === "W1_copy2"),
+    {
+      type: "connect",
+      id: "W1_copy2",
+      a: "R1_copy2.n",
+      b: "J1_copy2",
+    },
+  );
+});
+
 test("déplacer ensemble les deux extrémités translate aussi le tracé manuel, une extrémité seule le conserve", () => {
   const project = structuredClone(selectedProject);
   project.wires[0].waypoints = [{ x: 150, y: 50 }];

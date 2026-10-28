@@ -2,6 +2,21 @@ import type { Op, Project } from "./types";
 
 export type SelectionBox = { x1: number; y1: number; x2: number; y2: number };
 export type DuplicateSelection = { operations: Op[]; selected: string[] };
+export type CircuitDrawing = Pick<
+  Project,
+  "components" | "junctions" | "wires" | "schematic"
+>;
+
+export function drawingIdentifiers(project: CircuitDrawing): string[] {
+  return [
+    ...project.components.flatMap((component) => [
+      component.id,
+      ...Object.values(component.pins),
+    ]),
+    ...project.wires.map((wire) => wire.id),
+    ...(project.junctions || []).map((junction) => junction.id),
+  ];
+}
 
 function finitePoint(point: { x: number; y: number } | undefined): boolean {
   return !!point && Number.isFinite(point.x) && Number.isFinite(point.y);
@@ -87,9 +102,10 @@ export function selectedInBox(
 /** Recrée les objets et leurs fils internes, sans connexions externes ni
  * implantation. Les masses restent la référence 0 V commune du modèle. */
 export function duplicateSelectionOperations(
-  project: Project,
+  project: CircuitDrawing,
   selected: readonly string[],
   offset: { x: number; y: number } = { x: 30, y: 30 },
+  additionalReserved: readonly string[] = [],
 ): DuplicateSelection {
   const empty = (): DuplicateSelection => ({ operations: [], selected: [] });
   if (!finitePoint(offset)) return empty();
@@ -101,14 +117,7 @@ export function duplicateSelectionOperations(
     selection.has(junction.id),
   );
   if (!components.length && !junctions.length) return empty();
-  const used = new Set([
-    ...project.components.flatMap((component) => [
-      component.id,
-      ...Object.values(component.pins),
-    ]),
-    ...project.wires.map((wire) => wire.id),
-    ...(project.junctions || []).map((junction) => junction.id),
-  ]);
+  const used = new Set([...drawingIdentifiers(project), ...additionalReserved]);
   const fresh = (original: string, pins: readonly string[] = []): string => {
     // Leave room for terminal suffixes and the numeric collision suffix.
     const stem = original.replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 56);

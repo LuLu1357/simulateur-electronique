@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CircuitBoard,
   Copy,
+  CopyPlus,
   Download,
   FilePlus2,
   FlaskConical,
@@ -44,7 +45,15 @@ import {
   duplicateSelectionOperations,
   moveSelectionOperations,
   selectedInBox,
+  drawingIdentifiers,
 } from "./editing";
+import {
+  CIRCUIT_CLIPBOARD_MIME,
+  serializeCircuitFragment,
+  parseCircuitFragment,
+  fragmentPasteOffset,
+  type CircuitFragment,
+} from "./clipboard";
 import { parseEngineeringValue } from "./units";
 import { downloadSvgView } from "./svgExport";
 import { createSimulationController } from "./simulationController";
@@ -409,10 +418,18 @@ function App() {
   }, [help]);
   const [boardPreview, setBoardPreview] = useState<State | null>(null);
   const mutationQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const pendingMutations = useRef(0);
   const gestureCleanup = useRef<(() => void) | null>(null);
   const autoAttempt = useRef("");
   const reservedIds = useRef(new Set<string>());
   const duplicating = useRef(false);
+  const pasteSequence = useRef({
+    text: "",
+    projectId: "",
+    x: 0,
+    y: 0,
+    count: 0,
+  });
   const spacePressed = useRef(false);
   useEffect(() => () => gestureCleanup.current?.(), []);
   const svgRef = useRef<SVGSVGElement>(null),
@@ -470,37 +487,42 @@ function App() {
       ops: Op[] | ((project: Project) => Op[]),
       preview = false,
     ): Promise<State | undefined> => {
-      const job = mutationQueue.current.then(async () => {
-        const current = stateRef.current;
-        if (!current) return;
-        try {
-          const operations =
-            typeof ops === "function" ? ops(current.project) : ops;
-          if (!operations.length) return current;
-          control.invalidatePolls();
-          const committedBefore = simulationCommit.current;
-          let next = await api<State>("transaction", {
-            expected_revision: current.project.revision,
-            operations,
-            preview,
-          });
-          if (!preview) {
-            const latest = stateRef.current;
-            if (
-              latest &&
-              committedBefore !== simulationCommit.current &&
-              next.project.revision >= latest.project.revision
-            )
-              next = withMeasurements(next, latest);
-            next = publishProject(next);
+      pendingMutations.current += 1;
+      const job = mutationQueue.current
+        .then(async () => {
+          const current = stateRef.current;
+          if (!current) return;
+          try {
+            const operations =
+              typeof ops === "function" ? ops(current.project) : ops;
+            if (!operations.length) return current;
+            control.invalidatePolls();
+            const committedBefore = simulationCommit.current;
+            let next = await api<State>("transaction", {
+              expected_revision: current.project.revision,
+              operations,
+              preview,
+            });
+            if (!preview) {
+              const latest = stateRef.current;
+              if (
+                latest &&
+                committedBefore !== simulationCommit.current &&
+                next.project.revision >= latest.project.revision
+              )
+                next = withMeasurements(next, latest);
+              next = publishProject(next);
+            }
+            setError("");
+            return next;
+          } catch (e) {
+            setError(String(e).replace(/^Error: /, ""));
+            await refresh();
           }
-          setError("");
-          return next;
-        } catch (e) {
-          setError(String(e).replace(/^Error: /, ""));
-          await refresh();
-        }
-      });
+        })
+        .finally(() => {
+          pendingMutations.current -= 1;
+        });
       mutationQueue.current = job;
       return job;
     },
@@ -742,6 +764,91 @@ function App() {
         duplicating.current = false;
       });
   };
+  const copiedNotice =
+    "Sélection copiée. Colle-la dans un circuit avec ⌘/Ctrl+V. Les masses gardent le 0 V commun.";
+  const copySelection = async () => {
+    try {
+      await mutationQueue.current;
+      const project = stateRef.current?.project;
+      if (!project) return;
+      const text = serializeCircuitFragment(project, project.ui.selected);
+      if (!text) return;
+      if (!navigator.clipboard?.writeText)
+        throw new Error(
+          "Clique dans le schéma, puis utilise ⌘/Ctrl+C pour copier la sélection.",
+        );
+      await navigator.clipboard.writeText(text);
+      setError("");
+      setNotice(copiedNotice);
+    } catch (cause) {
+      setError(String(cause).replace(/^Error: /, ""));
+    }
+  };
+  const pasteFragment = (fragment: CircuitFragment, text: string) => {
+    const projectId = stateRef.current?.project.id;
+    const anchor = { x: (450 - pan.x) / zoom, y: (180 - pan.y) / zoom };
+    gestureCleanup.current?.();
+    let changed = false;
+    void act((project) => {
+      if (project.id !== projectId)
+        throw new Error(
+          "Le projet a changé pendant le collage. Colle à nouveau dans le circuit ouvert.",
+        );
+      if (
+        project.components.length + fragment.components.length > 300 ||
+        project.wires.length + fragment.wires.length > 1200 ||
+        project.junctions.length + fragment.junctions.length > 1000
+      )
+        throw new Error(
+          "Ce collage dépasserait la capacité du circuit. Colle une portion plus petite.",
+        );
+      const previous = pasteSequence.current;
+      const count =
+        previous.text === text &&
+        previous.projectId === project.id &&
+        previous.x === anchor.x &&
+        previous.y === anchor.y
+          ? previous.count + 1
+          : 0;
+      const offset = fragmentPasteOffset(fragment, {
+        x: anchor.x + 30 * count,
+        y: anchor.y + 30 * count,
+      });
+      const result = duplicateSelectionOperations(
+        fragment,
+        [
+          ...fragment.components.map((c) => c.id),
+          ...fragment.junctions.map((j) => j.id),
+        ],
+        offset,
+        drawingIdentifiers(project),
+      );
+      if (!result.operations.length)
+        throw new Error(
+          "Les positions de ce fragment ne permettent pas son collage.",
+        );
+      pasteSequence.current = { text, projectId: project.id, ...anchor, count };
+      changed = true;
+      return [
+        ...result.operations,
+        {
+          type: "set_ui",
+          selected: result.selected,
+          ...(project.ui.view === "breadboard" ? { view: "split" } : {}),
+        },
+      ];
+    }).then((next) => {
+      if (!next || !changed) return;
+      setTool("select");
+      setPending(null);
+      setBoardWire(null);
+      setPointer(null);
+      setNotice(
+        "Fragment collé dans le schéma, sans connexions externes ni placement sur plaque. ⌘/Ctrl+Z annule le collage ; les masses gardent le 0 V commun.",
+      );
+      svgRef.current?.focus();
+    });
+  };
   const nudgeSelection = (dx: number, dy: number) => {
     void act((project) =>
       moveSelectionOperations(project, project.ui.selected, dx, dy),
@@ -760,6 +867,7 @@ function App() {
       return;
     event.stopPropagation();
     event.preventDefault();
+    svgRef.current?.focus({ preventScroll: true });
     if (event.shiftKey || event.ctrlKey || event.metaKey) {
       void select(id, true);
       return;
@@ -791,6 +899,8 @@ function App() {
   };
   const startCanvasGesture = (event: React.PointerEvent<SVGSVGElement>) => {
     if (event.isPrimary === false) return;
+    if (event.button === 0 || event.button === 1)
+      event.currentTarget.focus({ preventScroll: true });
     if (tool === "pan" || event.button === 1 || spacePressed.current) {
       event.preventDefault();
       const start = toSvg(event),
@@ -1144,23 +1254,28 @@ function App() {
         : "off",
     );
   const doHistory = (which: string) => {
-    const job = mutationQueue.current.then(async () => {
-      const current = stateRef.current;
-      if (!current) return;
-      try {
-        control.invalidatePolls();
-        publishProject(
-          await api<State>(which, {
-            expected_revision: current.project.revision,
-          }),
-        );
-        setPending(null);
-        setError("");
-      } catch (cause) {
-        setError(String(cause));
-        await refresh();
-      }
-    });
+    pendingMutations.current += 1;
+    const job = mutationQueue.current
+      .then(async () => {
+        const current = stateRef.current;
+        if (!current) return;
+        try {
+          control.invalidatePolls();
+          publishProject(
+            await api<State>(which, {
+              expected_revision: current.project.revision,
+            }),
+          );
+          setPending(null);
+          setError("");
+        } catch (cause) {
+          setError(String(cause));
+          await refresh();
+        }
+      })
+      .finally(() => {
+        pendingMutations.current -= 1;
+      });
     mutationQueue.current = job;
     return job;
   };
@@ -1261,6 +1376,74 @@ function App() {
       window.removeEventListener("keydown", spaceDown);
       window.removeEventListener("keyup", spaceUp);
       window.removeEventListener("blur", spaceUp);
+    };
+  });
+  useEffect(() => {
+    const inEditor = (event: ClipboardEvent) => {
+      const target = event.target as Element | null;
+      return (
+        !help &&
+        !galleryOpen &&
+        !projectLibraryOpen &&
+        !exampleOpen &&
+        !event.defaultPrevented &&
+        !isEditingTarget(target) &&
+        !!target?.closest?.(".studio") &&
+        !!stateRef.current
+      );
+    };
+    const copy = (event: ClipboardEvent) => {
+      if (
+        !inEditor(event) ||
+        !event.clipboardData ||
+        window.getSelection()?.toString()
+      )
+        return;
+      if (pendingMutations.current) {
+        event.preventDefault();
+        setNotice(
+          "L’édition est en cours. Réessaie ⌘/Ctrl+C après sa fin, ou utilise le bouton Copier.",
+        );
+        return;
+      }
+      try {
+        const project = stateRef.current!.project;
+        const text = serializeCircuitFragment(project, project.ui.selected);
+        if (!text) return;
+        event.clipboardData.setData("text/plain", text);
+        // Certains navigateurs refusent les types personnalisés ; le JSON texte reste portable.
+        try {
+          event.clipboardData.setData(CIRCUIT_CLIPBOARD_MIME, text);
+        } catch {
+          /* text/plain suffit */
+        }
+        event.preventDefault();
+        setError("");
+        setNotice(copiedNotice);
+      } catch (cause) {
+        setError(String(cause).replace(/^Error: /, ""));
+      }
+    };
+    const paste = (event: ClipboardEvent) => {
+      if (!inEditor(event) || !event.clipboardData) return;
+      try {
+        const text =
+          event.clipboardData.getData(CIRCUIT_CLIPBOARD_MIME) ||
+          event.clipboardData.getData("text/plain");
+        const fragment = parseCircuitFragment(text, stateRef.current!.catalog);
+        if (!fragment) return;
+        event.preventDefault();
+        pasteFragment(fragment, text);
+      } catch (cause) {
+        event.preventDefault();
+        setError(String(cause).replace(/^Error: /, ""));
+      }
+    };
+    window.addEventListener("copy", copy);
+    window.addEventListener("paste", paste);
+    return () => {
+      window.removeEventListener("copy", copy);
+      window.removeEventListener("paste", paste);
     };
   });
   const save = async () => {
@@ -1968,12 +2151,24 @@ function App() {
                   <span className="tool-label">Tourner</span>
                 </button>
                 <button
+                  title="Copier la sélection (⌘/Ctrl+C), puis coller avec ⌘/Ctrl+V"
+                  aria-label="Copier la sélection"
+                  disabled={
+                    !p?.components.some((c) => selected.includes(c.id)) &&
+                    !p?.junctions.some((j) => selected.includes(j.id))
+                  }
+                  onClick={() => void copySelection()}
+                >
+                  <Copy size={16} />
+                  <span className="tool-label">Copier</span>
+                </button>
+                <button
                   title="Dupliquer la sélection (⌘/Ctrl+D)"
                   aria-label="Dupliquer la sélection"
                   disabled={!selected.length}
                   onClick={duplicateSelection}
                 >
-                  <Copy size={16} />
+                  <CopyPlus size={16} />
                 </button>
                 <i className="divider" />
                 <button
@@ -3858,6 +4053,12 @@ function App() {
               <li>
                 <strong>Fais une hypothèse.</strong> Note-la, modifie une valeur
                 et compare les résultats. Annule avec ⌘Z.
+              </li>
+              <li>
+                <strong>Réutilise une portion de circuit.</strong> Sélectionne
+                ses composants et jonctions, copie avec ⌘/Ctrl+C, puis colle
+                avec ⌘/Ctrl+V dans le circuit de ton choix. Les fils internes et
+                les réglages sont conservés ; les masses gardent le 0 V commun.
               </li>
             </ol>
             <div className="help-bottom">

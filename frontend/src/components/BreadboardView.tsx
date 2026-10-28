@@ -346,6 +346,7 @@ export function BreadboardView(props: BreadboardViewProps) {
     if (disabled || event.button !== 0 || event.isPrimary === false) return;
     event.stopPropagation();
     event.preventDefault();
+    svgRef.current?.focus({ preventScroll: true });
     suppressClick.current = false;
     const terminal = orderedPins(c)[0]?.[1];
     const anchor = boardHolePoint(placements[terminal] || "");
@@ -379,6 +380,7 @@ export function BreadboardView(props: BreadboardViewProps) {
     if (disabled || event.button !== 0 || event.isPrimary === false) return;
     event.stopPropagation();
     event.preventDefault();
+    svgRef.current?.focus({ preventScroll: true });
     suppressClick.current = false;
     const anchor = boardHolePoint(placements[terminal] || "");
     if (!anchor) return;

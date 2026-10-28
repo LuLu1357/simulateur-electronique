@@ -1,9 +1,9 @@
-# Validation de l’atelier étendu — 27 octobre 2026
+# Validation de l’atelier étendu — 28 octobre 2026
 
 Cette session a vérifié le projet dans un environnement cloud Debian 13, Python 3.12.14, Node 24.19.0 et ngspice 47 extrait dans un répertoire de travail.
 
 - **271 tests Python et 104 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
-- **145 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
+- **155 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
 - **MCP réel**, SDK 2.3.0 / protocole 2026-07-28 : connexion, outils, transactions, conflits, annulation/rétablissement, mesure réelle de 2,5 mA et 16 cas du soustracteur réussis. Projet du serveur d’essai restauré ; serveur de test indépendant des données utilisateur.
 - **React + DOM et vraie API + ngspice**, sur un serveur isolé : saisie SI, sélection multiple, déplacement, duplication/suppression atomique, annulation de gestes, glisser-déposer vers le schéma et la plaque, modèles DEL, curseur du potentiomètre, calcul automatique dédoublonné et arrêt des répétitions après un échec.
 - **Intégration des nouveaux instruments** : formulaire PULSE, rejet des timings invalides, charge/décharge RC réelle sur trois cycles, curseur/zoom/CSV, points de passage des fils, couleurs, bibliothèque persistante, ouverture annulable et suppression sans modifier le circuit actif.
@@ -20,6 +20,8 @@ Les derniers essais ciblent aussi la fluidité : douze changements de position d
 La version multi-plaques vérifie les 420 trous par plaque, l’indépendance des bandes/rails, les transferts atomiques, le refus de corps répartis entre plaques et de suppression d’une plaque occupée, ainsi que l’implantation automatique de treize composants sur deux plaques sans changement de réseaux. Les liaisons inter-plaques alimentent une vraie résistance à 5 mA ; le nouvel exemple de diviseur mesure 2,5 V. Les essais DOM/API vérifient aussi le dépôt sur la bonne plaque, la navigation, le transfert complet et les cavaliers entre plaques.
 
 L’export SVG est vérifié sur le véritable DOM de l’application : schéma et plaque sélectionnée produisent du XML valide, avec provenance et 420 trous ; les couches d’animation et de manipulation sont retirées, les références de marqueurs restent locales et les libellés spéciaux sont échappés. L’export ne modifie pas le circuit. Le rendu graphique de ces fichiers reste à contrôler dans un navigateur ou un éditeur vectoriel.
+
+Le copier-coller de fragments est testé avec des événements de presse-papiers dans le DOM et la vraie API : après collage dans un projet vide, le RC à source PULSE produit un vrai transitoire ngspice ; collages répétés, décalage, identifiants, annuler/rétablir et champs de saisie sont vérifiés. Une copie immédiate pendant une mutation ne copie pas silencieusement un état ancien ; le bouton Copier attend la file. Les tests contrôlent aussi le focus après clic depuis un champ, la sélection de texte du navigateur, l’isolation des dialogues, les données malformées et les plafonds d’opérations/octet. L’accès au presse-papiers du système et ses permissions restent à vérifier dans les navigateurs cibles.
 
 ## Historique de validation initiale
 
