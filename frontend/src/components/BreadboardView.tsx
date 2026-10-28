@@ -51,6 +51,7 @@ export type BreadboardViewProps = {
   tool: string;
   boardWire: string | null;
   preview?: boolean;
+  suspended?: boolean;
   onSelect: (id: string) => void;
   onPin: (id: string) => void;
   onTool: (tool: string) => void;
@@ -110,6 +111,7 @@ export function BreadboardView(props: BreadboardViewProps) {
     tool,
     boardWire,
     preview = false,
+    suspended = false,
     onSelect,
     onPin,
     onTool,
@@ -151,7 +153,7 @@ export function BreadboardView(props: BreadboardViewProps) {
   const [holeDraft, setHoleDraft] = useState("");
   const [potDraft, setPotDraft] = useState(0.5);
   const potCommit = useRef("");
-  const disabled = preview || busy;
+  const disabled = preview || busy || suspended;
   const releaseCapture = () => {
     const captured = capturedPointer.current;
     capturedPointer.current = null;
@@ -168,7 +170,7 @@ export function BreadboardView(props: BreadboardViewProps) {
     setHoverHole(null);
     suppressClick.current = false;
     setKeyboardHole(holeOnBoard("a1", activeBoard));
-  }, [project.id, preview, activeBoard]);
+  }, [project.id, preview, activeBoard, suspended]);
   useEffect(() => {
     setActiveBoard(1);
     onBoardWire(null);

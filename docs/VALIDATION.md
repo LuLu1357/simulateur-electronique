@@ -3,7 +3,7 @@
 Cette session a vérifié le projet dans un environnement cloud Debian 13, Python 3.12.14, Node 24.19.0 et ngspice 47 extrait dans un répertoire de travail.
 
 - **292 tests Python et 106 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
-- **175 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
+- **184 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
 - **MCP réel**, SDK 2.3.0 / protocole 2026-07-28 : connexion, outils, transactions, conflits, annulation/rétablissement, mesure réelle de 2,5 mA et 16 cas du soustracteur réussis. Projet du serveur d’essai restauré ; serveur de test indépendant des données utilisateur.
 - **React + DOM et vraie API + ngspice**, sur un serveur isolé : saisie SI, sélection multiple, déplacement, duplication/suppression atomique, annulation de gestes, glisser-déposer vers le schéma et la plaque, modèles DEL, curseur du potentiomètre, calcul automatique dédoublonné et arrêt des répétitions après un échec.
 - **Intégration des nouveaux instruments** : formulaire PULSE, rejet des timings invalides, charge/décharge RC réelle sur trois cycles, curseur/zoom/CSV, points de passage des fils, couleurs, bibliothèque persistante, ouverture annulable et suppression sans modifier le circuit actif.
@@ -30,6 +30,10 @@ La vue Énergie utilise les vraies courbes de cet exemple dans l’intégration 
 Les statistiques de fenêtre de l’oscilloscope sont comparées à une constante, une rampe sur pas non uniformes (moyenne ½, RMS 1/√3) et un sinus dense (RMS ≈1/√2). Les essais DOM vérifient sélection V/A, zoom, maintien entre rafraîchissements, valeurs absentes et indication d’obsolescence ; un essai avec le vrai RLC affiche les extrema calculés et une moyenne proche de 2,5 V. Les calculs restent finis aux limites numériques. Le curseur et l’export brut conservent leur comportement antérieur.
 
 Le nouveau catalogue d’inductances et l’exemple RLC sont également utilisés via le vrai client MCP officiel : 27 outils, courant signé de bobine, dépassement à environ 8,1 V et suppression du dépassement à 200 Ω. Le circuit d’essai est restauré après ces contrôles.
+
+La navigation est testée dans le vrai DOM/API : raccourci respectant les formulaires, classement de l’identifiant exact, sélection de composants/fils/jonctions, surlignage d’un réseau nommé et cadrage sans modifier géométrie ni mesures. Un seul Annuler retrouve l’édition précédente, sans étape de navigation. L’ouverture interrompt les gestes du schéma et les captures de plaque. Sur le soustracteur de 106 composants, soixante résultats au maximum sont affichés et `N20_QB` est retrouvé directement ; le circuit vide ne propose aucune bande inutilisée.
+
+Deux courses réseau sont également reproduites : une réponse UI ancienne supplantée par un déplacement plus récent cadre la géométrie actuelle ; une suppression concurrente est rejetée sans recréer l’objet et rend le focus à la recherche. Échap reste bloqué pendant la sélection en cours. Le test de charge de l’index couvre 300 composants, 1 200 fils, 1 000 jonctions et 1 900 alias longs : les textes de réseaux restent partagés plutôt que recopiés dans chaque objet.
 
 ## Historique de validation initiale
 

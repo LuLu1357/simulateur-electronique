@@ -40,6 +40,7 @@ Client MCP ─ SDK officiel stdio ─ pont HTTP
 | `frontend/src/main.tsx` | Orchestration de l’éditeur, gestes, sélection, calcul et intégration des panneaux |
 | `frontend/src/clipboard.ts` | Fragments de circuit versionnés, champs autorisés, brochages, taille et placement du collage |
 | `frontend/src/energy.ts` / `components/EnergyPanel.tsx` | Énergies C/L issues des mesures, curseur et export SI |
+| `frontend/src/circuitSearch.ts` / `components/CircuitNavigator.tsx` | Recherche locale des objets et réseaux, navigation au clavier et cadrage |
 
 Le projet JSON v1 est la source de vérité. Composants, bornes, fils et jonctions ont des identifiants stables. Les réseaux ont une identité déterministe ancrée sur une borne ; séparer ou fusionner des réseaux peut modifier cette identité, les bornes conservent leur ID. Un nom de réseau ne crée jamais à lui seul une connexion.
 
@@ -71,6 +72,8 @@ Le serveur MCP peut être lancé par un client sans port entrant supplémentaire
 `editing.ts` calcule des transactions de déplacement et de duplication sans modifier le modèle vivant. `units.ts` parse une notation SI limitée sans évaluer d’expression. Les gestes de pointeur sont nettoyés à l’annulation, à la perte de focus et au changement de projet. Le calcul automatique est retardé et dédoublonné sur la signature électrique, avec une seule tentative par état en cas d’échec.
 
 Le copier-coller utilise les événements natifs `copy`/`paste` dans l’éditeur, hors champs et dialogues. Le fragment `atelier.circuit-fragment` version 1 contient uniquement composants, jonctions, positions et fils internes. Le lecteur reconstruit des champs autorisés et valide types, bornes canoniques, modèles et limites ; il n’accepte jamais une liste d’opérations du presse-papiers. Les identifiants du collage sont générés quand la file exécute sa transaction, en réservant les objets et bornes du projet destinataire. La sélection finale fait partie de cette édition atomique. La validation métier serveur reste l’autorité sur le circuit résultant.
+
+La navigation locale indexe composants, fils, jonctions et réseaux logiques, en excluant les bandes de trous inutilisées. Les alias normalisés des réseaux sont partagés entre objets et les correspondances sont mises en cache par requête. Le dialogue limite l’affichage à soixante résultats. À la sélection, l’index est reconstruit sur l’état après les mutations en attente ; le cadrage emploie les positions schématiques connues et la sélection/surlignage utilise une transaction uniquement UI. Les gestes en cours sont annulés à l’ouverture ; les plaques suspendent aussi leurs captures de pointeur pendant les dialogues.
 
 Le moteur compile les inductances linéaires en éléments `L` natifs et lit leur courant de branche ngspice. `energy.ts` transforme les tensions différentielles C et courants L déjà calculés en énergies stockées, sans refaire le solveur : ½CU² et ½LI². Les sommes restent inconnues si une mesure requise manque. `EnergyPanel` trace les sommes électrique/magnétique/totale aux temps adaptatifs réels ; son curseur choisit un échantillon et son CSV exporte les données SI. Un échec récent, un calcul en cours ou des mesures obsolètes masquent les résultats.
 

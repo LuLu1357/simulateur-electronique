@@ -80,6 +80,9 @@ import { SourceWaveform } from "./components/SourceWaveform";
 import { WireInspector } from "./components/WireInspector";
 import { ProjectLibrary } from "./components/ProjectLibrary";
 import { ParameterSweep } from "./components/ParameterSweep";
+import { CircuitNavigator } from "./components/CircuitNavigator";
+import { buildCircuitSearchIndex } from "./circuitSearch";
+import type { CircuitSearchTarget } from "./circuitSearch";
 import type { SweepReport, SweepRequest } from "./sweep";
 import { insertionFootprint } from "./breadboard";
 import { boardLinks, wirePath } from "./connectivity";
@@ -356,6 +359,7 @@ function App() {
     [exampleOpen, setExampleOpen] = useState(false),
     [galleryOpen, setGalleryOpen] = useState(false),
     [projectLibraryOpen, setProjectLibraryOpen] = useState(false),
+    [circuitNavigatorOpen, setCircuitNavigatorOpen] = useState(false),
     [routeDrag, setRouteDrag] = useState<{
       id: string;
       points: { x: number; y: number }[];
@@ -1175,6 +1179,7 @@ function App() {
     if (event.button !== 0 || event.isPrimary === false) return;
     event.preventDefault();
     event.stopPropagation();
+    svgRef.current?.focus({ preventScroll: true });
     const original = wire.waypoints || [];
     const changed = (e: { clientX: number; clientY: number }) => {
       const point = toSvg(e);
@@ -1309,13 +1314,108 @@ function App() {
       rotationOperations(project, project.ui.selected, direction),
     );
   };
+  const openCircuitNavigator = () => {
+    gestureCleanup.current?.();
+    setPending(null);
+    setBoardWire(null);
+    setPointer(null);
+    setRouteDrag(null);
+    setExampleOpen(false);
+    setCircuitNavigatorOpen(true);
+  };
+  const navigateToTarget = async (target: CircuitSearchTarget) => {
+    await mutationQueue.current;
+    const current = stateRef.current;
+    if (!current) throw new Error("Le circuit n’est pas encore disponible.");
+    const fresh = buildCircuitSearchIndex(current).find(
+      (item) => item.key === target.key,
+    );
+    if (!fresh)
+      throw new Error(
+        "Cet élément a changé ou a été supprimé. Relance la recherche.",
+      );
+    let applied = false;
+    const next = await act((project) => {
+      if (
+        project.id !== current.project.id ||
+        project.revision !== current.project.revision
+      )
+        throw new Error(
+          "Le circuit a changé entre-temps. Choisis à nouveau l’élément.",
+        );
+      applied = true;
+      return [
+        {
+          type: "set_ui",
+          selected: fresh.selected,
+          highlights: fresh.highlights,
+          ...(project.ui.view === "breadboard" ? { view: "split" } : {}),
+        },
+      ];
+    });
+    if (!next || !applied)
+      throw new Error("L’élément n’a pas pu être sélectionné.");
+    const visibleState = stateRef.current || next;
+    if (visibleState.project.id !== current.project.id)
+      throw new Error(
+        "Un autre circuit a été ouvert. Relance la recherche dans ce montage.",
+      );
+    const arrived = buildCircuitSearchIndex(visibleState).find(
+      (item) => item.key === target.key,
+    );
+    const sameTargets = (
+      actual: readonly unknown[],
+      wanted: readonly string[],
+    ) =>
+      actual.length === wanted.length &&
+      wanted.every((id) => actual.includes(id));
+    if (
+      !arrived ||
+      !sameTargets(visibleState.project.ui.selected, arrived.selected) ||
+      !sameTargets(visibleState.project.ui.highlights, arrived.highlights)
+    )
+      throw new Error(
+        "La sélection a changé entre-temps. Choisis à nouveau l’élément.",
+      );
+    gestureCleanup.current?.();
+    setPending(null);
+    setBoardWire(null);
+    setTool("select");
+    setRouteDrag(null);
+    if (arrived.points.length) {
+      const view = fitCircuitView(arrived.points);
+      setZoom(view.zoom);
+      setPan(view.pan);
+    }
+    setCircuitNavigatorOpen(false);
+    setNotice(`${arrived.label} repéré dans le schéma.`);
+    window.requestAnimationFrame(() =>
+      svgRef.current?.focus({ preventScroll: true }),
+    );
+  };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key.toLowerCase() === "k" &&
+        !isEditingTarget(e.target) &&
+        !help &&
+        !galleryOpen &&
+        !projectLibraryOpen &&
+        !circuitNavigatorOpen
+      ) {
+        e.preventDefault();
+        openCircuitNavigator();
+        return;
+      }
+      // Le dialogue gère ses touches et sa fermeture, y compris pendant le cadrage.
+      if (circuitNavigatorOpen) return;
       if (
         exampleOpen &&
         !help &&
         !galleryOpen &&
         !projectLibraryOpen &&
+        !circuitNavigatorOpen &&
         e.key === "Escape" &&
         !isEditingTarget(e.target)
       ) {
@@ -1364,6 +1464,7 @@ function App() {
         !help &&
         !galleryOpen &&
         !projectLibraryOpen &&
+        !circuitNavigatorOpen &&
         (event.target === svgRef.current ||
           svgRef.current?.contains(event.target as Node))
       ) {
@@ -1392,6 +1493,7 @@ function App() {
         !help &&
         !galleryOpen &&
         !projectLibraryOpen &&
+        !circuitNavigatorOpen &&
         !exampleOpen &&
         !event.defaultPrevented &&
         !isEditingTarget(target) &&
@@ -2117,13 +2219,24 @@ function App() {
                   ? `${selected.length} élément${selected.length > 1 ? "s" : ""} sélectionné${selected.length > 1 ? "s" : ""} · Maj+clic pour compléter`
                   : "Glisse un composant ici · Trace un rectangle pour sélectionner"}
               </span>
-              {selected.length > 0 && (
+              <div className="editor-selection-actions">
                 <button
-                  onClick={() => void act([{ type: "set_ui", selected: [] }])}
+                  aria-label="Repérer dans le circuit"
+                  aria-haspopup="dialog"
+                  title="Repérer un élément (⌘/Ctrl+K)"
+                  disabled={!state}
+                  onClick={openCircuitNavigator}
                 >
-                  Désélectionner <X size={12} />
+                  <Search size={12} /> Repérer
                 </button>
-              )}
+                {selected.length > 0 && (
+                  <button
+                    onClick={() => void act([{ type: "set_ui", selected: [] }])}
+                  >
+                    Désélectionner <X size={12} />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="toolbar">
               <div className="tools" role="group" aria-label="Outils du schéma">
@@ -3198,6 +3311,12 @@ function App() {
                     </div>
                   )}
                   <StableBreadboardView
+                    suspended={
+                      help ||
+                      galleryOpen ||
+                      projectLibraryOpen ||
+                      circuitNavigatorOpen
+                    }
                     state={boardPreview || state}
                     simulation={boardPreview ? null : sim}
                     stale={!!boardPreview || stale}
@@ -4011,6 +4130,14 @@ function App() {
           availableIds={examples.map((example) => example.id)}
           busy={!state || calculationBusy}
         />
+        {state && (
+          <CircuitNavigator
+            open={circuitNavigatorOpen}
+            state={state}
+            onClose={() => setCircuitNavigatorOpen(false)}
+            onChoose={navigateToTarget}
+          />
+        )}
         {error && (
           <div className="error-toast" role="alert">
             <Info size={18} />
