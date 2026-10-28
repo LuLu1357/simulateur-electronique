@@ -20,18 +20,18 @@ _PIN_NAMES = {
     "resistor": ("p", "n"), "voltage_source": ("p", "n"),
     "switch": ("p", "n"), "button": ("p", "n"),
     "diode": ("a", "k"), "led": ("a", "k"), "npn": ("c", "b", "e"),
-    "pnp": ("c", "b", "e"), "capacitor": ("p", "n"),
+    "pnp": ("c", "b", "e"), "capacitor": ("p", "n"), "inductor": ("p", "n"),
     "ground": ("g",), "voltage_probe": ("p", "n"),
     "current_probe": ("p", "n"), "potentiometer": ("p", "w", "n"),
 }
 _PREFIXES = {"resistor": "R", "voltage_source": "V", "switch": "S", "button": "B", "diode": "D", "npn": "Q", "pnp": "Q", "capacitor": "C", "ground": "G", "voltage_probe": "P", "current_probe": "I"}
 _DEFAULTS = {"resistor": 1000.0, "voltage_source": 5.0, "switch": 0.0, "button": 0.0, "diode": 0.0, "npn": 0.0, "pnp": 0.0, "capacitor": 1e-6, "ground": 0.0, "voltage_probe": 0.0, "current_probe": 0.0}
 _NAMES = {"resistor": "Résistance", "voltage_source": "Source de tension", "switch": "Interrupteur", "button": "Bouton poussoir", "diode": "Diode", "npn": "Transistor NPN", "pnp": "Transistor PNP", "capacitor": "Condensateur", "ground": "Masse", "voltage_probe": "Sonde de tension", "current_probe": "Sonde de courant"}
-_UNITS = {"resistor": "Ω", "potentiometer": "Ω", "voltage_source": "V", "capacitor": "F"}
+_UNITS = {"resistor": "Ω", "potentiometer": "Ω", "voltage_source": "V", "capacitor": "F", "inductor": "H"}
 _ROLES = {"p": "Borne positive / entrée du courant conventionnel", "n": "Borne négative / sortie du courant conventionnel", "w": "Curseur du potentiomètre", "a": "Anode", "k": "Cathode", "c": "Collecteur", "b": "Base", "e": "Émetteur", "g": "Référence 0 V"}
-_PREFIXES.update(led="LED", potentiometer="RV")
-_DEFAULTS.update(led=0.0, potentiometer=10000.0)
-_NAMES.update(led="DEL lumineuse", potentiometer="Potentiomètre")
+_PREFIXES.update(led="LED", potentiometer="RV", inductor="L")
+_DEFAULTS.update(led=0.0, potentiometer=10000.0, inductor=0.01)
+_NAMES.update(led="DEL lumineuse", potentiometer="Potentiomètre", inductor="Inductance")
 _LED_MODELS = {
     "generic_led_red": "DEL rouge générique",
     "generic_led_green": "DEL verte générique",
@@ -59,6 +59,8 @@ def catalog() -> dict[str, dict]:
         elif kind == "potentiometer":
             entries[kind]["default_position"] = 0.5
             entries[kind]["assumptions"] = ["Piste linéaire : R(p,w) = position × R totale ; R(w,n) = (1 − position) × R totale.", "Chaque segment est limité à 1 mΩ minimum pour éviter un court-circuit numérique idéal.", "La position 0 place le curseur du côté p ; la position 1 du côté n."]
+        elif kind == "inductor":
+            entries[kind]["assumptions"] = ["Inductance idéale linéaire : V(p) − V(n) = L × dI/dt, courant positif de p vers n.", "Résistance série nulle, sans pertes, saturation, noyau ni couplage magnétique ; ajouter explicitement une résistance série si nécessaire.", "En continu, une inductance idéale se comporte comme un court-circuit. En transitoire avec UIC, son courant initial vaut 0 A."]
     return entries
 
 
@@ -88,6 +90,8 @@ def _value(kind: str, value: Any) -> float:
         raise ValueError("La résistance totale du potentiomètre doit être comprise entre 1 Ω et 1 GΩ.")
     if kind == "capacitor" and not 1e-15 <= value <= 100:
         raise ValueError("La capacité doit être comprise entre 10^-15 F et 100 F.")
+    if kind == "inductor" and not 1e-12 <= value <= 1e6:
+        raise ValueError("L'inductance doit être comprise entre 1 pH et 1 MH.")
     if kind == "voltage_source" and abs(value) > 1e6:
         raise ValueError("La source est limitée à ±1 MV dans ce simulateur.")
     if kind in ("switch", "button") and value not in (0, 1):

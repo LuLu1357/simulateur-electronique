@@ -19,6 +19,7 @@ const {
   boardGroup,
   translateFootprint,
   ledVisualState,
+  externalComponent,
 } = await import(
   "data:text/javascript;base64," +
     Buffer.from(compiled.outputText).toString("base64")
@@ -28,6 +29,12 @@ const pot = {
   id: "POT1",
   kind: "potentiometer",
   pins: { p: "POT1.p", w: "POT1.w", n: "POT1.n" },
+};
+const inductor = {
+  id: "L1",
+  kind: "inductor",
+  value: 0.01,
+  pins: { p: "L1.p", n: "L1.n" },
 };
 const empty = () => ({
   components: [],
@@ -78,6 +85,31 @@ test("palette insertion validates the whole footprint without mutating the activ
     insertionFootprint({ ...project, components: [pot] }, pot, "h10").ok,
     false,
   );
+});
+
+test("an inductor is a physical two-terminal part with distinct strips and rigid board transfers", () => {
+  const project = { ...empty(), components: [inductor] };
+  project.breadboard.board_count = 2;
+  assert.equal(externalComponent(inductor), false);
+  assert.deepEqual(orderedPins(inductor), [
+    ["p", "L1.p"],
+    ["n", "L1.n"],
+  ]);
+  const proposal = defaultFootprint(project, inductor.id, "2:c10");
+  assert.equal(proposal.ok, true, proposal.message);
+  assert.deepEqual(proposal.placements, { "L1.p": "2:c10", "L1.n": "2:c13" });
+  assert.notEqual(
+    boardGroup(proposal.placements["L1.p"]),
+    boardGroup(proposal.placements["L1.n"]),
+  );
+  project.breadboard.placements = proposal.placements;
+  project.wires = [{ id: "W1", a: "L1.p", b: "L1.n" }];
+  const before = structuredClone(project);
+  const moved = translateFootprint(project, inductor.id, "h15");
+  assert.equal(moved.ok, true, moved.message);
+  assert.deepEqual(moved.placements, { "L1.p": "h15", "L1.n": "h18" });
+  assert.deepEqual(project, before);
+  assert.equal(defaultFootprint(project, inductor.id, "2:c29").ok, false);
 });
 
 test("a collision on the wiper or final potentiometer terminal rejects all placement operations", () => {

@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "id": "demo_rlc",
+  "title": "Résonance RLC · observer l’amortissement",
+  "revision": 0,
+  "components": [
+    {
+      "id": "V1",
+      "kind": "voltage_source",
+      "label": "V1",
+      "value": 0,
+      "model": null,
+      "pins": {
+        "p": "V1.p",
+        "n": "V1.n"
+      },
+      "waveform": {
+        "kind": "pulse",
+        "low": 0,
+        "high": 5,
+        "delay": 0.0001,
+        "rise": 1e-06,
+        "fall": 1e-06,
+        "width": 0.004,
+        "period": 0.008
+      }
+    },
+    {
+      "id": "R1",
+      "kind": "resistor",
+      "label": "R1",
+      "value": 30,
+      "model": null,
+      "pins": {
+        "p": "R1.p",
+        "n": "R1.n"
+      }
+    },
+    {
+      "id": "L1",
+      "kind": "inductor",
+      "label": "L1",
+      "value": 0.01,
+      "model": null,
+      "pins": {
+        "p": "L1.p",
+        "n": "L1.n"
+      }
+    },
+    {
+      "id": "C1",
+      "kind": "capacitor",
+      "label": "C1",
+      "value": 1e-06,
+      "model": null,
+      "pins": {
+        "p": "C1.p",
+        "n": "C1.n"
+      },
+      "initial_voltage": 0
+    },
+    {
+      "id": "G1",
+      "kind": "ground",
+      "label": "G1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "g": "G1.g"
+      }
+    },
+    {
+      "id": "P1",
+      "kind": "voltage_probe",
+      "label": "P1",
+      "value": 0.0,
+      "model": null,
+      "pins": {
+        "p": "P1.p",
+        "n": "P1.n"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "W1",
+      "a": "V1.p",
+      "b": "R1.p"
+    },
+    {
+      "id": "W2",
+      "a": "V1.n",
+      "b": "C1.n"
+    },
+    {
+      "id": "W3",
+      "a": "V1.n",
+      "b": "G1.g"
+    },
+    {
+      "id": "W4",
+      "a": "V1.n",
+      "b": "P1.n"
+    },
+    {
+      "id": "W5",
+      "a": "R1.n",
+      "b": "L1.p"
+    },
+    {
+      "id": "W6",
+      "a": "L1.n",
+      "b": "C1.p"
+    },
+    {
+      "id": "W7",
+      "a": "L1.n",
+      "b": "P1.p"
+    }
+  ],
+  "junctions": [],
+  "schematic": {
+    "V1": {
+      "x": 100,
+      "y": 220,
+      "rotation": 90
+    },
+    "R1": {
+      "x": 280,
+      "y": 120,
+      "rotation": 0
+    },
+    "L1": {
+      "x": 470,
+      "y": 120,
+      "rotation": 0
+    },
+    "C1": {
+      "x": 640,
+      "y": 250,
+      "rotation": 90
+    },
+    "G1": {
+      "x": 330,
+      "y": 350,
+      "rotation": 0
+    },
+    "P1": {
+      "x": 790,
+      "y": 140,
+      "rotation": 0
+    }
+  },
+  "net_labels": {},
+  "breadboard": {
+    "placements": {
+      "R1.p": "c1",
+      "R1.n": "c4",
+      "L1.p": "c6",
+      "L1.n": "c9",
+      "C1.p": "c11",
+      "C1.n": "c14",
+      "V1.n": "rail_top_n1",
+      "G1.g": "rail_top_n4",
+      "P1.n": "rail_top_n7",
+      "V1.p": "rail_top_p1",
+      "P1.p": "rail_top_p16"
+    },
+    "rail_splits": true,
+    "footprints": {
+      "R1": {
+        "kind": "axial",
+        "pins": {
+          "p": "c1",
+          "n": "c4"
+        },
+        "package": "pedagogical",
+        "orientation": "horizontal"
+      },
+      "L1": {
+        "kind": "axial",
+        "pins": {
+          "p": "c6",
+          "n": "c9"
+        },
+        "package": "pedagogical",
+        "orientation": "horizontal"
+      },
+      "C1": {
+        "kind": "radial",
+        "pins": {
+          "p": "c11",
+          "n": "c14"
+        },
+        "package": "pedagogical",
+        "orientation": "horizontal"
+      },
+      "V1": {
+        "kind": "external",
+        "pins": {
+          "p": "rail_top_p1",
+          "n": "rail_top_n1"
+        },
+        "package": "pedagogical",
+        "orientation": "horizontal"
+      },
+      "G1": {
+        "kind": "external",
+        "pins": {
+          "g": "rail_top_n4"
+        },
+        "package": "pedagogical",
+        "orientation": "horizontal"
+      },
+      "P1": {
+        "kind": "external",
+        "pins": {
+          "p": "rail_top_p16",
+          "n": "rail_top_n7"
+        },
+        "package": "pedagogical",
+        "orientation": "horizontal"
+      }
+    },
+    "layout": {
+      "version": 1,
+      "algorithm": "spaced_pedagogical_v1",
+      "component_count": 3,
+      "external_count": 3,
+      "added_jumpers": [],
+      "note": "Empreintes pédagogiques à bornes explicites ; vérifier le brochage constructeur du composant réel. Les rails coupés ne sont reliés que par les fils explicites du circuit."
+    }
+  },
+  "ui": {
+    "selected": [],
+    "view": "split",
+    "highlights": [],
+    "annotations": []
+  },
+  "description": "Une source à impulsions 0–5 V excite R = 30 Ω, L = 10 mH et C = 1 µF en série. La tension du condensateur dépasse 5 V puis oscille autour du plateau ; l’énergie s’échange entre la bobine et le condensateur et la résistance amortit ces oscillations. Augmenter R vers 200 Ω pour approcher l’amortissement critique. Inductance idéale : aucune résistance de cuivre, perte de noyau ni saturation implicite.",
+  "default_analysis": {
+    "kind": "tran",
+    "step": 5e-06,
+    "stop": 0.016,
+    "startup": true
+  },
+  "breadboard_note": "Implantation pédagogique sur 1 plaque(s) : composants espacés, sources et sondes externes, liaisons par jumpers rigides. Le brochage réel et le montage physique restent à vérifier."
+}

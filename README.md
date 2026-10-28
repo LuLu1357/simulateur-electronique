@@ -32,7 +32,7 @@ Pour développer : `npm run dev --prefix frontend` et `.venv/bin/python -m uvico
 
 ## Manipuler comme sur un établi
 
-La bibliothèque contient **13 types de composants**, dont une DEL à trois modèles de couleur et un potentiomètre à trois bornes. Un clic ajoute le composant au centre de la vue ; un glisser-déposer le place dans le schéma ou directement sur la plaque après validation de toutes ses pattes.
+La bibliothèque contient **14 types de composants**, dont une DEL à trois modèles de couleur, un potentiomètre à trois bornes et une inductance idéale. Un clic ajoute le composant au centre de la vue ; un glisser-déposer le place dans le schéma ou directement sur la plaque après validation de toutes ses pattes.
 
 Trace un rectangle dans le fond du schéma pour sélectionner plusieurs éléments. **Maj+clic** complète la sélection, les **flèches** la déplacent de 10 unités (**Maj+flèches** : 1 unité), **⌘/Ctrl+A** sélectionne tout et **⌘/Ctrl+D** duplique les composants avec leurs fils internes. Les connexions externes et les placements sur la plaque ne sont pas copiés. Les masses restent la référence 0 V commune. **Espace+glisser** dans le schéma ou le bouton du milieu déplace la vue ; le zoom garde son point d’ancrage.
 
@@ -40,7 +40,13 @@ Trace un rectangle dans le fond du schéma pour sélectionner plusieurs élémen
 
 Double-clique un fil pour ajouter un point de passage. Ses poignées se déplacent à la souris ou au clavier ; Suppr sur une poignée retire ce point. L’inspecteur permet de changer la couleur ou de revenir au tracé automatique. Les couleurs choisies deviennent visibles lorsque **Couleur = tension** est désactivé. Le tracé et la couleur restent purement visuels ; un déplacement groupé des deux extrémités emporte les points de passage.
 
-Les valeurs acceptent les unités et préfixes : **4,7 kΩ**, **100 nF**, **1 µF**, **5 V**. Les préréglages accélèrent les essais. L’**Assistant de montage** repère les défauts topologiques démontrés et propose une action adaptée. Le **Calcul automatique**, facultatif, recalcule après une modification électrique ; il ne relance pas le moteur pour une sélection, une couleur ou un déplacement du schéma.
+Les valeurs acceptent les unités et préfixes : **4,7 kΩ**, **100 nF**, **1 µF**, **10 mH**, **5 V**. Les préréglages accélèrent les essais. L’**Assistant de montage** repère les défauts topologiques démontrés et propose une action adaptée. Le **Calcul automatique**, facultatif, recalcule après une modification électrique ; il ne relance pas le moteur pour une sélection, une couleur ou un déplacement du schéma.
+
+## Suivre l’énergie et les oscillations
+
+L’expérience **Résonance RLC · observer l’amortissement** excite un circuit de 30 Ω, 10 mH et 1 µF avec des créneaux de 0 à 5 V. La tension dépasse 5 V puis oscille avant de se stabiliser. Remplace 30 Ω par 200 Ω pour comparer avec l’amortissement critique du modèle idéal.
+
+L’onglet **Énergie** suit l’énergie électrique des condensateurs (**½ C U²**) et magnétique des inductances (**½ L I²**) à chaque échantillon réel. Le curseur temporel et le CSV utilisent ces mêmes données. La tension des condensateurs est différentielle entre leurs deux bornes ; les données manquantes restent indisponibles. La source fournit ou récupère de l’énergie et les résistances en dissipent : le graphe représente le stockage dans C et L. Les inductances sont idéales ; une résistance série représente explicitement les pertes de cuivre.
 
 ## Explorer une plage de réglages
 

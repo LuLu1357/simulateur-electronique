@@ -8,11 +8,13 @@ Sources officielles consultées le 27 octobre 2026 : [documentation ngspice](htt
 
 ## Conventions et hypothèses
 
-Toutes les valeurs du projet sont en unités SI : ohms, farads et volts. Les courants retournés sont en ampères. Une source qui fournit de l'énergie a un courant négatif avec la convention p → n. Pour une diode, le sens positif est A → K. Pour un transistor, le courant principal est le courant entrant au collecteur ; `terminal_currents` donne les courants entrants C, B et E, dont la somme vérifie la loi des nœuds.
+Toutes les valeurs du projet sont en unités SI : ohms, farads, henrys et volts. Les courants retournés sont en ampères. Une source qui fournit de l'énergie a un courant négatif avec la convention p → n. Pour une diode, le sens positif est A → K. Pour un transistor, le courant principal est le courant entrant au collecteur ; `terminal_currents` donne les courants entrants C, B et E, dont la somme vérifie la loi des nœuds.
 
 La diode est générique : Is = 10 fA, N = 1, Rs = 0,1 Ω. Les NPN/PNP sont génériques : Is = 1 fA, β nominal = 100, VAF = 100 V, température = 27 °C. Aucune de ces valeurs ne représente une fiche constructeur certifiée. Chaque boîtier pédagogique déclare ses bornes ; sa silhouette ne définit jamais un brochage réel.
 
 Les interrupteurs et boutons fermés valent 0,01 Ω, ouverts 10¹² Ω : cette fuite explicite évite de prétendre à une isolation infinie. Les condensateurs sont ouverts au point de fonctionnement continu. Le transitoire démarre par défaut avec UIC et la tension initiale déclarée sur chaque condensateur (0 V si absente). `startup:false` demande un départ depuis le point de fonctionnement DC, où un condensateur alimenté depuis longtemps peut être déjà chargé.
+
+Les inductances sont idéales et linéaires : `V(p) − V(n) = L × dI/dt`, valeur de 1 pH à 1 MH, courant positif de p vers n. La carte ngspice `L` calcule ce courant de branche ; il n’est pas déduit d’une résistance fictive. Aucune résistance de cuivre, perte de noyau, saturation ou inductance mutuelle n’est ajoutée. En OP, la bobine idéale se comporte comme un court-circuit ; avec UIC, son courant initial est 0 A. Avec `startup:false`, ngspice utilise le courant du point continu. Pour représenter les pertes d’un enroulement, une résistance série doit figurer explicitement dans le montage.
 
 Les fils et contacts de breadboard sont idéaux. Le calcul omet leurs résistances, parasites, tolérances, échauffements et limites de puissance. Une simulation ne valide pas automatiquement un montage physique.
 
@@ -23,9 +25,10 @@ Les fils et contacts de breadboard sont idéaux. Le calcul omet leurs résistanc
 - **Diode** : résistance de 1 kΩ en série ; conduction directe d'environ 4,307 mA et courant inverse inférieur à 10 nA à −5 V avec ce modèle.
 - **NPN / PNP** : résistance de base de 10 kΩ et charge collecteur de 1 kΩ ; commande active d'environ 4,929 mA et blocage contrôlé par une seconde source.
 - **RC** : 1 kΩ, 1 µF, τ = 1 ms ; comparaison numérique à `5 × (1 − exp(−t/τ))`.
+- **RLC** : une source PULSE 0–5 V excite 30 Ω, 10 mH et 1 µF en série. La fréquence amortie attendue est 1 573,54 Hz (période 635,51 µs) ; la première crête atteint environ 8,104 V, soit un dépassement de 62,1 %. Les essais comparent tension et courant à la réponse analytique d’ordre deux, mesurent la décroissance des crêtes, vérifient les courants R/L/C et l’absence de dépassement avec R = 200 Ω, valeur critique du modèle idéal. Ces oscillations proviennent du calcul ngspice.
 - **Soustracteur à deux bits** : 20 NAND, chacune avec deux NPN en série, rappel de 1 kΩ et deux résistances de base de 47 kΩ. Le circuit complet contient 106 composants. Les 16 combinaisons sont de véritables calculs analogiques indépendants ; Python calcule seulement la colonne attendue. Les seuils d'interprétation sont ≤ 1,5 V pour 0, ≥ 3,5 V pour 1, intervalle intermédiaire indéterminé. Les sorties observées sont environ 0,251 V ou 5 V dans ces essais. Le résultat D1 D0 est modulo 4 et l'emprunt final est séparé : pour A = 0, B = 1, le résultat est D1 D0 = 11 et emprunt = 1.
 
-Le soustracteur dépasse une breadboard unique de 30 colonnes. Les bornes qui ne rentrent pas restent explicitement hors plaque (`breadboard_note`) ; elles ne sont pas arbitrairement superposées dans un trou. Le schéma électrique garde le circuit complet. Étendre l'éditeur à plusieurs plaques constitue une suite nécessaire avant une reproduction physique intégrale.
+Le soustracteur dépasse les 48 emplacements de l’implantation automatique sur quatre plaques de 30 colonnes. Les bornes qui ne rentrent pas restent explicitement hors plaque (`breadboard_note`) ; elles ne sont pas arbitrairement superposées dans un trou. Le schéma électrique garde le circuit complet. L’implantation manuelle ou une capacité physique supérieure reste nécessaire pour reproduire ce montage intégralement.
 
 ## Limites d'exécution
 
@@ -37,6 +40,7 @@ Depuis le dossier du projet :
 
 ```sh
 .venv/bin/python -m pytest tests/test_electrical.py -q
+.venv/bin/python -m pytest tests/test_inductor.py -q
 ```
 
 Le rapport détaillé des 16 cas est écrit dans `docs/results-electric.json` ; il conserve entrées appliquées, tensions, seuils, interprétation logique, attente, observation et convergence. Les projets JSON du dossier `examples` peuvent être importés dans l'application.

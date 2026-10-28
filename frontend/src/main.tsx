@@ -74,6 +74,7 @@ import { BreadboardView } from "./components/BreadboardView";
 import { ExperimentGallery } from "./components/ExperimentGallery";
 import { NotebookPanel } from "./components/NotebookPanel";
 import { Oscilloscope } from "./components/Oscilloscope";
+import { EnergyPanel } from "./components/EnergyPanel";
 import { CircuitCoach } from "./components/CircuitCoach";
 import { SourceWaveform } from "./components/SourceWaveform";
 import { WireInspector } from "./components/WireInspector";
@@ -90,6 +91,7 @@ import "./editor.css";
 const StableBreadboardView = React.memo(BreadboardView);
 const kindNames: Record<string, string> = {
   resistor: "Résistance",
+  inductor: "Inductance",
   voltage_source: "Source de tension",
   switch: "Interrupteur",
   button: "Bouton",
@@ -129,6 +131,8 @@ function ComponentGlyph({ kind }: { kind: string }) {
         </>
       ) : kind === "capacitor" ? (
         <path d="M1 12H9M9 5V19M15 5V19M15 12H23" />
+      ) : kind === "inductor" ? (
+        <path d="M1 12H4C4 5 8 5 8 12C8 5 12 5 12 12C12 5 16 5 16 12C16 5 20 5 20 12H23" />
       ) : kind === "potentiometer" ? (
         <>
           <path d="M1 12H6M18 12H23M12 1V8M9 5L12 8L15 5" />
@@ -218,6 +222,8 @@ function Symbol({ c }: { c: Component }) {
         <>
           <path d="M-48 0H-5V-17M-5 0V17M5 -17V17M5 0H48" />
         </>
+      ) : k === "inductor" ? (
+        <path d="M-48 0H-28C-28 -24 -14 -24 -14 0C-14 -24 0 -24 0 0C0 -24 14 -24 14 0C14 -24 28 -24 28 0H48" />
       ) : k === "diode" || k === "led" ? (
         <>
           <path d="M-48 0H-16M16 0H48M16 -17V17" />
@@ -974,6 +980,7 @@ function App() {
       if (!current || !entry) return;
       const prefix: Record<string, string> = {
         resistor: "R",
+        inductor: "L",
         voltage_source: "V",
         switch: "S",
         button: "B",
@@ -1082,7 +1089,7 @@ function App() {
     const value = parseEngineeringValue(input, unit);
     if (value === null) {
       setValueError(
-        `Valeur invalide. Essaie ${unit === "Ω" ? "4,7 kΩ" : unit === "F" ? "100 nF" : "5 V"}.`,
+        `Valeur invalide. Essaie ${unit === "Ω" ? "4,7 kΩ" : unit === "F" ? "100 nF" : unit === "H" ? "10 mH" : "5 V"}.`,
       );
       return;
     }
@@ -1662,6 +1669,7 @@ function App() {
       "potentiometer",
       "voltage_source",
       "capacitor",
+      "inductor",
       "ground",
       "switch",
       "button",
@@ -1670,10 +1678,14 @@ function App() {
       componentCategory === "all" ||
       (componentCategory === "base"
         ? base.includes(kind)
-        : ["diode", "led", "npn", "pnp"].includes(kind));
+        : componentCategory === "passive"
+          ? ["resistor", "potentiometer", "capacitor", "inductor"].includes(
+              kind,
+            )
+          : ["diode", "led", "npn", "pnp"].includes(kind));
     return (
       categoryMatches &&
-      `${name} ${kind}`
+      `${name} ${kind} ${kind === "inductor" ? "bobine self inductance" : ""}`
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
@@ -1919,6 +1931,7 @@ function App() {
               {[
                 ["all", "Tous"],
                 ["base", "Essentiels"],
+                ["passive", "Passifs"],
                 ["active", "Actifs"],
               ].map(([id, label]) => (
                 <button
@@ -3256,6 +3269,7 @@ function App() {
                 {[
                   ["measures", "Mesures", Activity],
                   ["scope", "Oscilloscope", Activity],
+                  ["energy", "Énergie", Zap],
                   ["notebook", "Carnet de labo", NotebookPen],
                   ["sweep", "Balayage", Settings2],
                   ["diagnostics", "Diagnostics", ShieldCheck],
@@ -3386,6 +3400,9 @@ function App() {
                 </div>
               )}
               {tab === "scope" && <Oscilloscope sim={sim} stale={stale} />}
+              {tab === "energy" && state && (
+                <EnergyPanel state={state} busy={calculationBusy} />
+              )}
               {tab === "sweep" && state && (
                 <ParameterSweep
                   state={state}
@@ -3556,7 +3573,9 @@ function App() {
                         role={valueError ? "alert" : undefined}
                       >
                         {valueError ||
-                          "Accepte les préfixes : 4,7 kΩ · 100 nF · 5 V."}
+                          (comp.kind === "inductor"
+                            ? "Accepte les henrys et leurs préfixes : 100 µH · 10 mH · 1 H."
+                            : "Accepte les préfixes : 4,7 kΩ · 100 nF · 5 V.")}
                       </p>
                       <div className="value-presets">
                         {(comp.kind === "resistor" ||
@@ -3564,9 +3583,11 @@ function App() {
                           ? ["220 Ω", "1 kΩ", "4,7 kΩ", "10 kΩ"]
                           : comp.kind === "capacitor"
                             ? ["100 nF", "1 µF", "10 µF"]
-                            : comp.kind === "voltage_source"
-                              ? ["3,3 V", "5 V", "9 V"]
-                              : []
+                            : comp.kind === "inductor"
+                              ? ["100 µH", "1 mH", "10 mH", "100 mH"]
+                              : comp.kind === "voltage_source"
+                                ? ["3,3 V", "5 V", "9 V"]
+                                : []
                         ).map((value) => (
                           <button
                             type="button"
@@ -3582,6 +3603,12 @@ function App() {
                       </div>
                     </form>
                   )}
+                {comp.kind === "inductor" && (
+                  <p className="value-hint">
+                    Modèle idéal : sans résistance de bobinage ni saturation.
+                    Ajoute une résistance en série pour étudier l’amortissement.
+                  </p>
+                )}
                 {comp.kind === "potentiometer" && (
                   <div className="pot-control">
                     <label htmlFor="pot-position">

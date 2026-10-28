@@ -191,6 +191,7 @@ main {
 }
 .library-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding-top: 10px;
 }

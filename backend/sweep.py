@@ -80,5 +80,5 @@ def run_parameter_sweep(project: dict, component_id: str, values: list, probe: d
             'rows': rows, 'elapsed_seconds': round(time.monotonic() - started, 4),
             'assumptions': ['Chaque point est un calcul OP réel sur une copie indépendante du circuit.',
                             'Le circuit actif et ses mesures ne sont pas modifiés par ce balayage.',
-                            'Les condensateurs sont ouverts en OP ; les autres sources à créneaux restent à leur niveau bas.',
+                            'En OP, les condensateurs sont ouverts et les inductances idéales sont des courts-circuits ; les autres sources à créneaux restent à leur niveau bas.',
                             'Potentiomètre : le courant observé entre par P ; la mesure de tension est différentielle aux points choisis.']}

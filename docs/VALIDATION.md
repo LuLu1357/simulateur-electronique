@@ -2,8 +2,8 @@
 
 Cette session a vérifié le projet dans un environnement cloud Debian 13, Python 3.12.14, Node 24.19.0 et ngspice 47 extrait dans un répertoire de travail.
 
-- **271 tests Python et 104 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
-- **155 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
+- **292 tests Python et 106 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
+- **164 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
 - **MCP réel**, SDK 2.3.0 / protocole 2026-07-28 : connexion, outils, transactions, conflits, annulation/rétablissement, mesure réelle de 2,5 mA et 16 cas du soustracteur réussis. Projet du serveur d’essai restauré ; serveur de test indépendant des données utilisateur.
 - **React + DOM et vraie API + ngspice**, sur un serveur isolé : saisie SI, sélection multiple, déplacement, duplication/suppression atomique, annulation de gestes, glisser-déposer vers le schéma et la plaque, modèles DEL, curseur du potentiomètre, calcul automatique dédoublonné et arrêt des répétitions après un échec.
 - **Intégration des nouveaux instruments** : formulaire PULSE, rejet des timings invalides, charge/décharge RC réelle sur trois cycles, curseur/zoom/CSV, points de passage des fils, couleurs, bibliothèque persistante, ouverture annulable et suppression sans modifier le circuit actif.
@@ -22,6 +22,10 @@ La version multi-plaques vérifie les 420 trous par plaque, l’indépendance de
 L’export SVG est vérifié sur le véritable DOM de l’application : schéma et plaque sélectionnée produisent du XML valide, avec provenance et 420 trous ; les couches d’animation et de manipulation sont retirées, les références de marqueurs restent locales et les libellés spéciaux sont échappés. L’export ne modifie pas le circuit. Le rendu graphique de ces fichiers reste à contrôler dans un navigateur ou un éditeur vectoriel.
 
 Le copier-coller de fragments est testé avec des événements de presse-papiers dans le DOM et la vraie API : après collage dans un projet vide, le RC à source PULSE produit un vrai transitoire ngspice ; collages répétés, décalage, identifiants, annuler/rétablir et champs de saisie sont vérifiés. Une copie immédiate pendant une mutation ne copie pas silencieusement un état ancien ; le bouton Copier attend la file. Les tests contrôlent aussi le focus après clic depuis un champ, la sélection de texte du navigateur, l’isolation des dialogues, les données malformées et les plafonds d’opérations/octet. L’accès au presse-papiers du système et ses permissions restent à vérifier dans les navigateurs cibles.
+
+L’inductance idéale est testée en OP, en transitoire depuis 0 A et depuis le point continu. La réponse RL suit l’exponentielle L/R ; la réponse RLC est comparée à une solution analytique indépendante (première crête ≈8,104 V, fréquence amortie ≈1 573,54 Hz, courant signé et décroissance). R = 200 Ω supprime le dépassement du modèle idéal. L’exemple est implanté et ses réseaux restent identiques.
+
+La vue Énergie utilise les vraies courbes de cet exemple dans l’intégration React/API : recherche « bobine », unités H, corps sur plaque, sélection d’un échantillon, calcul différentiel ½CU² et magnétique ½LI², maintien du curseur entre polls, export SI complet et nom avec révision. Les éditions visuelles conservent les mesures ; une édition électrique ou un calcul échoué masque les anciennes énergies. Les tests unitaires couvrent les données absentes, les séries tronquées, les temps non uniformes et les dépassements numériques ; un essai DOM contrôle les coordonnées SVG finies pour une énergie finie extrême.
 
 ## Historique de validation initiale
 

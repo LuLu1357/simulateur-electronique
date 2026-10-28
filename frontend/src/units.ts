@@ -6,7 +6,7 @@ export function parseEngineeringValue(
 ): number | null {
   if (typeof input !== "string" || typeof expectedUnit !== "string")
     return null;
-  if (!["Ω", "F", "V", "A", "s", ""].includes(expectedUnit)) return null;
+  if (!["Ω", "F", "H", "V", "A", "s", ""].includes(expectedUnit)) return null;
   const normalized = input.trim().replace(/\u00a0|\u202f/g, " ");
   if (!normalized || normalized.length > 120) return null;
   const match =
@@ -23,6 +23,7 @@ export function parseEngineeringValue(
     Ω: "Ω",
     Ω: "Ω",
     F: "F",
+    H: "H",
     V: "V",
     A: "A",
     s: "s",

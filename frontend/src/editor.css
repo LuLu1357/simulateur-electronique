@@ -98,6 +98,9 @@
 .component-icon.potentiometer {
   color: #bdce89;
 }
+.component-icon.inductor {
+  color: #e2ad70;
+}
 .value-hint,
 .value-error {
   font-size: 10px;

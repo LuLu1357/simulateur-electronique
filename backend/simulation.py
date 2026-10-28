@@ -103,6 +103,12 @@ def build_netlist(project: dict, analysis: dict | None = None) -> tuple[str, dic
             initial = _finite(c.get("initial_voltage", 0), f"IC {c['id']}")
             dev = f"c{i} {node('p')} {node('n')} {value:.15g} IC={initial:.15g}"
             vector = f"@c{i}[i]"
+        elif ck == "inductor":
+            value = _finite(c.get("value", 0.01), c["id"], positive=True, maximum=1e6)
+            if value < 1e-12:
+                raise ValueError("L'inductance doit être comprise entre 1 pH et 1 MH.")
+            dev = f"l{i} {node('p')} {node('n')} {value:.15g} IC=0"
+            vector = f"l{i}#branch"
         elif ck == "potentiometer":
             value = _finite(c.get("value", 10000), c["id"], positive=True)
             if not 1 <= value <= 1e9:
@@ -269,11 +275,13 @@ def simulate(project: dict, analysis: dict | None = None, cancel_event: threadin
             result["diagnostics"].append({"category": "connection", "severity": "error", "code": "missing_ground", "message": "Aucune masse : le circuit ne définit pas de potentiel de référence 0 V.", "targets": []})
             raise ValueError("Ajouter une référence de masse au circuit avant le calcul.")
         if info["analysis"].get("kind") == "tran" and info["analysis"].get("startup", True):
-            result["assumptions"].append("Transitoire avec UIC : condensateurs à leur tension initiale déclarée (0 V par défaut), puis alimentation continue appliquée ; ce départ diffère du point de fonctionnement DC.")
+            result["assumptions"].append("Transitoire avec UIC : condensateurs à leur tension initiale déclarée (0 V par défaut), inductances à 0 A, puis sources appliquées ; ce départ diffère du point de fonctionnement DC.")
         if any(c["kind"] in ("button", "switch") for c in project.get("components", [])):
             result["assumptions"].append("Interrupteurs : 0,01 Ω fermés, 10¹² Ω ouverts ; pas de rebond mécanique.")
         if any(c["kind"] == "potentiometer" for c in project.get("components", [])):
             result["assumptions"].append("Potentiomètre linéaire : R(p,w)=position×R, R(w,n)=(1−position)×R ; chaque segment vaut au minimum 1 mΩ. Courant principal affiché : entrant par p ; les courants p/w/n sont disponibles séparément.")
+        if any(c["kind"] == "inductor" for c in project.get("components", [])):
+            result["assumptions"].append("Inductance idéale linéaire : V(p)−V(n)=L×dI/dt ; courant positif de p vers n, lu dans ngspice. Résistance série nulle, sans pertes, saturation ni couplage magnétique. En continu, la bobine est un court-circuit idéal ; avec UIC, son courant initial est 0 A.")
         if any(c["kind"] == "led" for c in project.get("components", [])):
             result["assumptions"].append("DEL : jonctions génériques rouge, verte et bleue, sans modèle constructeur, thermique ou photométrique. Le seuil pédagogique d’avertissement est 20 mA ; la simulation ne modélise pas une destruction.")
         if any(c["kind"] == "voltage_source" and c.get("waveform") for c in project.get("components", [])):

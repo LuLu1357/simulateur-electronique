@@ -234,6 +234,17 @@
   stroke: #786c51;
   stroke-width: 1.5;
 }
+.bb-inductor-core {
+  fill: #32483b;
+  stroke: #718b71;
+  stroke-width: 1.5;
+}
+.bb-inductor-winding {
+  fill: none;
+  stroke: #e2ad70;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
 .bb-diode {
   fill: #5c6570;
   stroke: #313b47;

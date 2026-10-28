@@ -10,7 +10,7 @@ from copy import deepcopy
 import re
 
 _EXTERNAL = {"voltage_source", "ground", "voltage_probe", "current_probe"}
-_AXIAL = {"resistor", "diode"}
+_AXIAL = {"resistor", "diode", "inductor"}
 
 
 def _hole_position(hole: str) -> tuple[float, float]:

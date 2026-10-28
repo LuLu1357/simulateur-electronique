@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections import defaultdict
 import copy
 from .domain import catalog, new_project
+from .breadboard_layout import plan_breadboard_layout
 
 
 class Builder:
@@ -194,5 +195,20 @@ def subtractor() -> dict:
     return project
 
 
+def rlc() -> dict:
+    b = Builder("rlc", "Résonance RLC · observer l’amortissement", "Une source à impulsions 0–5 V excite R = 30 Ω, L = 10 mH et C = 1 µF en série. La tension du condensateur dépasse 5 V puis oscille autour du plateau ; l’énergie s’échange entre la bobine et le condensateur et la résistance amortit ces oscillations. Augmenter R vers 200 Ω pour approcher l’amortissement critique. Inductance idéale : aucune résistance de cuivre, perte de noyau ni saturation implicite.")
+    b.add("voltage_source", "V1", {"p": "input", "n": "gnd"}, 0, 100, 220,
+          waveform={"kind": "pulse", "low": 0, "high": 5, "delay": 0.0001, "rise": 0.000001, "fall": 0.000001, "width": 0.004, "period": 0.008})
+    b.add("resistor", "R1", {"p": "input", "n": "rl"}, 30, 280, 120)
+    b.add("inductor", "L1", {"p": "rl", "n": "out"}, 0.01, 470, 120)
+    b.add("capacitor", "C1", {"p": "out", "n": "gnd"}, 1e-6, 640, 250, initial_voltage=0)
+    b.add("ground", "G1", {"g": "gnd"}, x=330, y=350)
+    b.add("voltage_probe", "P1", {"p": "out", "n": "gnd"}, x=790, y=140)
+    b.project["schematic"]["V1"]["rotation"] = 90
+    b.project["schematic"]["C1"]["rotation"] = 90
+    b.project["default_analysis"] = {"kind": "tran", "step": 0.000005, "stop": 0.016, "startup": True}
+    return plan_breadboard_layout(b.finish())
+
+
 def example_projects() -> dict[str, dict]:
-    return {"ohm": ohm(), "divider": divider(), "diode": diode(), "npn": transistor(), "pnp": transistor(True), "rc": rc(), "led": led(), "potentiometer": potentiometer(), "pulse_rc": pulse_rc(), "two_boards": two_boards(), "subtractor": subtractor()}
+    return {"ohm": ohm(), "divider": divider(), "diode": diode(), "npn": transistor(), "pnp": transistor(True), "rc": rc(), "rlc": rlc(), "led": led(), "potentiometer": potentiometer(), "pulse_rc": pulse_rc(), "two_boards": two_boards(), "subtractor": subtractor()}

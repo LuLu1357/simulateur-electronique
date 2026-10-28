@@ -75,6 +75,7 @@ type Drag = {
 };
 const kindNames: Record<string, string> = {
   resistor: "Résistance",
+  inductor: "Inductance",
   diode: "Diode",
   led: "LED",
   potentiometer: "Potentiomètre",
@@ -573,15 +574,17 @@ export function BreadboardView(props: BreadboardViewProps) {
         ? format(c.value, "Ω")
         : c.kind === "capacitor"
           ? format(c.value, "F")
-          : c.kind === "voltage_source"
-            ? c.waveform
-              ? `${format(c.waveform.low, "V")} ↔ ${format(c.waveform.high, "V")}`
-              : format(c.value, "V")
-            : ["switch", "button"].includes(c.kind)
-              ? c.value
-                ? "fermé"
-                : "ouvert"
-              : kindNames[c.kind];
+          : c.kind === "inductor"
+            ? format(c.value, "H")
+            : c.kind === "voltage_source"
+              ? c.waveform
+                ? `${format(c.waveform.low, "V")} ↔ ${format(c.waveform.high, "V")}`
+                : format(c.value, "V")
+              : ["switch", "button"].includes(c.kind)
+                ? c.value
+                  ? "fermé"
+                  : "ouvert"
+                : kindNames[c.kind];
     return (
       <g
         key={`${isGhost ? "ghost_" : ""}${c.id}`}
@@ -675,6 +678,29 @@ export function BreadboardView(props: BreadboardViewProps) {
                 r="16"
                 className="bb-capacitor"
               />
+            ) : c.kind === "inductor" ? (
+              <g className="bb-inductor">
+                <rect
+                  x={(distance - bodyLength) / 2}
+                  y="-8"
+                  width={bodyLength}
+                  height="16"
+                  rx="4"
+                  className="bb-inductor-core"
+                />
+                {[0, 1, 2, 3].map((turn) => {
+                  const start =
+                    (distance - bodyLength) / 2 + (turn * bodyLength) / 4;
+                  const end = start + bodyLength / 4;
+                  return (
+                    <path
+                      key={turn}
+                      d={`M${start} 0C${start} -11 ${end} -11 ${end} 0`}
+                      className="bb-inductor-winding"
+                    />
+                  );
+                })}
+              </g>
             ) : (
               <rect
                 x={(distance - bodyLength) / 2}

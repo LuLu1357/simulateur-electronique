@@ -157,6 +157,18 @@ const experiments: Experiment[] = [
     challenge: "Teste les 16 cas dans la table de vérité.",
     accent: "amber",
   },
+  {
+    id: "rlc",
+    number: "12",
+    title: "Faire circuler l’énergie",
+    category: "Premiers pas",
+    duration: "8 min",
+    description:
+      "Une bobine de 10 mH et un condensateur de 1 µF échangent de l’énergie après chaque front de tension. La résistance freine leurs oscillations.",
+    prediction: "Faible résistance : dépassement puis oscillations amorties",
+    challenge: "Passe R1 de 30 Ω à 200 Ω et compare les réponses temporelles.",
+    accent: "amber",
+  },
 ];
 
 function ExperimentDrawing({ id }: { id: string }) {
@@ -258,6 +270,19 @@ function ExperimentDrawing({ id }: { id: string }) {
             />
             <text x="197" y="89">
               U entrée / U RC
+            </text>
+          </>
+        )}
+        {id === "rlc" && (
+          <>
+            <path className="experiment-drawing-axis" d="M25 12V77H255" />
+            <path className="experiment-drawing-guide" d="M26 49H254" />
+            <path
+              d="M26 73H43C53 73 55 15 72 15S93 66 111 66S132 37 148 37S168 57 185 57S205 45 221 45S240 51 254 49"
+              strokeWidth="2.3"
+            />
+            <text x="159" y="89">
+              R · L · C
             </text>
           </>
         )}
