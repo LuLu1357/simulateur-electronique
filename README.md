@@ -118,6 +118,8 @@ Onze projets importables dans `examples/` : loi d’Ohm, diviseur, diode, DEL, p
 
 L’oscilloscope possède un **curseur** à la souris, au toucher et au clavier (flèches, Début, Fin), avec lecture exacte des échantillons. Le zoom se centre sur ce curseur ; Réinitialiser retrouve toute la durée. L’export CSV contient tous les échantillons des courbes sélectionnées, même lorsque le graphe est zoomé. Les tensions et courants conservent des graphes séparés.
 
+**Mesurer la fenêtre visible** affiche le minimum, le maximum, la crête à crête, la moyenne et la valeur efficace (RMS) d’une courbe affichée. Le zoom change l’intervalle mesuré ; ses limites exactes et son nombre d’échantillons sont indiqués. Moyenne et RMS sont estimées en intégrant le signal linéaire entre les points, avec leur durée réelle : les pas adaptatifs de ngspice sont pris en compte. Un trou ou un ordre temporel invalide rend ces deux estimations indisponibles.
+
 La **DEL** utilise un courant calculé par ngspice. La luminosité est symbolique et suspendue lorsque les mesures sont obsolètes. Un dépassement du seuil pédagogique de **20 mA**, y compris un pic transitoire, apparaît dans les diagnostics ; aucun modèle thermique ou de destruction n’est simulé. Le **potentiomètre linéaire** expose les courants entrants P, W et N ; sa valeur affichée est la résistance totale, son curseur va de 0 à 100 %.
 
 Dans l’inspecteur d’une source, **Signal → Créneau** configure niveaux bas/haut, montée, descente, plateau, période et retard. Appliquer le signal modifie le modèle ; choisir **TRAN** permet d’observer ses impulsions réelles. **OP** utilise son niveau bas. Seuls ces paramètres numériques typés sont acceptés, sans directive SPICE libre.

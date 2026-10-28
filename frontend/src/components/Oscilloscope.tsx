@@ -18,6 +18,7 @@ import {
   zoomTimeRange,
 } from "../scope";
 import type { ScopeCurve, ScopeRange } from "../scope";
+import { measureScopeCurve } from "../scopeMeasurements";
 import "../oscilloscope.css";
 
 const width = 880,
@@ -60,6 +61,7 @@ export function Oscilloscope({
   const [windowRange, setWindowRange] = useState<ScopeRange | null>(null);
   const [cursorIndex, setCursorIndex] = useState(-1);
   const [exportNotice, setExportNotice] = useState("");
+  const [measuredId, setMeasuredId] = useState("");
   const initialized = useRef(false);
   const full = useMemo(() => timeRange(time), [time]);
   useEffect(() => {
@@ -90,6 +92,15 @@ export function Oscilloscope({
   const selected = useMemo(
     () => curves.filter((curve) => visible.includes(curve.id)),
     [curves, visible],
+  );
+  const measuredCurve =
+    selected.find((curve) => curve.id === measuredId) || selected[0];
+  const measurements = useMemo(
+    () =>
+      measuredCurve && range
+        ? measureScopeCurve(time, measuredCurve.values, range)
+        : null,
+    [measuredCurve, time, range?.start, range?.end],
   );
   const cursor = range
     ? cursorIndex >= 0 &&
@@ -456,6 +467,80 @@ export function Oscilloscope({
                   </small>
                 </div>
               ))}
+            </div>
+          )}
+          {measuredCurve && measurements && (
+            <div
+              className="lab-scope-measurements"
+              aria-label="Mesures sur la fenêtre temporelle"
+            >
+              <div className="lab-scope-measurement-heading">
+                <div>
+                  <h4>Mesurer la fenêtre visible</h4>
+                  <p>
+                    {measurements.sampleCount} échantillons ·{" "}
+                    {format(measurements.start ?? undefined, "s")} →{" "}
+                    {format(measurements.end ?? undefined, "s")}
+                    {stale ? " · mesures précédentes" : ""}
+                  </p>
+                </div>
+                <label>
+                  Courbe mesurée
+                  <select
+                    aria-label="Courbe pour les mesures de fenêtre"
+                    value={measuredCurve.id}
+                    onChange={(event) => setMeasuredId(event.target.value)}
+                  >
+                    {selected.map((curve) => (
+                      <option key={curve.id} value={curve.id}>
+                        {curve.label} [{curve.unit}]
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <dl className="lab-scope-measurement-values">
+                {(
+                  [
+                    ["Minimum", measurements.min],
+                    ["Maximum", measurements.max],
+                    ["Crête à crête", measurements.peakToPeak],
+                    ["Moyenne", measurements.mean],
+                    ["Efficace (RMS)", measurements.rms],
+                  ] as const
+                ).map(([label, value]) => {
+                  const amplitude = Math.max(
+                    Math.abs(measurements.min ?? 0),
+                    Math.abs(measurements.max ?? 0),
+                  );
+                  // Supprimer uniquement le résidu d'arrondi d'une moyenne nulle.
+                  // Les échantillons et les intégrales gardent leur précision d'origine.
+                  const displayed =
+                    label === "Moyenne" &&
+                    value !== null &&
+                    amplitude > 0 &&
+                    Math.abs(value) / amplitude < 8 * Number.EPSILON
+                      ? 0
+                      : value;
+                  return (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>
+                        {format(displayed ?? undefined, measuredCurve.unit)}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+              <p className="lab-scope-measurement-method">
+                Moyenne et valeur efficace estimées par intégration linéaire des
+                échantillons, pondérée par leur durée.
+                {measurements.missingCount
+                  ? ` ${measurements.missingCount} mesure${measurements.missingCount > 1 ? "s" : ""} indisponible${measurements.missingCount > 1 ? "s" : ""} ; moyenne et RMS indisponibles.`
+                  : measurements.mean === null || measurements.rms === null
+                    ? " L’intégration exige au moins deux échantillons consécutifs valides et des temps croissants."
+                    : ""}
+              </p>
             </div>
           )}
           <p className="lab-scope-caption">

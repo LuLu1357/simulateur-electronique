@@ -3,7 +3,7 @@
 Cette session a vérifié le projet dans un environnement cloud Debian 13, Python 3.12.14, Node 24.19.0 et ngspice 47 extrait dans un répertoire de travail.
 
 - **292 tests Python et 106 sous-tests réussis**, sans simulation électrique de remplacement ni test ignoré.
-- **164 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
+- **175 tests frontend Node réussis**, et compilation TypeScript/Vite de production réussie.
 - **MCP réel**, SDK 2.3.0 / protocole 2026-07-28 : connexion, outils, transactions, conflits, annulation/rétablissement, mesure réelle de 2,5 mA et 16 cas du soustracteur réussis. Projet du serveur d’essai restauré ; serveur de test indépendant des données utilisateur.
 - **React + DOM et vraie API + ngspice**, sur un serveur isolé : saisie SI, sélection multiple, déplacement, duplication/suppression atomique, annulation de gestes, glisser-déposer vers le schéma et la plaque, modèles DEL, curseur du potentiomètre, calcul automatique dédoublonné et arrêt des répétitions après un échec.
 - **Intégration des nouveaux instruments** : formulaire PULSE, rejet des timings invalides, charge/décharge RC réelle sur trois cycles, curseur/zoom/CSV, points de passage des fils, couleurs, bibliothèque persistante, ouverture annulable et suppression sans modifier le circuit actif.
@@ -26,6 +26,10 @@ Le copier-coller de fragments est testé avec des événements de presse-papiers
 L’inductance idéale est testée en OP, en transitoire depuis 0 A et depuis le point continu. La réponse RL suit l’exponentielle L/R ; la réponse RLC est comparée à une solution analytique indépendante (première crête ≈8,104 V, fréquence amortie ≈1 573,54 Hz, courant signé et décroissance). R = 200 Ω supprime le dépassement du modèle idéal. L’exemple est implanté et ses réseaux restent identiques.
 
 La vue Énergie utilise les vraies courbes de cet exemple dans l’intégration React/API : recherche « bobine », unités H, corps sur plaque, sélection d’un échantillon, calcul différentiel ½CU² et magnétique ½LI², maintien du curseur entre polls, export SI complet et nom avec révision. Les éditions visuelles conservent les mesures ; une édition électrique ou un calcul échoué masque les anciennes énergies. Les tests unitaires couvrent les données absentes, les séries tronquées, les temps non uniformes et les dépassements numériques ; un essai DOM contrôle les coordonnées SVG finies pour une énergie finie extrême.
+
+Les statistiques de fenêtre de l’oscilloscope sont comparées à une constante, une rampe sur pas non uniformes (moyenne ½, RMS 1/√3) et un sinus dense (RMS ≈1/√2). Les essais DOM vérifient sélection V/A, zoom, maintien entre rafraîchissements, valeurs absentes et indication d’obsolescence ; un essai avec le vrai RLC affiche les extrema calculés et une moyenne proche de 2,5 V. Les calculs restent finis aux limites numériques. Le curseur et l’export brut conservent leur comportement antérieur.
+
+Le nouveau catalogue d’inductances et l’exemple RLC sont également utilisés via le vrai client MCP officiel : 27 outils, courant signé de bobine, dépassement à environ 8,1 V et suppression du dépassement à 200 Ω. Le circuit d’essai est restauré après ces contrôles.
 
 ## Historique de validation initiale
 
