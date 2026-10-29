@@ -1,4 +1,22 @@
-# Validation de l’atelier étendu — 28 octobre 2026
+# Validation du relais — 29 octobre 2026
+
+- **340 tests Python et 106 sous-tests réussis**, avec ngspice réel ; aucun ignoré.
+- **198 tests frontend Node réussis** ; compilation TypeScript/Vite réussie.
+- Le point temporel est testé sur RC, DEL PULSE, RLC, BJT et potentiomètre, ainsi
+  que pour son absence de mutation et de relance du moteur.
+- Le nouvel outil MCP possède des tests ciblés sur la route, les indices stricts
+  et les annotations sérialisées ; son parcours en client officiel stdio reste à faire.
+
+La relecture globale est implémentée mais ses nouveaux parcours complets dans
+l’application et sa revue visuelle restent à vérifier. Un essai exploratoire
+React/DOM du hook a contrôlé la file de requêtes, le cache, le changement de
+calcul, la provenance et lecture/pause ; ce script local n’est pas versionné.
+Le plan d’intégration restant et la répartition sont dans [SUIVI.md](SUIVI.md).
+
+Les validations ci-dessous décrivent les jalons antérieurs au curseur global.
+Leurs décomptes sont historiques et ne valident pas les nouvelles interactions.
+
+## Validation de l’atelier étendu — 28 octobre 2026
 
 Cette session a vérifié le projet dans un environnement cloud Debian 13, Python 3.12.14, Node 24.19.0 et ngspice 47 extrait dans un répertoire de travail.
 

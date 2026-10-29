@@ -15,6 +15,7 @@ import {
   describeNotebookChanges,
   maxCaptures,
   notebookHasUnsavedCaptures,
+  notebookHasIncompleteSampleProvenance,
   readNotebook,
   writeNotebook,
 } from "../notebook";
@@ -38,7 +39,7 @@ function captureTime(capture: NotebookCapture): string {
   }).format(new Date(capture.capturedAt));
 }
 function captureLabel(capture: NotebookCapture): string {
-  return `${captureTime(capture)} · rév. ${capture.revision}${capture.note ? ` · ${capture.note.slice(0, 32)}` : ""}`;
+  return `${captureTime(capture)} · rév. ${capture.revision} · ${capture.analysisLabel}${capture.note ? ` · ${capture.note.slice(0, 32)}` : ""}`;
 }
 
 export function NotebookPanel({
@@ -104,7 +105,11 @@ export function NotebookPanel({
     commit(appendNotebookCapture(captures, next));
     if (!baseline) setBaselineId(next.id);
     setNote("");
-    setFeedback("Mesures capturées. Modifie une valeur, recalcule et compare.");
+    setFeedback(
+      next.sampleTime === undefined
+        ? "Mesures capturées. Modifie une valeur, recalcule et compare."
+        : `Mesures capturées · ${next.analysisLabel}. Choisis le même instant pour comparer un autre essai.`,
+    );
   };
   const exportCaptures = () => {
     const url = URL.createObjectURL(
@@ -179,6 +184,14 @@ export function NotebookPanel({
           </button>
         </div>
       </div>
+      {current && (
+        <p
+          className="notebook-table-note"
+          aria-label="Mesures prêtes à capturer"
+        >
+          Mesures prêtes à capturer · {current.analysisLabel}
+        </p>
+      )}
       <p className="notebook-storage-note">
         {persisted === false
           ? "Stockage du navigateur indisponible : tes captures restent dans cette session. Exporte-les pour les conserver."
@@ -232,7 +245,7 @@ export function NotebookPanel({
                 <option value="current">
                   {stale
                     ? "Mesures actuelles · recalcul nécessaire"
-                    : "Mesures actuelles"}
+                    : `Mesures actuelles${current ? ` · ${current.analysisLabel}` : ""}`}
                 </option>
                 {projectCaptures.map((entry) => (
                   <option key={entry.id} value={entry.id}>
@@ -250,15 +263,16 @@ export function NotebookPanel({
                   {changes.length
                     ? `${changes.length} composant${changes.length > 1 ? "s" : ""} modifié${changes.length > 1 ? "s" : ""} · ${changes.map((change) => `${project.components.find((component) => component.id === change.id)?.label || change.id} (${change.fields.map((field) => fieldLabels[field]).join(", ")})`).join(" · ")}`
                     : incompleteProvenance
-                      ? "Réglages anciens non documentés"
+                      ? "Provenance ancienne partielle"
                       : "Réglages des composants identiques"}
                 </span>
               </div>
               {incompleteProvenance && (
                 <p className="notebook-table-note">
-                  Une ancienne capture ne conserve pas tous les modèles, signaux
-                  et réglages. Les écarts de mesure restent comparables ;
-                  l’historique des réglages est partiel.
+                  Une ancienne capture ne conserve pas tous les modèles,
+                  signaux, réglages ou détails de l’échantillon. Les écarts
+                  restent comparables selon l’analyse enregistrée ; leur
+                  provenance est partielle.
                 </p>
               )}
               <div
@@ -326,6 +340,9 @@ export function NotebookPanel({
                     {captureTime(entry)} · rév. {entry.revision} ·{" "}
                     {entry.analysisLabel}
                   </span>
+                  {notebookHasIncompleteSampleProvenance(entry) && (
+                    <span>Provenance temporelle ancienne partielle.</span>
+                  )}
                 </div>
                 <button
                   aria-label={`Supprimer la capture ${captureLabel(entry)}`}

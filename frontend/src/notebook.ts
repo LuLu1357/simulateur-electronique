@@ -29,7 +29,15 @@ export type NotebookCapture = {
   componentValues: Record<string, number>;
   /** Optional so captures saved before adjustable components remain readable. */
   componentSettings?: Record<string, NotebookComponentSettings>;
+  /** Absent dans les captures précédant la relecture temporelle. */
+  sampleIndex?: number;
+  sampleTime?: number;
+  sampleCount?: number;
+  simulationId?: string;
 };
+type NotebookSample = Required<
+  Pick<NotebookCapture, "sampleIndex" | "sampleTime" | "sampleCount">
+>;
 // Retain unsaved captures when the panel unmounts and storage is unavailable.
 const unsavedSessionCaptures = new Map<
   NotebookStorage | null,
@@ -50,6 +58,58 @@ function finite(value: unknown): value is number {
 }
 function text(value: unknown, limit: number): value is string {
   return typeof value === "string" && value.length <= limit;
+}
+
+function sourceIdentifier(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9_.:-]{1,128}$/.test(value);
+}
+
+/** Les trois champs forment une seule provenance, jamais un instant partiel. */
+function sanitizeSample(
+  value: Record<string, unknown>,
+): NotebookSample | null | undefined {
+  if (
+    ["sampleIndex", "sampleTime", "sampleCount"].every(
+      (key) => value[key] === undefined,
+    )
+  )
+    return undefined;
+  const { sampleIndex, sampleTime, sampleCount } = value;
+  if (
+    !finite(sampleIndex) ||
+    !Number.isSafeInteger(sampleIndex) ||
+    !finite(sampleCount) ||
+    !Number.isSafeInteger(sampleCount) ||
+    sampleCount < 1 ||
+    sampleCount > 6000 ||
+    sampleIndex < 0 ||
+    sampleIndex >= sampleCount ||
+    !finite(sampleTime) ||
+    sampleTime < 0
+  )
+    return null;
+  return { sampleIndex, sampleTime, sampleCount };
+}
+
+function parsedAnalysisKey(
+  capture: Pick<NotebookCapture, "analysisKey">,
+): Record<string, unknown> | null {
+  try {
+    const parsed: unknown = JSON.parse(capture.analysisKey);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function notebookHasIncompleteSampleProvenance(
+  capture: NotebookCapture,
+): boolean {
+  const analysis = parsedAnalysisKey(capture);
+  const temporal =
+    analysis?.kind === "tran" || /^TRAN\b/.test(capture.analysisLabel);
+  const sample = sanitizeSample(capture);
+  return temporal && (sample === undefined || sample === null);
 }
 
 const waveformNumberKeys = [
@@ -138,8 +198,39 @@ export function createNotebookCapture(
     ? simulation.analysis
     : { kind: "op" };
   const temporal = analysis.kind === "tran";
-  const lastTime = simulation.time.at(-1);
-  if (temporal && !finite(lastTime)) return null;
+  let sample = sanitizeSample({
+    sampleIndex: simulation.sample_index,
+    sampleTime: simulation.sample_time,
+    sampleCount: simulation.sample_count,
+  });
+  if (sample === null) return null;
+  if (temporal) {
+    const times = simulation.time;
+    if (
+      !Array.isArray(times) ||
+      !times.length ||
+      times.length > 6000 ||
+      !times.every(
+        (time, index) =>
+          finite(time) && time >= 0 && (!index || time > times[index - 1]),
+      )
+    )
+      return null;
+    if (
+      sample &&
+      (sample.sampleCount !== times.length ||
+        times[sample.sampleIndex] !== sample.sampleTime)
+    )
+      return null;
+    sample ||= {
+      sampleIndex: times.length - 1,
+      sampleTime: times[times.length - 1],
+      sampleCount: times.length,
+    };
+  } else if (sample) return null;
+  const simulationId = simulation.simulation_id;
+  if (simulationId !== undefined && !sourceIdentifier(simulationId))
+    return null;
   const measurements: NotebookMeasurement[] = [];
   for (const net of topology.nets) {
     const value = simulation.voltages[net.id];
@@ -192,11 +283,15 @@ export function createNotebookCapture(
     circuitKey: circuitComparisonKey(project, topology),
     analysisKey: JSON.stringify(
       temporal
-        ? { kind: "tran", time: lastTime, startup: analysis.startup !== false }
+        ? {
+            kind: "tran",
+            time: sample!.sampleTime,
+            startup: analysis.startup !== false,
+          }
         : { kind: "op" },
     ),
     analysisLabel: temporal
-      ? `TRAN · t = ${Number(lastTime).toPrecision(4)} s`
+      ? `TRAN · t = ${sample!.sampleTime.toPrecision(4)} s · échantillon ${sample!.sampleIndex + 1}/${sample!.sampleCount}`
       : "OP · état stabilisé",
     measurements,
     componentValues: Object.fromEntries(
@@ -205,6 +300,8 @@ export function createNotebookCapture(
         .map((component) => [component.id, component.value]),
     ),
     componentSettings,
+    ...(sample ? sample : {}),
+    ...(simulationId !== undefined ? { simulationId } : {}),
   };
 }
 
@@ -222,7 +319,10 @@ export function describeNotebookChanges(
   if (!baseline || !candidate)
     return { changes: [], incompleteProvenance: true };
   let incompleteProvenance =
-    !baseline.componentSettings || !candidate.componentSettings;
+    !baseline.componentSettings ||
+    !candidate.componentSettings ||
+    notebookHasIncompleteSampleProvenance(baseline) ||
+    notebookHasIncompleteSampleProvenance(candidate);
   const componentIds = new Set([
     ...Object.keys(baseline.componentValues),
     ...Object.keys(candidate.componentValues),
@@ -284,6 +384,14 @@ export function compareNotebookCaptures(
   )
     return failure(
       "Les connexions ont changé. Capture une nouvelle référence pour ce circuit.",
+    );
+  if (
+    baseline.sampleTime !== undefined &&
+    candidate.sampleTime !== undefined &&
+    baseline.sampleTime !== candidate.sampleTime
+  )
+    return failure(
+      "Choisis le même instant de simulation dans les deux essais pour comparer les mesures.",
     );
   if (baseline.analysisKey !== candidate.analysisKey)
     return failure(
@@ -400,6 +508,16 @@ function sanitizeCapture(value: unknown): NotebookCapture | null {
     }
     componentSettings = Object.fromEntries(sanitizedEntries);
   }
+  const sample = sanitizeSample(value);
+  if (sample === null) return null;
+  const analysis = parsedAnalysisKey({ analysisKey: value.analysisKey });
+  if (
+    sample &&
+    (analysis?.kind !== "tran" || analysis.time !== sample.sampleTime)
+  )
+    return null;
+  if (value.simulationId !== undefined && !sourceIdentifier(value.simulationId))
+    return null;
   return {
     id: value.id,
     projectId: value.projectId,
@@ -413,6 +531,10 @@ function sanitizeCapture(value: unknown): NotebookCapture | null {
     measurements,
     componentValues: Object.fromEntries(entries) as Record<string, number>,
     ...(componentSettings ? { componentSettings } : {}),
+    ...(sample ? sample : {}),
+    ...(value.simulationId !== undefined
+      ? { simulationId: value.simulationId }
+      : {}),
   };
 }
 

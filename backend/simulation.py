@@ -365,6 +365,8 @@ def simulate(project: dict, analysis: dict | None = None, cancel_event: threadin
                 if values is None:
                     raise ValueError(f"Courant de borne absent : {comp}.{pin}.")
                 terminal_currents[comp][pin] = values[-1]
+                if pin != "c":
+                    curves.append({"id": f"I:{comp}.{pin}", "label": f"I({comp}.{pin})", "unit": "A", "values": values})
         for comp, (upper_vector, lower_vector) in info["potentiometer_vectors"].items():
             upper_values = raw.get(upper_vector) or raw.get(f"i({upper_vector})")
             lower_values = raw.get(lower_vector) or raw.get(f"i({lower_vector})")

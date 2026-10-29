@@ -35,9 +35,13 @@ const fallbackTime: number[] = [];
 export function Oscilloscope({
   sim,
   stale = false,
+  cursorIndex: controlledCursorIndex,
+  onCursorChange,
 }: {
   sim: Simulation | null;
   stale?: boolean;
+  cursorIndex?: number;
+  onCursorChange?: (index: number) => void;
 }) {
   const curves = sim?.curves || fallbackCurves;
   const time = sim?.time || fallbackTime;
@@ -59,10 +63,25 @@ export function Oscilloscope({
   ]);
   const [visible, setVisible] = useState<string[]>([]);
   const [windowRange, setWindowRange] = useState<ScopeRange | null>(null);
-  const [cursorIndex, setCursorIndex] = useState(-1);
+  const [localCursorIndex, setLocalCursorIndex] = useState(-1);
   const [exportNotice, setExportNotice] = useState("");
   const [measuredId, setMeasuredId] = useState("");
   const initialized = useRef(false);
+  const controlled = controlledCursorIndex !== undefined;
+  const cursorIndex = controlled
+    ? Number.isFinite(controlledCursorIndex)
+      ? Math.max(
+          0,
+          Math.min(Math.trunc(controlledCursorIndex), time.length - 1),
+        )
+      : time.length - 1
+    : localCursorIndex;
+  const selectCursor = (index: number) => {
+    if (!time.length || !Number.isFinite(index) || index < 0) return;
+    const next = Math.min(Math.trunc(index), time.length - 1);
+    if (controlled) onCursorChange?.(next);
+    else setLocalCursorIndex(next);
+  };
   const full = useMemo(() => timeRange(time), [time]);
   useEffect(() => {
     setVisible((current) => {
@@ -79,9 +98,11 @@ export function Oscilloscope({
   }, [signature]);
   useEffect(() => {
     setWindowRange(null);
-    setCursorIndex(time.length ? time.length - 1 : -1);
     setExportNotice("");
   }, [datasetSignature]);
+  useEffect(() => {
+    if (!controlled) setLocalCursorIndex(time.length ? time.length - 1 : -1);
+  }, [datasetSignature, controlled]);
   const range =
     windowRange && full
       ? {
@@ -182,7 +203,7 @@ export function Oscilloscope({
         ((event.clientX - bounds.left - offset) / scale - left) / chartWidth,
       ),
     );
-    setCursorIndex(
+    selectCursor(
       nearestSampleIndex(
         time,
         range.start + fraction * (range.end - range.start),
@@ -203,7 +224,7 @@ export function Oscilloscope({
     else return;
     event.preventDefault();
     event.stopPropagation();
-    setCursorIndex(windowSamples[next]);
+    selectCursor(windowSamples[next]);
   };
   const exportCsv = () => {
     try {

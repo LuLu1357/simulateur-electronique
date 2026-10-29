@@ -2,6 +2,11 @@
 
 Une application locale en français pour construire un circuit, l’éditer dans un schéma et des breadboards synchronisés, le calculer avec **ngspice**, et le faire inspecter ou modifier par un véritable client **MCP**.
 
+Pour reprendre le développement : **[progrès et répartition des tâches](docs/SUIVI.md)**,
+[note technique de reprise](docs/REPRISE.md) et [prompt pour l’autre ChatGPT](docs/PROMPT_REPRISE.md).
+La branche `work` contient le chantier de relecture transitoire : ses tests et ses
+vérifications d’intégration restantes sont distingués dans le suivi.
+
 ## Ouvrir l’application
 
 Après installation, double-cliquez **lancer.command** sur macOS, ou lancez depuis la racine du dépôt :

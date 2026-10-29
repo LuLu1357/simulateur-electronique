@@ -1,0 +1,129 @@
+.simulation-playback {
+  margin: 12px 0 6px;
+  border: 1px solid #637344;
+  border-radius: 9px;
+  padding: 14px 15px;
+  background: #23311e;
+}
+.playback-heading,
+.playback-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.playback-heading {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.playback-heading > div {
+  color: #e2e9be;
+  font-size: 12px;
+}
+.playback-heading strong {
+  font-weight: 500;
+}
+.playback-heading > span {
+  color: #b4c49b;
+  font-size: 9px;
+}
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.playback-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #738450;
+  border-radius: 6px;
+  color: #e5edc2;
+}
+.playback-controls .playback-toggle {
+  min-width: 74px;
+  background: #3e502d;
+}
+.playback-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.playback-position {
+  flex: 1;
+  min-width: 100px;
+  color: #d0ddae;
+  font:
+    10px ui-monospace,
+    monospace;
+}
+.playback-position input {
+  display: block;
+  padding: 0;
+  margin: 7px 0 0;
+  width: 100%;
+  min-height: 20px;
+  background: transparent;
+  border: 0;
+  accent-color: #c6da9a;
+}
+.playback-duration {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #b7c6a0;
+  font-size: 9px;
+}
+.playback-duration select {
+  width: auto;
+  min-height: 28px;
+  padding: 4px 6px;
+  color: #dce6bc;
+  font-size: 10px;
+  border: 1px solid #607747;
+  border-radius: 5px;
+  background: #1b2919;
+}
+.playback-status {
+  font:
+    10px ui-monospace,
+    monospace;
+  color: #dccd9a;
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.playback-status button {
+  margin-left: 9px;
+  padding: 3px 6px;
+  color: #f0db9d;
+  border: 1px solid #7b7649;
+  border-radius: 4px;
+}
+.playback-caption {
+  margin-top: 6px;
+  color: #afc199;
+  font-size: 9px;
+  line-height: 1.7;
+}
+@media (max-width: 650px) {
+  .playback-controls {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .playback-position {
+    flex-basis: calc(100% - 100px);
+  }
+  .playback-position input {
+    min-height: 34px;
+  }
+  .playback-duration {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 84px;
+  }
+  .playback-duration select {
+    min-height: 36px;
+  }
+}

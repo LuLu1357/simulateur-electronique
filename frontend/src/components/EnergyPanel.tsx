@@ -8,16 +8,39 @@ import "../energy.css";
 const energyLabel = (value: number | null) =>
   value === null ? "Indisponible" : format(value, "J");
 
-export function EnergyPanel({ state, busy }: { state: State; busy: boolean }) {
+export function EnergyPanel({
+  state,
+  busy,
+  cursorIndex,
+  onCursorChange,
+}: {
+  state: State;
+  busy: boolean;
+  cursorIndex?: number;
+  onCursorChange?: (index: number) => void;
+}) {
   const report = useMemo(() => circuitEnergy(state, busy), [state, busy]);
-  const [cursor, setCursor] = useState(0);
+  const [localCursor, setLocalCursor] = useState(0);
   const ready = report.status === "ready" ? report : null;
+  const controlled = cursorIndex !== undefined;
   useEffect(() => {
-    setCursor(ready ? ready.total.length - 1 : 0);
-  }, [ready?.key]);
+    if (!controlled) setLocalCursor(ready ? ready.total.length - 1 : 0);
+  }, [ready?.key, controlled]);
+  const cursor = controlled ? cursorIndex : localCursor;
   const index = ready
-    ? Math.max(0, Math.min(cursor, ready.total.length - 1))
+    ? Number.isFinite(cursor)
+      ? Math.max(0, Math.min(Math.trunc(cursor), ready.total.length - 1))
+      : ready.total.length - 1
     : 0;
+  const selectCursor = (next: number) => {
+    if (!ready || !Number.isFinite(next)) return;
+    const clamped = Math.max(
+      0,
+      Math.min(Math.trunc(next), ready.total.length - 1),
+    );
+    if (controlled) onCursorChange?.(clamped);
+    else setLocalCursor(clamped);
+  };
   const chart = useMemo(() => {
     if (!ready || ready.time.length < 2) return null;
     let maximum = 0;
@@ -116,7 +139,7 @@ export function EnergyPanel({ state, busy }: { state: State; busy: boolean }) {
                           836,
                       ),
                     );
-                    setCursor(
+                    selectCursor(
                       nearestEnergySample(
                         report.time,
                         report.time[0] +
@@ -170,7 +193,7 @@ export function EnergyPanel({ state, busy }: { state: State; busy: boolean }) {
                   max={report.time.length - 1}
                   step={1}
                   value={index}
-                  onChange={(event) => setCursor(Number(event.target.value))}
+                  onChange={(event) => selectCursor(Number(event.target.value))}
                   aria-label="Curseur temporel de l’énergie"
                   aria-valuetext={`Échantillon ${index + 1} sur ${report.time.length}, temps ${format(report.time[index], "s")}`}
                 />

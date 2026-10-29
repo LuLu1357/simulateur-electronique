@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import httpx
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import ToolAnnotations
+from pydantic import Field
 
 ROOT = Path(__file__).resolve().parent.parent
 API_URL = 'http://127.0.0.1:8765'
@@ -115,6 +117,20 @@ async def simulation_stop() -> dict:
 async def measurements_read() -> dict:
     """Lire tensions, courants, courbes, diagnostics et dernier succès; vérifier le marqueur stale."""
     return await api('GET', '/api/results')
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False,
+                                    idempotent_hint=True, open_world_hint=False))
+async def simulation_frame_read(simulation_id: str, index: Annotated[int, Field(strict=True, ge=0)]) -> dict:
+    """Lire un échantillon réel du calcul transitoire courant, sans relancer SPICE.
+
+    Lire simulation_id dans measurements_read, puis choisir un indice entier basé
+    sur zéro dans simulation.time. Aucun projet, historique ou curseur local de
+    l’interface n’est modifié. Un résultat obsolète, remplacé ou en cours est refusé.
+    """
+    if type(index) is not int or index < 0:
+        raise ToolError("L'indice d'échantillon doit être un entier positif ou nul, basé sur zéro.")
+    return await api('GET', '/api/results/frame', params={'simulation_id': simulation_id, 'index': index})
 
 
 @mcp.tool()

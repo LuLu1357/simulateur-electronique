@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity,
@@ -57,6 +57,7 @@ import {
 import { parseEngineeringValue } from "./units";
 import { downloadSvgView } from "./svgExport";
 import { createSimulationController } from "./simulationController";
+import { useSimulationPlayback } from "./useSimulationPlayback";
 import {
   withMeasurements,
   publishSimulationState,
@@ -81,6 +82,7 @@ import { WireInspector } from "./components/WireInspector";
 import { ProjectLibrary } from "./components/ProjectLibrary";
 import { ParameterSweep } from "./components/ParameterSweep";
 import { CircuitNavigator } from "./components/CircuitNavigator";
+import { SimulationPlayback } from "./components/SimulationPlayback";
 import { buildCircuitSearchIndex } from "./circuitSearch";
 import type { CircuitSearchTarget } from "./circuitSearch";
 import type { SweepReport, SweepRequest } from "./sweep";
@@ -586,14 +588,27 @@ function App() {
     setNetName(label);
   }, [pinToPlace, JSON.stringify(p?.net_labels)]);
   const rawSim = state?.simulation || null;
-  const sim =
+  const seriesSimulation =
     rawSim?.status === "success"
       ? rawSim
       : state?.last_success || rawSim?.last_success || null;
   const stale = !!(
-    sim &&
+    seriesSimulation &&
     p &&
     (rawSim?.status === "success" ? rawSim.stale : state?.last_success?.stale)
+  );
+  const playback = useSimulationPlayback(
+    state,
+    seriesSimulation,
+    busy || !!state?.running,
+    refresh,
+  );
+  const sim = playback.simulation;
+  const instrumentCursor = playback.source ? playback.index : undefined;
+  const measurementState = useMemo(
+    () =>
+      state && playback.source && sim ? { ...state, simulation: sim } : state,
+    [state, sim, playback.source],
   );
   const tn = state?.topology.terminal_to_net || {};
   useEffect(() => {
@@ -667,7 +682,7 @@ function App() {
     voltageColors
       ? voltageColor(sim?.voltages[net], voltageRange)
       : netColor(net);
-  const animatedMode = stale ? "off" : flowMode;
+  const animatedMode = stale || playback.loading ? "off" : flowMode;
   const voltage = (terminal: string) => sim?.voltages[tn[terminal] || terminal];
   const select = useCallback(
     (id: string, additive = false) =>
@@ -2159,9 +2174,9 @@ function App() {
                 <NotebookPen size={14} /> Ouvrir le carnet
               </button>
             </div>
-            {state && (
+            {measurementState && (
               <CircuitCoach
-                state={state}
+                state={measurementState}
                 stale={stale}
                 busy={calculationBusy}
                 onSelect={(ids) =>
@@ -2180,6 +2195,7 @@ function App() {
                 }}
               />
             )}
+            <SimulationPlayback playback={playback} />
             <div className="editor-mode-bar">
               <div role="group" aria-label="Vue de travail">
                 {[
@@ -3246,7 +3262,7 @@ function App() {
                             downloadSvgView(
                               svgRef.current,
                               `Schéma — ${p.title}`,
-                              `Vue courante de l’Atelier Électronique. Projet ${p.title}, révision ${p.revision}. ${sim ? `Mesures ngspice de la révision ${sim.project_revision}${stale ? ", obsolètes" : ""}.` : "Aucune mesure calculée."} Animation symbolique omise. Une simulation ne valide pas un montage physique.`,
+                              `Vue courante de l’Atelier Électronique. Projet ${p.title}, révision ${p.revision}. ${sim ? `Mesures ngspice de la révision ${sim.project_revision}${stale ? ", obsolètes" : ""}${sim.sample_time !== undefined ? `, échantillon ${(sim.sample_index ?? 0) + 1} à t=${sim.sample_time} s` : ""}.` : "Aucune mesure calculée."} Animation symbolique omise. Une simulation ne valide pas un montage physique.`,
                             );
                             setNotice(
                               "Schéma exporté en SVG autonome, avec la provenance des mesures.",
@@ -3518,9 +3534,21 @@ function App() {
                   )}
                 </div>
               )}
-              {tab === "scope" && <Oscilloscope sim={sim} stale={stale} />}
+              {tab === "scope" && (
+                <Oscilloscope
+                  sim={seriesSimulation}
+                  stale={stale}
+                  cursorIndex={instrumentCursor}
+                  onCursorChange={playback.selectIndex}
+                />
+              )}
               {tab === "energy" && state && (
-                <EnergyPanel state={state} busy={calculationBusy} />
+                <EnergyPanel
+                  state={state}
+                  busy={calculationBusy}
+                  cursorIndex={instrumentCursor}
+                  onCursorChange={playback.selectIndex}
+                />
               )}
               {tab === "sweep" && state && (
                 <ParameterSweep
@@ -3540,7 +3568,12 @@ function App() {
                 <NotebookPanel
                   project={p}
                   simulation={sim}
-                  stale={stale || calculationFailed || calculationBusy}
+                  stale={
+                    stale ||
+                    calculationFailed ||
+                    calculationBusy ||
+                    playback.loading
+                  }
                   topology={state.topology}
                 />
               )}

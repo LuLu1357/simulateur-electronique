@@ -10,6 +10,7 @@ import secrets
 import shutil
 import threading
 from pathlib import Path
+import re
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -23,6 +24,7 @@ from .examples import example_projects
 from .project_library import ProjectLibrary
 from .sweep import prepare_sweep, run_parameter_sweep
 from .simulation import run_truth_table, simulate
+from .simulation_frames import FrameUnavailableError, simulation_frame
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -314,6 +316,7 @@ def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> F
         project = copy.deepcopy(state_store.get_state()['project'])
         def publish(result):
             result.setdefault('circuit_fingerprint', circuit_fingerprint(project))
+            result['simulation_id'] = secrets.token_hex(16)
             with state_store.lock:
                 state_store.simulation = result
             if result.get('status') == 'success':
@@ -331,6 +334,24 @@ def create_app(store: Store | None = None, runtime_dir: Path | None = None) -> F
         current = get_state()
         return {'simulation': current.get('simulation'), 'last_success': current.get('last_success'),
                 'truth_table': application.state.last_truth_table, 'running': application.state.running}
+
+    @application.get('/api/results/frame')
+    def read_simulation_frame(simulation_id: str, index: str):
+        # Le paramètre reste une chaîne jusqu'à la validation pour rejeter 1.0,
+        # booléens et indices démesurés plutôt que les convertir silencieusement.
+        if not re.fullmatch(r'(?:0|[1-9][0-9]{0,4})', index):
+            raise HTTPException(422, "L'indice d'échantillon doit être un entier positif ou nul.")
+        try:
+            with state_store.lock:
+                frame = simulation_frame(state_store.project, state_store.simulation, simulation_id,
+                                         int(index), running=application.state.running)
+                if application.state.running:
+                    raise FrameUnavailableError('Un calcul est en cours. Attendez son résultat avant la relecture.')
+                return frame
+        except FrameUnavailableError as error:
+            raise HTTPException(409, str(error)) from error
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
 
     @application.post('/api/parameter-sweep')
     async def parameter_sweep(request: Request, body: dict = Body(...)):

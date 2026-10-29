@@ -81,6 +81,10 @@ export type Diagnostic = {
   [key: string]: unknown;
 };
 export type Simulation = {
+  simulation_id?: string;
+  sample_index?: number;
+  sample_time?: number;
+  sample_count?: number;
   wire_currents?: Record<string, number | null>;
   wire_current_status?: Record<string, string>;
   wire_flow_hints?: Record<string, number | null>;

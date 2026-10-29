@@ -24,6 +24,7 @@ const {
   readNotebook,
   writeNotebook,
   appendNotebookCapture,
+  notebookHasIncompleteSampleProvenance,
 } = await import(
   "data:text/javascript;base64," +
     Buffer.from(compiled.outputText).toString("base64")
@@ -600,4 +601,284 @@ test("les captures précédant les signaux restent lisibles avec provenance expl
     describeNotebookChanges(loaded, snapshot()).incompleteProvenance,
     true,
   );
+});
+
+const transientResult = () => ({
+  ...result(),
+  analysis: { kind: "tran", startup: true },
+  time: [0, 0.001, 0.004, 0.01],
+  simulation_id: "simulation_0123456789abcdef",
+});
+const replayedResult = () => ({
+  ...transientResult(),
+  sample_index: 1,
+  sample_time: 0.001,
+  sample_count: 4,
+  voltages: { 0: 0, n1: 2 },
+  currents: { V1: -0.002, R1: 0.002 },
+});
+
+test("une capture de relecture conserve les mesures affichées et leur véritable échantillon", () => {
+  const simulation = replayedResult();
+  const capture = createNotebookCapture(circuit(), simulation, nets(), false);
+  assert.equal(capture.sampleIndex, 1);
+  assert.equal(capture.sampleTime, 0.001);
+  assert.equal(capture.sampleCount, 4);
+  assert.equal(capture.simulationId, simulation.simulation_id);
+  assert.deepEqual(JSON.parse(capture.analysisKey), {
+    kind: "tran",
+    time: 0.001,
+    startup: true,
+  });
+  assert.match(capture.analysisLabel, /t = 0\.001000 s.*échantillon 2\/4/);
+  assert.equal(
+    capture.measurements.find((measurement) => measurement.id === "I:R1").value,
+    0.002,
+  );
+  assert.equal(
+    capture.measurements.find(
+      (measurement) =>
+        measurement.unit === "V" && measurement.label === "Alimentation",
+    ).value,
+    2,
+  );
+  simulation.currents.R1 = 0.005;
+  simulation.time[1] = 0.002;
+  simulation.simulation_id = "autre_calcul";
+  assert.equal(capture.sampleTime, 0.001);
+  assert.equal(
+    capture.measurements.find((measurement) => measurement.id === "I:R1").value,
+    0.002,
+  );
+  const storage = memory();
+  assert.equal(writeNotebook(storage, [capture]), true);
+  assert.deepEqual(readNotebook(storage), [capture]);
+});
+
+test("le dernier point est identifié sans override et une capture OP ne reçoit pas d’instant", () => {
+  const capture = createNotebookCapture(
+    circuit(),
+    transientResult(),
+    nets(),
+    false,
+  );
+  assert.equal(capture.sampleIndex, 3);
+  assert.equal(capture.sampleTime, 0.01);
+  assert.equal(capture.sampleCount, 4);
+  assert.match(capture.analysisLabel, /échantillon 4\/4/);
+  assert.equal(notebookHasIncompleteSampleProvenance(capture), false);
+  const atZero = createNotebookCapture(
+    circuit(),
+    { ...replayedResult(), sample_index: 0, sample_time: 0 },
+    nets(),
+    false,
+  );
+  assert.equal(atZero.sampleTime, 0);
+  assert.match(atZero.analysisLabel, /échantillon 1\/4/);
+  const dc = createNotebookCapture(
+    circuit(),
+    { ...result(), simulation_id: "calcul_op" },
+    nets(),
+    false,
+  );
+  assert.equal(dc.simulationId, "calcul_op");
+  for (const key of ["sampleTime", "sampleIndex", "sampleCount"])
+    assert.equal(Object.hasOwn(dc, key), false);
+  assert.equal(
+    createNotebookCapture(
+      circuit(),
+      { ...result(), sample_index: 0, sample_time: 0, sample_count: 1 },
+      nets(),
+      false,
+    ),
+    null,
+  );
+});
+
+test("un override partiel, incohérent ou non fini ne peut attribuer les mesures à un autre instant", () => {
+  const mutations = [
+    (simulation) => {
+      delete simulation.sample_time;
+    },
+    (simulation) => {
+      simulation.sample_index = -1;
+    },
+    (simulation) => {
+      simulation.sample_index = 1.5;
+    },
+    (simulation) => {
+      simulation.sample_index = 4;
+    },
+    (simulation) => {
+      simulation.sample_index = true;
+    },
+    (simulation) => {
+      simulation.sample_count = 0;
+    },
+    (simulation) => {
+      simulation.sample_count = 6001;
+    },
+    (simulation) => {
+      simulation.sample_count = 3;
+    },
+    (simulation) => {
+      simulation.sample_time = 0.004;
+    },
+    (simulation) => {
+      simulation.sample_time = -0.001;
+    },
+    (simulation) => {
+      simulation.sample_time = Infinity;
+    },
+    (simulation) => {
+      simulation.time[2] = 0.0005;
+    },
+    (simulation) => {
+      simulation.time[2] = NaN;
+    },
+    (simulation) => {
+      simulation.time = [];
+    },
+  ];
+  for (const mutate of mutations) {
+    const simulation = replayedResult();
+    mutate(simulation);
+    assert.equal(
+      createNotebookCapture(circuit(), simulation, nets(), false),
+      null,
+    );
+  }
+  for (const simulation_id of [
+    null,
+    "",
+    "x".repeat(129),
+    "un calcul",
+    "../secret",
+    "opaque\nID",
+  ])
+    assert.equal(
+      createNotebookCapture(
+        circuit(),
+        { ...replayedResult(), simulation_id },
+        nets(),
+        false,
+      ),
+      null,
+    );
+});
+
+test("le stockage rejette une provenance temporelle fausse plutôt que de la transformer en capture ancienne", () => {
+  const capture = createNotebookCapture(
+    circuit(),
+    replayedResult(),
+    nets(),
+    false,
+  );
+  const mutations = [
+    (entry) => {
+      delete entry.sampleCount;
+    },
+    (entry) => {
+      entry.sampleIndex = 0.5;
+    },
+    (entry) => {
+      entry.sampleIndex = 4;
+    },
+    (entry) => {
+      entry.sampleCount = 0;
+    },
+    (entry) => {
+      entry.sampleCount = 6001;
+    },
+    (entry) => {
+      entry.sampleTime = "0.001";
+    },
+    (entry) => {
+      entry.sampleTime = Infinity;
+    },
+    (entry) => {
+      entry.simulationId = "x".repeat(129);
+    },
+    (entry) => {
+      entry.simulationId = "source inconnue";
+    },
+    (entry) => {
+      entry.analysisKey = JSON.stringify({
+        kind: "tran",
+        time: 0.01,
+        startup: true,
+      });
+    },
+    (entry) => {
+      entry.analysisKey = JSON.stringify({ kind: "op" });
+    },
+  ];
+  for (const mutate of mutations) {
+    const entry = structuredClone(capture);
+    mutate(entry);
+    assert.deepEqual(
+      readNotebook(memory(JSON.stringify({ version: 1, captures: [entry] }))),
+      [],
+    );
+  }
+});
+
+test("la comparaison exige le même instant physique, sans confondre indice adaptatif et identifiant du calcul", () => {
+  const first = createNotebookCapture(
+    circuit(),
+    replayedResult(),
+    nets(),
+    false,
+  );
+  const otherTime = createNotebookCapture(
+    circuit(),
+    { ...replayedResult(), sample_index: 2, sample_time: 0.004 },
+    nets(),
+    false,
+  );
+  const different = compareNotebookCaptures(first, otherTime);
+  assert.equal(different.comparable, false);
+  assert.match(different.reason, /même instant/);
+  assert.deepEqual(different.rows, []);
+  const adapted = {
+    ...replayedResult(),
+    simulation_id: "nouveau_calcul",
+    time: [0, 0.0005, 0.001, 0.004, 0.01],
+    sample_index: 2,
+    sample_count: 5,
+    currents: { V1: -0.001, R1: 0.001 },
+  };
+  const second = createNotebookCapture(circuit(), adapted, nets(), false);
+  const comparison = compareNotebookCaptures(first, second);
+  assert.equal(comparison.comparable, true);
+  assert.equal(comparison.rows.find((row) => row.id === "I:R1").delta, -0.001);
+});
+
+test("les anciens TRAN restent lisibles et comparables à leur instant enregistré avec provenance partielle", () => {
+  const current = createNotebookCapture(
+    circuit(),
+    transientResult(),
+    nets(),
+    false,
+  );
+  const old = { ...current, analysisLabel: "TRAN · t = 0.01000 s" };
+  for (const key of [
+    "sampleIndex",
+    "sampleTime",
+    "sampleCount",
+    "simulationId",
+  ])
+    delete old[key];
+  const [loaded] = readNotebook(
+    memory(JSON.stringify({ version: 1, captures: [old] })),
+  );
+  assert.ok(loaded);
+  assert.equal(loaded.sampleTime, undefined);
+  assert.equal(notebookHasIncompleteSampleProvenance(loaded), true);
+  assert.equal(compareNotebookCaptures(loaded, current).comparable, true);
+  assert.equal(
+    describeNotebookChanges(loaded, current).incompleteProvenance,
+    true,
+  );
+  assert.equal(notebookHasIncompleteSampleProvenance(snapshot()), false);
 });
