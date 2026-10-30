@@ -13,8 +13,9 @@ Lire [VALIDATION_RELECTURE.md](VALIDATION_RELECTURE.md) : la DEL PULSE, les deux
 vues, l’oscilloscope et la capture JSON pendant une lecture lente ont été observés
 dans un vrai navigateur. La vérification visuelle Énergie/lecture complète et les
 vrais SVG téléchargés restent ouvertes. Ne pas annoncer R1/R4 entièrement terminés.
-GPT #2 a publié son rapport UX (`a8fff27`) sur `codex/ux-review-2026-10-30` ; le
-pilote doit l’intégrer avant le prochain lot UX. Aucun travail mobile demandé.
+Le rapport UX de GPT #2 (`a8fff27`) est intégré dans [UX_REVIEW.md](UX_REVIEW.md).
+UX-01/02/03 sont les premières corrections à préparer ; aucune correction UX de
+ce rapport n’est encore annoncée comme validée. Aucun travail mobile demandé.
 
 La section suivante conserve le contexte du relais initial du 29 octobre.
 

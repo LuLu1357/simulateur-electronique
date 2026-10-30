@@ -14,11 +14,11 @@ les essais mutables utilisent des runtimes et services isolés.
 | R2 | Agent `/root/playback_races`, terminé | `playback.ts`, tests purs et scénario React/DOM versionné ; mesures tardives et provenance | 10/10 scénarios navigateur déterministes ; validation des tables de courants renforcée |
 | R3 | Agent `/root/mcp_validation`, terminé | `tests/test_mcp_stdio_frames.py` ; 28 outils, SDK stdio, vrai HTTP/ngspice isolés | Validé : aucune mutation ni relance ; UID, indices et obsolescence vérifiés |
 | R4 | Agent `/root/capture_instruments`, code terminé ; pilote pour QA | Carnet, oscilloscope, SVG, énergie et tests ; capture au point réellement affiché | Capture JSON téléchargée vérifiée ; provenance SVG testée unitairement, téléchargement SVG restant |
-| U1 | GPT #2 de l’utilisateur | Rapport `docs/UX_REVIEW.md`, branche `codex/ux-review-2026-10-30`, commit `a8fff27` | Rapport publié, intégration par le pilote à suivre ; observations DOM et hypothèses distinguées, revue visuelle ouverte |
+| U1 | GPT #2 de l’utilisateur | Rapport [UX_REVIEW.md](UX_REVIEW.md), commit source `a8fff27`, intégré par merge sans réécriture | Rapport intégré sur `work` ; observations DOM et hypothèses distinguées, revue visuelle ouverte |
 
 Un seul éditeur de `main.tsx` : le pilote local. Le second ChatGPT mène une revue
 en lecture seule du produit et publie son rapport sur sa branche dédiée ; le
-pilote intégrera ce rapport sur `work` avant U2. Il ne modifie pas les fichiers
+pilote a intégré ce rapport sur `work` avant U2. Il ne modifie pas les fichiers
 fonctionnels, le suivi partagé ou le projet actif. Aucun travail mobile demandé.
 
 Jalon de coordination : consignes lues, copie locale propre mise à jour sans
@@ -45,7 +45,9 @@ pendant une lecture retardée, terminer la revue visuelle Énergie, lecture/paus
 retour final et fenêtre zoomée. Les tests déterministes de ces interactions ne
 ferment pas à eux seuls la revue visuelle. Le téléchargement du carnet a bloqué
 l’outil navigateur ; conserver des délais d’outil bornés pour les essais suivants.
-Intégrer ensuite le rapport GPT #2, puis traiter UX-01/02/03 par lots validés.
+Le rapport GPT #2 est intégré ; traiter UX-01/02/03 par lots validés après la
+clôture des vérifications temporelles P0. UX-03 (survol qui interrompt la lecture)
+doit être coordonné avec les instruments pendant cette clôture.
 
 ## Point de reprise
 
@@ -160,4 +162,6 @@ transférés par un push du code. Aucun travail autonome après l’arrêt n’e
 | `f26a706` | Recherche et navigation dans le circuit |
 | Publication du 29 octobre 2026 | Code de relecture en cours, tests et documents de relais ; voir le commit portant cette entrée |
 | `8ba014f` | Réservation des tâches R1–R5 et revue UX parallèle |
+| `00ab1a5` | Synchronisation temporelle, provenance et MCP stdio ; 207 tests Node / 342 Python + 106 sous-tests ; revue visuelle partielle |
+| `a8fff27` (intégré par merge) | Rapport UX desktop de GPT #2, constats DOM/API/ngspice et limites visuelles |
 | Jalon du 30 octobre 2026 | Synchronisation sur le point affiché, provenance, MCP stdio et scénarios reproductibles ; validation visuelle encore partielle, voir le commit portant cette entrée |
