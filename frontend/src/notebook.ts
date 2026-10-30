@@ -34,6 +34,9 @@ export type NotebookCapture = {
   sampleTime?: number;
   sampleCount?: number;
   simulationId?: string;
+  /** Révision et empreinte du calcul, distinctes de la révision visuelle capturée. */
+  sourceRevision?: number;
+  circuitFingerprint?: string;
 };
 type NotebookSample = Required<
   Pick<NotebookCapture, "sampleIndex" | "sampleTime" | "sampleCount">
@@ -194,6 +197,14 @@ export function createNotebookCapture(
     simulation.stale
   )
     return null;
+  if (
+    !Number.isSafeInteger(simulation.project_revision) ||
+    simulation.project_revision < 0 ||
+    simulation.project_revision > project.revision
+  )
+    return null;
+  const fingerprint = simulation.circuit_fingerprint;
+  if (fingerprint !== undefined && !sourceIdentifier(fingerprint)) return null;
   const analysis = isRecord(simulation.analysis)
     ? simulation.analysis
     : { kind: "op" };
@@ -302,6 +313,8 @@ export function createNotebookCapture(
     componentSettings,
     ...(sample ? sample : {}),
     ...(simulationId !== undefined ? { simulationId } : {}),
+    sourceRevision: simulation.project_revision,
+    ...(fingerprint !== undefined ? { circuitFingerprint: fingerprint } : {}),
   };
 }
 
@@ -518,6 +531,19 @@ function sanitizeCapture(value: unknown): NotebookCapture | null {
     return null;
   if (value.simulationId !== undefined && !sourceIdentifier(value.simulationId))
     return null;
+  if (
+    value.sourceRevision !== undefined &&
+    (!finite(value.sourceRevision) ||
+      !Number.isSafeInteger(value.sourceRevision) ||
+      value.sourceRevision < 0 ||
+      value.sourceRevision > value.revision)
+  )
+    return null;
+  if (
+    value.circuitFingerprint !== undefined &&
+    !sourceIdentifier(value.circuitFingerprint)
+  )
+    return null;
   return {
     id: value.id,
     projectId: value.projectId,
@@ -534,6 +560,12 @@ function sanitizeCapture(value: unknown): NotebookCapture | null {
     ...(sample ? sample : {}),
     ...(value.simulationId !== undefined
       ? { simulationId: value.simulationId }
+      : {}),
+    ...(value.sourceRevision !== undefined
+      ? { sourceRevision: value.sourceRevision }
+      : {}),
+    ...(value.circuitFingerprint !== undefined
+      ? { circuitFingerprint: value.circuitFingerprint }
       : {}),
   };
 }

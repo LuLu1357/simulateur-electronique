@@ -55,7 +55,7 @@ import {
   type CircuitFragment,
 } from "./clipboard";
 import { parseEngineeringValue } from "./units";
-import { downloadSvgView } from "./svgExport";
+import { downloadSvgView, svgMeasurementProvenance } from "./svgExport";
 import { createSimulationController } from "./simulationController";
 import { useSimulationPlayback } from "./useSimulationPlayback";
 import {
@@ -604,7 +604,10 @@ function App() {
     refresh,
   );
   const sim = playback.simulation;
-  const instrumentCursor = playback.source ? playback.index : undefined;
+  const historicalMeasurements = !!sim && (
+    stale || rawSim?.status !== "success" || busy || !!state?.running
+  );
+  const instrumentCursor = playback.source ? playback.displayIndex : undefined;
   const measurementState = useMemo(
     () =>
       state && playback.source && sim ? { ...state, simulation: sim } : state,
@@ -682,7 +685,7 @@ function App() {
     voltageColors
       ? voltageColor(sim?.voltages[net], voltageRange)
       : netColor(net);
-  const animatedMode = stale || playback.loading ? "off" : flowMode;
+  const animatedMode = historicalMeasurements || playback.loading ? "off" : flowMode;
   const voltage = (terminal: string) => sim?.voltages[tn[terminal] || terminal];
   const select = useCallback(
     (id: string, additive = false) =>
@@ -2993,7 +2996,7 @@ function App() {
                               transform={`rotate(${p.schematic[c.id]?.rotation || 0})`}
                             >
                               {c.kind === "led" &&
-                                !stale &&
+                                !historicalMeasurements &&
                                 sim?.currents[c.id] !== undefined &&
                                 sim.currents[c.id] > 1e-6 && (
                                   <circle
@@ -3262,7 +3265,7 @@ function App() {
                             downloadSvgView(
                               svgRef.current,
                               `Schéma — ${p.title}`,
-                              `Vue courante de l’Atelier Électronique. Projet ${p.title}, révision ${p.revision}. ${sim ? `Mesures ngspice de la révision ${sim.project_revision}${stale ? ", obsolètes" : ""}${sim.sample_time !== undefined ? `, échantillon ${(sim.sample_index ?? 0) + 1} à t=${sim.sample_time} s` : ""}.` : "Aucune mesure calculée."} Animation symbolique omise. Une simulation ne valide pas un montage physique.`,
+                              `Vue courante de l’Atelier Électronique. Projet ${p.title}, révision ${p.revision}. ${svgMeasurementProvenance(sim, historicalMeasurements)} Animation symbolique omise. Une simulation ne valide pas un montage physique.`,
                             );
                             setNotice(
                               "Schéma exporté en SVG autonome, avec la provenance des mesures.",
@@ -3335,7 +3338,7 @@ function App() {
                     }
                     state={boardPreview || state}
                     simulation={boardPreview ? null : sim}
-                    stale={!!boardPreview || stale}
+                    stale={!!boardPreview || historicalMeasurements}
                     flowMode={animatedMode}
                     flowSpeed={flowSpeed}
                     voltageColors={voltageColors}
@@ -3537,7 +3540,7 @@ function App() {
               {tab === "scope" && (
                 <Oscilloscope
                   sim={seriesSimulation}
-                  stale={stale}
+                  stale={historicalMeasurements}
                   cursorIndex={instrumentCursor}
                   onCursorChange={playback.selectIndex}
                 />
@@ -3568,12 +3571,7 @@ function App() {
                 <NotebookPanel
                   project={p}
                   simulation={sim}
-                  stale={
-                    stale ||
-                    calculationFailed ||
-                    calculationBusy ||
-                    playback.loading
-                  }
+                  stale={stale || calculationFailed || calculationBusy}
                   topology={state.topology}
                 />
               )}

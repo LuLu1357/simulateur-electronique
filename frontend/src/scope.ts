@@ -52,6 +52,24 @@ export function nearestSampleIndex(
   return closest;
 }
 
+/** Le zoom ne doit jamais substituer un autre point au curseur global affiché. */
+export function scopeDisplayCursor(
+  time: readonly number[],
+  index: number,
+  range: ScopeRange | null,
+  controlled: boolean,
+): { index: number; inView: boolean } {
+  if (!range) return { index: -1, inView: false };
+  const valid = Number.isInteger(index) && index >= 0 && finite(time[index]);
+  const inView =
+    valid && time[index] >= range.start && time[index] <= range.end;
+  if (controlled) return { index: valid ? index : -1, inView };
+  const local = inView
+    ? index
+    : nearestSampleIndex(time, valid ? time[index] : range.end, range);
+  return { index: local, inView: local >= 0 };
+}
+
 export function curveRange(
   curves: readonly ScopeCurve[],
   time: readonly number[],

@@ -655,6 +655,74 @@ test("une capture de relecture conserve les mesures affichées et leur véritabl
   assert.deepEqual(readNotebook(storage), [capture]);
 });
 
+test("la capture sépare la révision visuelle de la provenance du calcul affiché", () => {
+  const project = { ...circuit(), revision: 7 };
+  const simulation = {
+    ...replayedResult(),
+    circuit_fingerprint: "a".repeat(64),
+  };
+  const capture = createNotebookCapture(project, simulation, nets(), false);
+  assert.equal(capture.revision, 7);
+  assert.equal(capture.sourceRevision, 3);
+  assert.equal(capture.circuitFingerprint, "a".repeat(64));
+  assert.equal(capture.simulationId, simulation.simulation_id);
+  const storage = memory();
+  assert.equal(writeNotebook(storage, [capture]), true);
+  assert.deepEqual(readNotebook(storage), [capture]);
+  simulation.circuit_fingerprint = "nouvelle_empreinte";
+  simulation.project_revision = 7;
+  assert.equal(capture.sourceRevision, 3);
+  assert.equal(capture.circuitFingerprint, "a".repeat(64));
+  const previous = { ...capture };
+  delete previous.sourceRevision;
+  delete previous.circuitFingerprint;
+  assert.deepEqual(
+    readNotebook(memory(JSON.stringify({ version: 1, captures: [previous] }))),
+    [previous],
+  );
+});
+
+test("une provenance de calcul incohérente ou malformée ne peut être capturée ou stockée", () => {
+  for (const sourceRevision of [-1, 4, 1.5, "3", NaN, Infinity]) {
+    assert.equal(
+      createNotebookCapture(
+        circuit(),
+        { ...replayedResult(), project_revision: sourceRevision },
+        nets(),
+        false,
+      ),
+      null,
+    );
+    const capture = { ...snapshot(), sourceRevision };
+    assert.deepEqual(
+      readNotebook(memory(JSON.stringify({ version: 1, captures: [capture] }))),
+      [],
+    );
+  }
+  for (const circuitFingerprint of [
+    null,
+    "",
+    "foreign fingerprint",
+    "../private",
+    "x".repeat(129),
+  ]) {
+    assert.equal(
+      createNotebookCapture(
+        circuit(),
+        { ...replayedResult(), circuit_fingerprint: circuitFingerprint },
+        nets(),
+        false,
+      ),
+      null,
+    );
+    const capture = { ...snapshot(), circuitFingerprint };
+    assert.deepEqual(
+      readNotebook(memory(JSON.stringify({ version: 1, captures: [capture] }))),
+      [],
+    );
+  }
+});
+
 test("le dernier point est identifié sans override et une capture OP ne reçoit pas d’instant", () => {
   const capture = createNotebookCapture(
     circuit(),

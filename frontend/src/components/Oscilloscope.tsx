@@ -14,6 +14,7 @@ import {
   nearestSampleIndex,
   plotFraction,
   scopeCsv,
+  scopeDisplayCursor,
   timeRange,
   zoomTimeRange,
 } from "../scope";
@@ -49,6 +50,7 @@ export function Oscilloscope({
   // Polling returns new arrays every second. Preserve cursor and zoom until the
   // actual result changes, rather than resetting on every HTTP response.
   const datasetSignature = JSON.stringify([
+    sim?.simulation_id,
     sim?.project_revision,
     sim?.analysis,
     time.length,
@@ -123,14 +125,12 @@ export function Oscilloscope({
         : null,
     [measuredCurve, time, range?.start, range?.end],
   );
-  const cursor = range
-    ? cursorIndex >= 0 &&
-      Number.isFinite(time[cursorIndex]) &&
-      time[cursorIndex] >= range.start &&
-      time[cursorIndex] <= range.end
-      ? cursorIndex
-      : nearestSampleIndex(time, time[cursorIndex] ?? range.end, range)
-    : -1;
+  const { index: cursor, inView: cursorInView } = scopeDisplayCursor(
+    time,
+    cursorIndex,
+    range,
+    controlled,
+  );
   const sampleTime = cursor >= 0 ? time[cursor] : undefined;
   const windowSamples = useMemo(
     () =>
@@ -213,7 +213,12 @@ export function Oscilloscope({
   };
   const moveCursor = (event: React.KeyboardEvent<SVGSVGElement>) => {
     if (!windowSamples.length) return;
-    const offset = windowSamples.indexOf(cursor);
+    const local = nearestSampleIndex(
+      time,
+      sampleTime ?? range?.end ?? 0,
+      range,
+    );
+    const offset = windowSamples.indexOf(local);
     const count = event.shiftKey ? 10 : 1;
     let next: number;
     if (event.key === "ArrowLeft") next = Math.max(0, offset - count);
@@ -358,8 +363,12 @@ export function Oscilloscope({
                     role="slider"
                     tabIndex={0}
                     aria-label={`Curseur de l’oscilloscope, ${unit === "V" ? "tensions" : "courants"}`}
-                    aria-valuemin={range.start}
-                    aria-valuemax={range.end}
+                    aria-valuemin={
+                      controlled ? (full?.start ?? range.start) : range.start
+                    }
+                    aria-valuemax={
+                      controlled ? (full?.end ?? range.end) : range.end
+                    }
                     aria-valuenow={sampleTime ?? range.start}
                     aria-valuetext={`Temps ${format(sampleTime, "s")}. ${plotted.map((curve) => `${curve.label} ${format(curve.values[cursor], unit)}`).join(". ")}`}
                     onPointerDown={(event) => {
@@ -431,7 +440,7 @@ export function Oscilloscope({
                             strokeWidth="1.8"
                             vectorEffect="non-scaling-stroke"
                           />
-                          {cursor >= 0 &&
+                          {cursorInView &&
                             Number.isFinite(curve.values[cursor]) && (
                               <circle
                                 cx={x(time[cursor])}
@@ -445,7 +454,7 @@ export function Oscilloscope({
                         </g>
                       );
                     })}
-                    {sampleTime !== undefined && (
+                    {cursorInView && sampleTime !== undefined && (
                       <line
                         x1={x(sampleTime)}
                         x2={x(sampleTime)}
@@ -465,6 +474,7 @@ export function Oscilloscope({
                 <strong>{format(sampleTime, "s")}</strong>
                 <small>
                   Échantillon {cursor >= 0 ? cursor + 1 : "—"} / {time.length}
+                  {!cursorInView && controlled ? " · hors fenêtre zoomée" : ""}
                 </small>
               </div>
               {selected.map((curve, index) => (

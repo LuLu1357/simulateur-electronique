@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Validation déterministe du hook de relecture</title>
+    <style>
+      body { max-width: 960px; margin: 32px auto; padding: 0 24px; font: 16px/1.5 system-ui; background: #142131; color: #e6edf4; }
+      h1 { font-size: 25px; } li { margin: 8px 0; } .pass { color: #85e0b7; } .fail { color: #ffb4b4; }
+      pre { white-space: pre-wrap; font-size: 13px; } #probe { display: none; }
+    </style>
+  </head>
+  <body>
+    <h1>Hook de relecture : React et DOM réels</h1>
+    <p>Les réponses HTTP et l’horloge sont contrôlées. Aucun appel à l’API, à ngspice ou au circuit utilisateur.</p>
+    <p id="summary" role="status" data-run-status="running">Vérifications en cours…</p>
+    <ol id="results"></ol>
+    <div id="probe"></div>
+    <script type="module" src="./playbackHook.tsx"></script>
+  </body>
+</html>

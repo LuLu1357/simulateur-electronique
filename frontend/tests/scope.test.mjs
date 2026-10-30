@@ -20,6 +20,7 @@ const {
   zoomTimeRange,
   scopeCsv,
   plotFraction,
+  scopeDisplayCursor,
 } = await import(
   "data:text/javascript;base64," +
     Buffer.from(compiled.outputText).toString("base64")
@@ -32,6 +33,39 @@ test("le curseur choisit un échantillon réel, avec priorité au premier à dis
   assert.equal(nearestSampleIndex([0, 1, 2], 10), 2);
   assert.equal(nearestSampleIndex([0, 1, 2], 0, { start: 0.5, end: 2 }), 1);
   assert.equal(nearestSampleIndex([0, 1, 2], 0, { start: 4, end: 8 }), -1);
+});
+test("le curseur contrôlé conserve le point affiché même hors de la fenêtre zoomée", () => {
+  const time = [0, 0.001, 0.004, 0.01];
+  const zoom = { start: 0, end: 0.002 };
+  assert.deepEqual(scopeDisplayCursor(time, 3, zoom, true), {
+    index: 3,
+    inView: false,
+  });
+  assert.deepEqual(scopeDisplayCursor(time, 1, zoom, true), {
+    index: 1,
+    inView: true,
+  });
+  // L’usage autonome garde son curseur dans la fenêtre observée.
+  assert.deepEqual(scopeDisplayCursor(time, 3, zoom, false), {
+    index: 1,
+    inView: true,
+  });
+  assert.deepEqual(
+    scopeDisplayCursor(time, 0, { start: 0.004, end: 0.01 }, true),
+    {
+      index: 0,
+      inView: false,
+    },
+  );
+  for (const index of [-1, 1.5, 4, NaN, Infinity])
+    assert.deepEqual(scopeDisplayCursor(time, index, zoom, true), {
+      index: -1,
+      inView: false,
+    });
+  assert.deepEqual(scopeDisplayCursor(time, 0, null, true), {
+    index: -1,
+    inView: false,
+  });
 });
 test("les temps invalides ne produisent pas de fausse mesure", () => {
   assert.equal(nearestSampleIndex([], 0), -1);

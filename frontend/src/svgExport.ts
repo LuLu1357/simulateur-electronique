@@ -1,3 +1,55 @@
+import type { Simulation } from "./types";
+
+/** Provenance du point réellement dessiné, indépendante du curseur demandé. */
+export function svgMeasurementProvenance(
+  simulation: Simulation | null,
+  stale = false,
+): string {
+  if (!simulation) return "Aucune mesure calculée.";
+  if (simulation.status !== "success")
+    return "Aucune mesure courante : le calcul n’a pas réussi.";
+  const parts = [
+    `Mesures ngspice de la révision ${simulation.project_revision}${stale || simulation.stale ? ", obsolètes" : ""}`,
+  ];
+  const identifier = (value: unknown): value is string =>
+    typeof value === "string" && /^[A-Za-z0-9_.:-]{1,128}$/.test(value);
+  if (identifier(simulation.simulation_id))
+    parts.push(`calcul ${simulation.simulation_id}`);
+  if (identifier(simulation.circuit_fingerprint))
+    parts.push(`empreinte ${simulation.circuit_fingerprint}`);
+  const temporal =
+    (simulation.analysis as { kind?: string } | undefined)?.kind === "tran";
+  if (temporal) {
+    const times = simulation.time;
+    const override = [
+      simulation.sample_index,
+      simulation.sample_time,
+      simulation.sample_count,
+    ].some((value) => value !== undefined);
+    const index = override ? simulation.sample_index : times.length - 1;
+    const count = override ? simulation.sample_count : times.length;
+    const time = override ? simulation.sample_time : times.at(-1);
+    const valid =
+      Number.isInteger(index) &&
+      index! >= 0 &&
+      Number.isInteger(count) &&
+      count! > 0 &&
+      count! <= 6000 &&
+      index! < count! &&
+      count === times.length &&
+      typeof time === "number" &&
+      Number.isFinite(time) &&
+      time >= 0 &&
+      times[index!] === time;
+    parts.push(
+      valid
+        ? `échantillon ${index! + 1}/${count} à t=${time} s`
+        : "provenance temporelle indisponible",
+    );
+  }
+  return `${parts.join(", ")}.`;
+}
+
 /** Export autonome de la vue actuelle, avec ses styles calculés et sa provenance. */
 const properties = [
   "color",

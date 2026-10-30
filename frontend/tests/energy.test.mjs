@@ -72,6 +72,15 @@ test("énergie électrique différentielle et magnétique signée suivent les fo
   assert.equal(report.revision, 12); // Une édition visuelle peut avoir une révision plus récente.
   assert.equal(JSON.stringify(state), before);
 });
+test("un nouveau calcul réinitialise le curseur autonome, une édition visuelle conserve sa source", () => {
+  const state = fixture();
+  state.simulation.simulation_id = "premier_calcul";
+  const initial = circuitEnergy(state).key;
+  state.project.revision += 1;
+  assert.equal(circuitEnergy(state).key, initial);
+  state.simulation.simulation_id = "nouveau_calcul";
+  assert.notEqual(circuitEnergy(state).key, initial);
+});
 test("échantillons transitoires exacts, tension négative et référence 0 V sont conservés", () => {
   const state = fixture();
   state.topology.terminal_to_net["C1.n"] = "0";

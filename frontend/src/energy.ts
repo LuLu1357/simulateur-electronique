@@ -132,7 +132,7 @@ export function circuitEnergy(state: State, busy = false): EnergyReport {
     magnetic,
     total,
     revision: simulation.project_revision,
-    key: `${state.project.id}:${simulation.circuit_fingerprint || simulation.project_revision}:${JSON.stringify(simulation.analysis)}:${count}`,
+    key: `${state.project.id}:${simulation.simulation_id || ""}:${simulation.circuit_fingerprint || simulation.project_revision}:${JSON.stringify(simulation.analysis)}:${count}`,
   };
 }
 

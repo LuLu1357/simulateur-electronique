@@ -189,7 +189,7 @@ export function NotebookPanel({
           className="notebook-table-note"
           aria-label="Mesures prêtes à capturer"
         >
-          Mesures prêtes à capturer · {current.analysisLabel}
+          Mesures affichées prêtes à capturer · {current.analysisLabel}
         </p>
       )}
       <p className="notebook-storage-note">

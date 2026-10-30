@@ -29,3 +29,17 @@ Historique : les transactions uniquement set_ui incrémentent la révision et so
 Presse-papiers UI : format JSON `atelier.circuit-fragment`, version 1 ; MIME `application/x-atelier-circuit+json` avec repli texte brut. Champs autorisés : components/junctions/wires/schematic ; jamais de projet complet, implantation, mesure, annotation ou opération arbitraire. Maximum 1 000 000 octets et 499 opérations avant sélection finale. Collage en une transaction, identifiants réservés à l’exécution, connexions internes seulement ; les masses restent le 0 V commun. Les textes étrangers, champs et dialogues gardent leur comportement natif.
 
 Multi-plaques : breadboard.board_count?:int1..4 défaut1. Trous première plaque inchangés a1 ; autres plaques '2:a1', '3:rail_top_p1', etc. Aucun alias '1:a1' ou '02:a1'. set_board_count {count} refuse la suppression d’une plaque portant des bornes. Bandes/rails disjoints entre plaques ; connexions explicites par wires, masses globales inchangées. Un composant physique garde ses pattes sur une seule plaque ; source/masse/sondes sont des raccordements externes. layout_breadboard couvre12parties physiques×board_count. Nombre de plaques vides ignoré par l’empreinte électrique.
+
+Relecture TRAN : `GET /api/results/frame?simulation_id=<uid>&index=<entier>=0`
+lit uniquement un échantillon du calcul courant, sans mutation, historique ni
+relance ngspice. UID de calcul attribué par le service ; réponse comprenant
+project_id, project_revision courante, source_revision, simulation_id,
+circuit_fingerprint, index, time, sample_count et simulation instantanée aux
+séries vides. Refus si calcul actif, remplacé, obsolète ou OP ; indices stricts,
+erreurs409/422. MCP `simulation_frame_read` expose cette lecture (28 outils).
+Le frontend conserve les séries originales et distingue indice demandé/affiché.
+Schéma, plaques et instruments suivent l’indice affiché ; un point hors fenêtre
+de l’oscilloscope reste indiqué comme tel. Captures et SVG portent l’UID,
+l’empreinte, la révision source et indice/temps/count du point effectivement
+affiché, y compris pendant l’attente d’un autre point. Les anciennes captures
+sans nouveaux champs restent lisibles, sans inventer de provenance.

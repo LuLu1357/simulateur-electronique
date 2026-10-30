@@ -10,11 +10,11 @@ les essais mutables utilisent des runtimes et services isolés.
 
 | Lot | Responsable effectif | Fichiers possédés / prochaine action | État |
 | --- | --- | --- | --- |
-| R1, intégration R5 | Pilote local `/root` | `main.tsx`, scénario de validation UI, contrat et documents ; DEL PULSE, synchronisation et vraie revue desktop | En cours |
-| R2 | Agent `/root/playback_races` | `useSimulationPlayback.ts`, `playback.ts`, tests du contrôleur ; réponses lentes, remplacement et erreurs | En cours |
-| R3 | Agent `/root/mcp_validation` | Tests MCP stdio isolés, pont/frames si défaut démontré ; 28 outils et lecture sans mutation | En cours |
-| R4 | Agent `/root/capture_instruments` | Carnet, instruments, SVG et leurs tests ; instant affiché et provenance | En cours |
-| U1 | Autre ChatGPT de l’utilisateur | Branche `codex/ux-review-2026-10-30`, **uniquement** `docs/UX_REVIEW.md` et preuves `docs/qa/ux/` ; revue desktop et propositions | À démarrer, prompt fourni par le pilote |
+| R1, intégration R5 | Pilote local `/root` | Curseur global, scénario `scripts/playback_review.py`, documentation ; finir la revue instruments/lecture complète | DEL PULSE ON/OFF, schéma, plaque 2 et oscilloscope vérifiés ; suite visuelle restante |
+| R2 | Agent `/root/playback_races`, terminé | `playback.ts`, tests purs et scénario React/DOM versionné ; mesures tardives et provenance | 10/10 scénarios navigateur déterministes ; validation des tables de courants renforcée |
+| R3 | Agent `/root/mcp_validation`, terminé | `tests/test_mcp_stdio_frames.py` ; 28 outils, SDK stdio, vrai HTTP/ngspice isolés | Validé : aucune mutation ni relance ; UID, indices et obsolescence vérifiés |
+| R4 | Agent `/root/capture_instruments`, code terminé ; pilote pour QA | Carnet, oscilloscope, SVG, énergie et tests ; capture au point réellement affiché | Capture JSON téléchargée vérifiée ; provenance SVG testée unitairement, téléchargement SVG restant |
+| U1 | GPT #2 de l’utilisateur | Rapport `docs/UX_REVIEW.md`, branche `codex/ux-review-2026-10-30`, commit `a8fff27` | Rapport publié, intégration par le pilote à suivre ; observations DOM et hypothèses distinguées, revue visuelle ouverte |
 
 Un seul éditeur de `main.tsx` : le pilote local. Le second ChatGPT mène une revue
 en lecture seule du produit et publie son rapport sur sa branche dédiée ; le
@@ -23,8 +23,29 @@ fonctionnels, le suivi partagé ou le projet actif. Aucun travail mobile demand�
 
 Jalon de coordination : consignes lues, copie locale propre mise à jour sans
 réécriture d’historique. Contrôle de ce jalon documentaire : `git diff --check`.
-Les résultats du 29 octobre ci-dessous restent historiques ; la validation du
-nouveau lot n’est pas encore terminée.
+Les résultats du 29 octobre ci-dessous restent historiques. Le nouveau jalon est
+documenté dans [VALIDATION_RELECTURE.md](VALIDATION_RELECTURE.md) : **207 tests Node,
+342 tests Python et 106 sous-tests réussis**, aucun ignoré ; TypeScript, build et
+`git diff --check` réussis. Les rapports historiques sont préservés à l’identique.
+
+Corrections du jalon : instruments sur `displayIndex` (point affiché), curseur
+global conservé hors fenêtre zoomée, capture autorisée pendant l’attente mais
+liée au point affiché, UID/empreinte/révision source dans carnet et SVG, remise à
+zéro des instruments autonomes au changement d’UID et tables de courants strictes.
+Les DEL et animations ne traitent plus un dernier succès après échec comme courant.
+
+Preuve UI : PULSE réel, 1 233 points ; au point 247 (394,4 µs), DEL à 9,259 mA,
+schéma allumé, plaque 2 et oscilloscope cohérents. Pendant la demande du point 493,
+une capture conserve le point 247 ; son JSON téléchargé confirme UID, empreinte,
+révision source 0, indice 246 et 1 233 points. Au point 493 (743,8 µs), la DEL
+est éteinte dans les deux vues. Aucune manipulation du service utilisateur 8765.
+
+**Prochaines actions P0 :** télécharger et inspecter les vrais SVG schéma/plaque
+pendant une lecture retardée, terminer la revue visuelle Énergie, lecture/pause/
+retour final et fenêtre zoomée. Les tests déterministes de ces interactions ne
+ferment pas à eux seuls la revue visuelle. Le téléchargement du carnet a bloqué
+l’outil navigateur ; conserver des délais d’outil bornés pour les essais suivants.
+Intégrer ensuite le rapport GPT #2, puis traiter UX-01/02/03 par lots validés.
 
 ## Point de reprise
 
@@ -138,3 +159,5 @@ transférés par un push du code. Aucun travail autonome après l’arrêt n’e
 | `88eae62` | Mesures de fenêtre, moyenne/RMS pondérées par le temps |
 | `f26a706` | Recherche et navigation dans le circuit |
 | Publication du 29 octobre 2026 | Code de relecture en cours, tests et documents de relais ; voir le commit portant cette entrée |
+| `8ba014f` | Réservation des tâches R1–R5 et revue UX parallèle |
+| Jalon du 30 octobre 2026 | Synchronisation sur le point affiché, provenance, MCP stdio et scénarios reproductibles ; validation visuelle encore partielle, voir le commit portant cette entrée |

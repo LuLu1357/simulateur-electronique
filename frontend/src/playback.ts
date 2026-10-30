@@ -26,6 +26,13 @@ const numberMap = (value: unknown): value is Record<string, number> =>
   typeof value === "object" &&
   !Array.isArray(value) &&
   Object.values(value).every(finite);
+const terminalCurrentMap = (
+  value: unknown,
+): value is Record<string, Record<string, number>> =>
+  !!value &&
+  typeof value === "object" &&
+  !Array.isArray(value) &&
+  Object.values(value).every(numberMap);
 
 /** Seul le calcul courant et encore valable peut être rejoué. */
 export function playbackSource(
@@ -97,8 +104,7 @@ export function frameMatchesSource(
     numberMap(frame.simulation.voltages) &&
     frame.simulation.voltages["0"] === 0 &&
     numberMap(frame.simulation.currents) &&
-    !!frame.simulation.terminal_currents &&
-    Object.values(frame.simulation.terminal_currents).every(numberMap) &&
+    terminalCurrentMap(frame.simulation.terminal_currents) &&
     frame.simulation.simulation_id === source.simulationId &&
     frame.simulation.project_revision === source.sourceRevision &&
     frame.simulation.circuit_fingerprint === source.fingerprint &&

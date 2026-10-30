@@ -15,7 +15,7 @@ import {
 import type { Component, Op, Project, Simulation, State } from "../types";
 import { format } from "../types";
 import { voltageColor } from "../visuals";
-import { downloadSvgView } from "../svgExport";
+import { downloadSvgView, svgMeasurementProvenance } from "../svgExport";
 import { FlowParticles } from "./FlowParticles";
 import {
   BOARD,
@@ -1027,7 +1027,7 @@ export function BreadboardView(props: BreadboardViewProps) {
                   downloadSvgView(
                     svgRef.current,
                     `Plaque ${activeBoard} — ${project.title}`,
-                    `Implantation pédagogique, plaque ${activeBoard} sur ${boardCount}, projet ${project.title}, révision ${project.revision}. ${preview ? "Prévisualisation non appliquée. " : ""}${simulation ? `Mesures ngspice de la révision ${simulation.project_revision}${stale ? ", obsolètes" : ""}${simulation.sample_time !== undefined ? `, échantillon ${(simulation.sample_index ?? 0) + 1} à t=${simulation.sample_time} s` : ""}.` : "Aucune mesure calculée."} Les liaisons vers d’autres plaques sont listées séparément dans l’application. Le brochage constructeur reste à vérifier.`,
+                    `Implantation pédagogique, plaque ${activeBoard} sur ${boardCount}, projet ${project.title}, révision ${project.revision}. ${preview ? "Prévisualisation non appliquée. " : ""}${svgMeasurementProvenance(simulation, stale)} Les liaisons vers d’autres plaques sont listées séparément dans l’application. Le brochage constructeur reste à vérifier.`,
                   );
                   onNotice(
                     "Plaque exportée en SVG autonome. Les liaisons entre plaques restent indiquées dans l’application.",

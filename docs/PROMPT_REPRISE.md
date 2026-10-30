@@ -1,5 +1,12 @@
 # Prompt à transmettre à l’autre ChatGPT
 
+**Actualisation du 30 octobre :** lire d’abord les sections actives de SUIVI et
+REPRISE. Les tests passent désormais à 207 Node / 342 Python + 106 sous-tests et
+le nouveau MCP stdio a été validé. Finir les vérifications visuelles restantes de
+VALIDATION_RELECTURE avant de clore R1/R4. GPT #2 a publié sa revue UX sur
+`codex/ux-review-2026-10-30` ; coordonner son intégration et les fichiers réservés.
+Le prompt ci-dessous décrit l’objectif général et le relais initial.
+
 Copier le texte ci-dessous dans une nouvelle conversation disposant d’un accès
 au dépôt et d’un environnement de développement.
 

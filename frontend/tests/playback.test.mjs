@@ -204,6 +204,16 @@ test("le temps de lecture choisit un vrai point adaptatif et conserve le premier
   assert.equal(nearestPlaybackIndex(time, NaN), -1);
 });
 
+test("les courants de bornes reçus doivent être une table de tables numériques, pas un scalaire ou tableau vide", () => {
+  const source = playbackSource(fixture());
+  for (const invalid of [42, true, "", [], [0], { R1: [] }, { R1: null }]) {
+    const sampled = frame();
+    sampled.simulation.terminal_currents = invalid;
+    assert.equal(frameMatchesSource(sampled, source, 1), false);
+  }
+  assert.equal(frameMatchesSource(frame(), source, 1), true);
+});
+
 test("les mesures instantanées remplacent le point final et gardent les séries complètes sans mutation", () => {
   const state = fixture(),
     source = playbackSource(state),

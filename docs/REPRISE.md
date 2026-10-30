@@ -1,5 +1,23 @@
 # Reprendre Atelier Électronique
 
+## Mise à jour active — 30 octobre 2026
+
+Le pilote local a repris R1–R5 avec trois agents ; responsables et résultats dans
+[SUIVI.md](SUIVI.md). Le jalon de synchronisation/provenance passe **207 tests Node,
+342 tests Python et 106 sous-tests**, TypeScript et build. Le MCP stdio à 28 outils
+est maintenant vérifié en réel sur des données isolées. Un scénario complet est
+versionné dans `scripts/playback_review.py` et le scénario du hook dans
+`frontend/tests/browser/`, sans dépendance supplémentaire.
+
+Lire [VALIDATION_RELECTURE.md](VALIDATION_RELECTURE.md) : la DEL PULSE, les deux
+vues, l’oscilloscope et la capture JSON pendant une lecture lente ont été observés
+dans un vrai navigateur. La vérification visuelle Énergie/lecture complète et les
+vrais SVG téléchargés restent ouvertes. Ne pas annoncer R1/R4 entièrement terminés.
+GPT #2 a publié son rapport UX (`a8fff27`) sur `codex/ux-review-2026-10-30` ; le
+pilote doit l’intégrer avant le prochain lot UX. Aucun travail mobile demandé.
+
+La section suivante conserve le contexte du relais initial du 29 octobre.
+
 État du relais : **29 octobre 2026**, branche
 [`work`](https://github.com/LuLu1357/simulateur-electronique/tree/work).
 Lire d’abord [AGENTS.md](../AGENTS.md) et [SUIVI.md](SUIVI.md).
