@@ -64,14 +64,16 @@ async function fixture(initial: Simulation | null = simulation()) {
   const root = createRoot(container);
   const sources = new Map<Simulation, string>(),
     cursorCalls: number[] = [];
-  let current = initial;
+  let current = initial,
+    historical = false;
   function query<T extends Element = HTMLElement>(selector: string): T {
     const value = container.querySelector<T>(selector);
     ok(value, `Contrôle absent : ${selector}`);
     return value;
   }
-  async function render(next = current) {
+  async function render(next = current, stale = historical) {
     current = next;
+    historical = stale;
     if (next && !sources.has(next)) {
       sources.set(next, JSON.stringify(next));
       freeze(next);
@@ -81,6 +83,7 @@ async function fixture(initial: Simulation | null = simulation()) {
         <StrictMode>
           <Oscilloscope
             sim={current}
+            stale={historical}
             cursorIndex={1}
             onCursorChange={(index) => cursorCalls.push(index)}
           />
@@ -553,6 +556,273 @@ const cases: [
         "Aucun choix restant : focus vers Ajouter une mesure",
       );
       equal(f.chosen().length, 0, "Tous les retraits demandés sont respectés");
+      f.unchanged();
+    },
+  ],
+  [
+    "Aucun résultat, OP et erreur sans série restent sans graphe ni CSV avant un premier TRAN",
+    async (f) => {
+      for (const source of [
+        null,
+        { ...simulation([]), analysis: { kind: "op" }, time: [] },
+        {
+          ...simulation([]),
+          status: "error",
+          time: [],
+          log: "Échec indépendant de test",
+        },
+      ]) {
+        await f.render(source);
+        equal(
+          f.container.querySelector(".lab-scope-chart"),
+          null,
+          "Pas de graphe sans échantillon",
+        );
+        equal(
+          f.container.querySelector(".measurement-channels"),
+          null,
+          "Pas de faux catalogue temporel",
+        );
+        equal(
+          f.query<HTMLButtonElement>(".lab-scope-heading > button").disabled,
+          true,
+          "CSV indisponible sans série",
+        );
+      }
+      await f.render(simulation());
+      equal(
+        f.chosen().join(","),
+        "net_entree,net_reference,net_sortie",
+        "Le premier TRAN reste initialisé",
+      );
+      equal(
+        f.query<HTMLButtonElement>(".lab-scope-heading > button").disabled,
+        false,
+        "CSV disponible après un vrai résultat",
+      );
+      f.unchanged();
+    },
+    null,
+  ],
+  [
+    "Une série d’un seul point reste lisible et n’active pas un zoom impossible",
+    async (f) => {
+      await f.render({
+        ...simulation([curve("unique", "Mesure unique", "V", [2.5])]),
+        time: [0.3],
+      });
+      equal(
+        f.chosen().join(","),
+        "unique",
+        "La petite série reste sélectionnable",
+      );
+      equal(
+        f.query(".lab-scope-readout > div:nth-child(2) > strong").textContent,
+        "2.5 V",
+        "Valeur du seul échantillon réel",
+      );
+      ok(
+        f
+          .query(".lab-scope-readout > div:first-child small")
+          .textContent?.includes("1 / 1"),
+        "Indice ramené au seul point existant",
+      );
+      equal(
+        f.query<HTMLButtonElement>('[aria-label="Agrandir autour du curseur"]')
+          .disabled,
+        true,
+        "Agrandissement indisponible pour un point",
+      );
+      await f.open();
+      await f.search("unique");
+      f.checkbox("unique");
+      f.unchanged();
+    },
+    null,
+  ],
+  [
+    "Mesures manquantes, non finies ou tronquées restent indisponibles ; leur CSV contient des cases vides, pas des zéros",
+    async (f) => {
+      const incomplete = simulation([
+        curve("net_manquant", "Mesure incomplète", "V", [2, NaN, Infinity, 3]),
+        curve("I:TRONQUE", "Courant tronqué", "A", [0.007]),
+        curve("net_zero", "Zéro réellement calculé", "V", [0, 0, 0, 0]),
+      ]);
+      await f.render(incomplete);
+      await f.open();
+      await f.search("I:TRONQUE");
+      await f.click(f.checkbox("I:TRONQUE"));
+      const cells = [
+        ...f.container.querySelectorAll(".lab-scope-readout > div"),
+      ];
+      const displayed = (id: string) =>
+        cells
+          .find((cell) =>
+            cell
+              .querySelector("[title]")
+              ?.getAttribute("title")
+              ?.endsWith(` · ${id}`),
+          )
+          ?.querySelector("strong")?.textContent;
+      equal(
+        displayed("net_manquant"),
+        "—",
+        "NaN n’est pas présenté comme une valeur",
+      );
+      equal(
+        displayed("I:TRONQUE"),
+        "—",
+        "Échantillon absent non remplacé par zéro",
+      );
+      equal(
+        displayed("net_zero"),
+        "0 V",
+        "Un zéro calculé reste distinct d’une absence",
+      );
+      const create = URL.createObjectURL,
+        revoke = URL.revokeObjectURL;
+      const anchorPrototype = Object.getPrototypeOf(
+        document.createElement("a"),
+      );
+      const anchorClick = anchorPrototype.click;
+      const blobs: Blob[] = [];
+      URL.createObjectURL = (blob) => {
+        blobs.push(blob as Blob);
+        return "blob:missing-measurements-test";
+      };
+      URL.revokeObjectURL = () => {};
+      anchorPrototype.click = () => {};
+      try {
+        await f.click(f.query(".lab-scope-heading > button"));
+        equal(blobs.length, 1, "Export des mesures choisies");
+        const rows = (await blobs[0].text())
+          .replace(/^\uFEFF/, "")
+          .trimEnd()
+          .split("\r\n");
+        equal(
+          rows[2],
+          "0.1,,,0",
+          "NaN et case tronquée vides, zéro réel conservé",
+        );
+        equal(rows[3], "0.4,,,0", "Infini non transformé en nombre");
+        equal(
+          rows[4],
+          "1,3,,0",
+          "Valeur réelle conservée et fin tronquée vide",
+        );
+      } finally {
+        URL.createObjectURL = create;
+        URL.revokeObjectURL = revoke;
+        anchorPrototype.click = anchorClick;
+      }
+      ok(Number.isNaN(incomplete.curves[0].values[1]), "NaN source conservé");
+      equal(incomplete.curves[0].values[2], Infinity, "Infini source conservé");
+      equal(
+        incomplete.curves[1].values.length,
+        1,
+        "La série tronquée n’a pas été complétée",
+      );
+      f.unchanged();
+    },
+    null,
+  ],
+  [
+    "Le remplacement d’un grand résultat borne la page filtrée et retire uniquement les canaux disparus",
+    async (f) => {
+      const currents = Array.from({ length: 270 }, (_, index) =>
+        curve(`I:RT${index}`, `Courant de test ${index}`, "A"),
+      );
+      await f.render(simulation([...smallCurves().slice(0, 3), ...currents]));
+      await f.open();
+      await f.search("courant");
+      await f.click(f.button("Courants", ".measurement-filters button"));
+      for (let page = 0; page < 13; page++)
+        await f.click(f.button("Suivants", ".measurement-pages button"));
+      await f.click(f.checkbox("I:RT269"));
+      equal(f.chosen().length, 4, "Mesure choisie sur la dernière page");
+      const search = f.query<HTMLInputElement>('input[type="search"]');
+      search.focus();
+      await f.render(
+        simulation(
+          [smallCurves()[0], currents[0], currents[1]],
+          "7".repeat(32),
+        ),
+      );
+      equal(
+        document.activeElement,
+        search,
+        "Focus conservé pendant le remplacement",
+      );
+      equal(search.value, "courant", "Recherche conservée");
+      equal(
+        f.container.querySelectorAll(
+          '.measurement-results input[type="checkbox"]',
+        ).length,
+        2,
+        "Page ramenée aux résultats existants",
+      );
+      equal(
+        f.container.querySelector(".measurement-pages"),
+        null,
+        "Pas de page inexistante après réduction",
+      );
+      ok(
+        f
+          .query(".measurement-match-count")
+          .textContent?.includes("2 résultats sur 3"),
+        "Compte recalculé sur le nouveau catalogue",
+      );
+      equal(
+        f.chosen().join(","),
+        "net_entree",
+        "La mesure encore présente reste choisie, sans ajout implicite",
+      );
+      f.unchanged();
+    },
+  ],
+  [
+    "Les mesures précédentes restent identifiées pendant la recherche et une unité supplémentaire reste accessible via Tous",
+    async (f) => {
+      const historical = simulation([
+        ...smallCurves(),
+        curve("P:TEST", "Puissance de test", "W"),
+      ]);
+      // main transmet stale=true pour un résultat historique après édition,
+      // calcul en cours ou échec : le sélecteur ne peut pas distinguer ces causes.
+      await f.render(historical, true);
+      const warning = f.query(".lab-scope-stale").textContent;
+      ok(
+        warning?.includes("Mesures précédentes"),
+        "Résultat historique identifié",
+      );
+      await f.open();
+      await f.search("P:TEST");
+      await f.click(f.button("Tensions", ".measurement-filters button"));
+      equal(
+        f.container.querySelectorAll(
+          '.measurement-results input[type="checkbox"]',
+        ).length,
+        0,
+        "L’unité W n’est pas présentée comme une tension",
+      );
+      await f.click(f.button("Tous", ".measurement-filters button"));
+      await f.click(f.checkbox("P:TEST"));
+      ok(
+        f.chosen().includes("P:TEST"),
+        "Aucune unité supplémentaire supprimée par Tous",
+      );
+      equal(
+        f.query(".lab-scope-stale").textContent,
+        warning,
+        "La sélection ne réétiquette pas l’historique comme actuel",
+      );
+      await f.search("I:Q1.b");
+      await f.click(f.checkbox("I:Q1.b"));
+      equal(
+        f.query(".lab-scope-stale").textContent,
+        warning,
+        "Le message historique reste présent après un autre choix",
+      );
       f.unchanged();
     },
   ],

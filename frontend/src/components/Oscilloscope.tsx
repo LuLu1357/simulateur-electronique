@@ -490,8 +490,11 @@ export function Oscilloscope({
                   </span>
                   <strong>{format(curve.values[cursor], curve.unit)}</strong>
                   <small>
-                    {curve.unit === "V" ? "Tension" : "Courant"} calculé
-                    {curve.unit === "V" ? "e" : ""}
+                    {curve.unit === "V"
+                      ? "Tension calculée"
+                      : curve.unit === "A"
+                        ? "Courant calculé"
+                        : "Mesure calculée"}
                   </small>
                 </div>
               ))}

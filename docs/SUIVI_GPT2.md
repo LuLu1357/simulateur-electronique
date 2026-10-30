@@ -40,8 +40,8 @@ pédagogiques. Aucun travail mobile.
 | A — Sélection | Vérifié | Recherche, filtres, catalogue de 20 lignes par page sans perte de courbes, mesures choisies conservées à part |
 | B — Lecture | Vérifié en DOM | Couleurs identiques aux tracés, légendes V/A et libellés complets ; revue visuelle ouverte |
 | C — Clavier | Vérifié en DOM | Contrôles natifs nommés, focus et événements isolés localement ; vrai parcours Tab restant à vérifier |
-| D — Robustesse | En cours | Cas absents/OP/TRAN et résultats précédents à compléter ; essai du vrai soustracteur réussi |
-| E — Validation | En cours | Scénario versionné avec neuf cas React/DOM réussis ; contrôles finaux après D/F |
+| D — Robustesse | Vérifié | Quatorze scénarios couvrent absents/OP/TRAN, une valeur, mesures manquantes, disparitions et données précédentes |
+| E — Validation | En cours | Scénario versionné avec quatorze cas React/DOM réussis ; contrôles finaux après F |
 | F — Finition | À faire | Corriger les défauts observés dans le sélecteur, puis livrer un bilan complet dans la PR |
 
 ## Décisions et limites de données
@@ -128,3 +128,32 @@ pédagogiques. Aucun travail mobile.
   en brouillon. Publication B/C : commit portant cette entrée, à pousser puis vérifier.
 - Prochaine action : compléter les cas de résultat absent, OP, indisponible et
   précédent (D), puis contrôles finaux/reproduction (E) et finition (F).
+
+### D — Résultats absents, précédents et incomplets
+
+- Responsable : GPT #2, scénario complété par `measurement_dom_scenarios`.
+- Fichiers : les deux fichiers du scénario versionné ; présentation du type de
+  mesure dans `Oscilloscope.tsx` (une unité autre que V/A est annoncée « Mesure »,
+  sans être assimilée à tort à un courant). Aucune nouvelle interprétation physique.
+- **Quatorze scénarios React/DOM réussis**, TypeScript application et scénario
+  strict réussis, `git diff --check` réussi. Couverture ajoutée : absence, OP et
+  échec sans séries, premier TRAN, série d’un point, NaN/Infinity/données tronquées,
+  CSV laissant des cases vides et conservant les vrais zéros, page filtrée après
+  réduction du catalogue, choix disparus et unités supplémentaires via Tous.
+- Les résultats précédents restent marqués par `stale` pendant recherche et
+  sélection. Dans le contrat actuel, `main.tsx` fournit ce booléen pour édition,
+  calcul en cours et dernier calcul échoué ; le sélecteur ne prétend pas en
+  distinguer la cause ni transformer un dernier succès en résultat courant.
+- Nouvel essai App/HTTP/ngspice, projet isolé 8785 : composant `N20_QB` réellement
+  sélectionné avant le contrôle, puis recherche/choix de sa courbe de base,
+  flèche/Suppr/copy/paste : projet complet, sélection, connexions, topologie,
+  historique et simulation identiques, aucune écriture API. Après retrait de la
+  masse sur ce seul projet d’essai, le vrai calcul échoue ; les courbes précédentes
+  sont toujours explicitement marquées avec leur révision source.
+- Publications précédentes vérifiées : `2a515d7` (A), `c1ccc98` (B/C). Les tests
+  restent sur des données indépendantes ; aucun service utilisateur sollicité.
+- Limite : volet visuel/Tab natif toujours ouvert. Les scripts App/API exploratoires
+  de `work/qa/` ne constituent pas une suite depuis un clone ; le scénario de
+  composant versionné fournit la reproduction autonome sans service API.
+- Prochaine action : finition locale (F), instructions de reproduction et contrôle
+  complet final (E), puis actualisation finale de la PR #2 sans fusion.
