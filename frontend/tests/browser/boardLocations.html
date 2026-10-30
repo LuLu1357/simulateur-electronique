@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emplacements des bornes entre plaques</title>
+    <style>
+      body {
+        max-width: 1100px;
+        margin: 32px auto;
+        padding: 0 24px;
+        font: 16px/1.5 system-ui;
+        background: #142131;
+        color: #e6edf4;
+      }
+      h1 {
+        font-size: 25px;
+      }
+      li {
+        margin: 8px 0;
+      }
+      .pass {
+        color: #85e0b7;
+      }
+      .fail {
+        color: #ffb4b4;
+      }
+      pre {
+        white-space: pre-wrap;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app" data-run-status="running">
+      <h1>Emplacements : consultation et transfert distincts</h1>
+      <p>
+        Le vrai composant BreadboardView utilise des données de test locales.
+        Aucun service API, calcul ngspice ou projet utilisateur n’est sollicité.
+      </p>
+      <p id="summary" role="status" data-run-status="running">
+        Vérifications en cours…
+      </p>
+      <ol id="results"></ol>
+      <div id="probe"></div>
+    </main>
+    <script type="module" src="./boardLocations.tsx"></script>
+  </body>
+</html>
