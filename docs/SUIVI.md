@@ -1,6 +1,30 @@
 # Progrès et répartition des tâches
 
-Mis à jour le **29 octobre 2026**, lors du relais demandé par l’utilisateur.
+Mis à jour le **30 octobre 2026**, reprise active après récupération de `work` (`c6ff77e`).
+
+## Coordination active — 30 octobre 2026
+
+Le pilote local reprend R1 à R5. Les tests de validation sont de nouveau demandés
+par l’utilisateur. Le circuit et le service utilisateur sur 8765 sont préservés :
+les essais mutables utilisent des runtimes et services isolés.
+
+| Lot | Responsable effectif | Fichiers possédés / prochaine action | État |
+| --- | --- | --- | --- |
+| R1, intégration R5 | Pilote local `/root` | `main.tsx`, scénario de validation UI, contrat et documents ; DEL PULSE, synchronisation et vraie revue desktop | En cours |
+| R2 | Agent `/root/playback_races` | `useSimulationPlayback.ts`, `playback.ts`, tests du contrôleur ; réponses lentes, remplacement et erreurs | En cours |
+| R3 | Agent `/root/mcp_validation` | Tests MCP stdio isolés, pont/frames si défaut démontré ; 28 outils et lecture sans mutation | En cours |
+| R4 | Agent `/root/capture_instruments` | Carnet, instruments, SVG et leurs tests ; instant affiché et provenance | En cours |
+| U1 | Autre ChatGPT de l’utilisateur | Branche `codex/ux-review-2026-10-30`, **uniquement** `docs/UX_REVIEW.md` et preuves `docs/qa/ux/` ; revue desktop et propositions | À démarrer, prompt fourni par le pilote |
+
+Un seul éditeur de `main.tsx` : le pilote local. Le second ChatGPT mène une revue
+en lecture seule du produit et publie son rapport sur sa branche dédiée ; le
+pilote intégrera ce rapport sur `work` avant U2. Il ne modifie pas les fichiers
+fonctionnels, le suivi partagé ou le projet actif. Aucun travail mobile demandé.
+
+Jalon de coordination : consignes lues, copie locale propre mise à jour sans
+réécriture d’historique. Contrôle de ce jalon documentaire : `git diff --check`.
+Les résultats du 29 octobre ci-dessous restent historiques ; la validation du
+nouveau lot n’est pas encore terminée.
 
 ## Point de reprise
 
@@ -10,8 +34,8 @@ Mis à jour le **29 octobre 2026**, lors du relais demandé par l’utilisateur.
   (navigation et recherche dans le circuit).
 - La publication de relais contient également la relecture transitoire en cours.
   Son code compile ; sa validation de bout en bout dans l’application reste à faire.
-- Le développement est arrêté à ce relais. Les responsables ci-dessous sont les
-  rôles à attribuer au prochain démarrage, pas des agents encore actifs.
+- Le relais du 29 octobre est repris le 30 octobre ; les responsables actifs et
+  les fichiers réservés sont précisés dans la section de coordination ci-dessus.
 
 Lire aussi [REPRISE.md](REPRISE.md) pour les fichiers, le démarrage et les pièges,
 et [PROMPT_REPRISE.md](PROMPT_REPRISE.md) pour le message prêt à transmettre.
