@@ -81,7 +81,7 @@ export function MeasurementChannelSelector({
       onKeyDown={(event) => {
         // Préserver les contrôles natifs sans transmettre les raccourcis au schéma.
         event.stopPropagation();
-        if (event.key === "Escape" && open) {
+        if (event.key === "Escape" && open && !event.nativeEvent.isComposing) {
           event.preventDefault();
           setOpen(false);
           openerRef.current?.focus();

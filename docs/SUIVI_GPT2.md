@@ -3,6 +3,12 @@
 Mission démarrée le **30 octobre 2026** sur `codex/ux-measurement-workbench`,
 créée depuis `work` à `f6cb3ad`. Responsable : GPT #2 (`/root`).
 
+**Bilan fonctionnel livré et vérifié : A à F.** PR
+[#2](https://github.com/LuLu1357/simulateur-electronique/pull/2), non fusionnée.
+Le seul volet d’évaluation restant dans cette mission est la revue visuelle
+desktop et le parcours clavier natif, bloqués par l’absence d’un navigateur réel.
+Les contrôles DOM ne sont pas présentés comme cette revue.
+
 Objectif : retrouver et lire les canaux de l’oscilloscope sans une liste de
 270 boutons avant le graphe, en conservant les séries, unités et conventions
 pédagogiques. Aucun travail mobile.
@@ -41,7 +47,7 @@ pédagogiques. Aucun travail mobile.
 | B — Lecture | Vérifié en DOM | Couleurs identiques aux tracés, légendes V/A et libellés complets ; revue visuelle ouverte |
 | C — Clavier | Vérifié en DOM | Contrôles natifs nommés, focus et événements isolés localement ; vrai parcours Tab restant à vérifier |
 | D — Robustesse | Vérifié | Quatorze scénarios couvrent absents/OP/TRAN, une valeur, mesures manquantes, disparitions et données précédentes |
-| E — Validation | Contrôles terminés | Dix-huit scénarios DOM, 218 tests Node, TypeScript et build réussis ; instructions finales à consigner |
+| E — Validation | Vérifié, hors visuel | Dix-huit scénarios DOM, 218 tests Node, TypeScript et build réussis ; reproduction autonome documentée ci-dessous |
 | F — Finition | Vérifié en DOM | Focus après disparition, pagination mémorisée bornée, choix plus compacts et action pour vider le graphe |
 
 ## Décisions et limites de données
@@ -173,6 +179,9 @@ pédagogiques. Aucun travail mobile.
   conserve la sélection vide au prochain résultat compatible et rend le focus.
   Les choix utilisent une grille compacte avec libellés complets, sans nouvelle
   règle mobile et sans masquer des données.
+- Échap pendant une composition de texte reste une commande native de saisie ;
+  le catalogue ne se ferme qu’en dehors de cette composition. Ce cas est simulé
+  dans le scénario clavier, sans prétendre reproduire un clavier natif réel.
 - Fichiers : sélecteur, légende, styles, raccordement du seul vidage de sélection
   dans `Oscilloscope.tsx`, deux fichiers du scénario.
 - Contrôles finaux : **18/18 scénarios React/DOM**, **11/11 tests ciblés**,
@@ -189,3 +198,99 @@ pédagogiques. Aucun travail mobile.
   commit portant cette entrée, avec vérification du SHA distant après push.
 - Prochaine action : consigner la reproduction autonome, fermer E et publier le
   bilan final de la PR, en gardant le volet visuel explicitement ouvert.
+
+### E — Reproduction autonome et bilan final
+
+- Responsable : GPT #2. Les trois agents de ce lot ont terminé leurs tâches.
+- Le scénario versionné utilise le **vrai composant Oscilloscope** et ses nouveaux
+  composants avec des résultats synthétiques indépendants, figés et sans réseau.
+  Il ne fait pas de simulation électrique. Les essais supplémentaires sur le
+  soustracteur utilisent séparément la vraie API et ngspice, dans le seul runtime QA.
+- Page et module du scénario servis avec succès par Vite sur 8882 (HTTP 200).
+  Exécution de la même source sous jsdom : **18/18 cas réussis, zéro appel réseau**.
+- Contrôles finaux exécutés après toutes les corrections de F :
+
+| Commande / contrôle | Résultat |
+| --- | --- |
+| `node --test frontend/tests/measurementChannels.test.mjs` | 11/11 réussis |
+| `npm test --prefix frontend` | 218/218 réussis, aucun ignoré ; inclut les 11 tests ciblés |
+| `npm run check --prefix frontend` | Réussi |
+| `npm run build --prefix frontend` | Réussi |
+| Typage strict du scénario avec `tsc` (commande ci-dessous) | Réussi |
+| Scénario React/DOM versionné, exécuté sous jsdom | 18/18 réussis ; pas de réseau |
+| App/API/ngspice isolés : soustracteur, recherche, choix, vidage, clavier et presse-papiers | Zéro écriture ; projet, sélection, topologie, historique et résultat inchangés |
+| `git diff --check` | Réussi |
+
+#### Rejouer depuis un clone
+
+Prérequis de ces vérifications frontend : Node/npm aux versions prises en charge
+par le dépôt. **Aucun backend, ngspice ou projet utilisateur nécessaire** pour le
+scénario versionné. Après récupération de la branche :
+
+```sh
+git clone --branch codex/ux-measurement-workbench https://github.com/LuLu1357/simulateur-electronique.git
+cd simulateur-electronique
+npm ci --prefix frontend
+node --test frontend/tests/measurementChannels.test.mjs
+npm test --prefix frontend
+npm run check --prefix frontend
+npm run build --prefix frontend
+frontend/node_modules/.bin/tsc --noEmit --jsx react-jsx --target ES2022 --module ESNext --moduleResolution Bundler --lib ES2022,DOM,DOM.Iterable --skipLibCheck --strict frontend/tests/browser/measurementWorkbench.tsx
+git diff --check
+npm run dev --prefix frontend -- --port 8882 --strictPort
+```
+
+Ouvrir `http://127.0.0.1:8882/tests/browser/measurementWorkbench.html`.
+Le résumé doit annoncer **18/18**, `data-run-status="passed"` sur `#summary` et
+`#app`, et la console `MEASUREMENT_WORKBENCH_RESULT` avec `networkCalls: 0`.
+Recharger rejoue les cas. La page bloque les appels réseau de l’instrument ; les
+modules de développement restent servis normalement par Vite.
+
+Le chargeur TypeScript/jsdom exploratoire de cette session n’est pas une nouvelle
+dépendance du dépôt. La page HTML et le scénario TSX sont la reproduction livrée
+depuis un clone, utilisable dans un navigateur sans ajouter jsdom.
+
+#### Fichiers livrés
+
+- `frontend/src/measurementChannels.ts` et son test Node : recherche et sélection
+  pures, sans lecture/modification des échantillons.
+- `frontend/src/components/MeasurementChannelSelector.tsx` : recherche, filtres,
+  pages, choix indépendants de la recherche, commandes et focus.
+- `frontend/src/components/MeasurementLegend.tsx` et `measurementChannels.css` :
+  correspondance des couleurs, libellés complets et présentation locale.
+- `frontend/src/components/Oscilloscope.tsx` : intégration de la sélection, de la
+  légende et de textes de présentation ; les quinze déclarations protégées de
+  traitement des mesures sont identiques à la base.
+- `frontend/tests/browser/measurementWorkbench.html` et `.tsx` : dix-huit cas
+  reproductibles. Aucun fichier installé ou généré n’est publié.
+- `docs/SUIVI_GPT2.md` : ce journal ; aucun document partagé du pilote modifié.
+
+#### Limites et raccordement avec le pilote
+
+- Recherche fondée sur les seules métadonnées réellement reçues : par exemple
+  R1 retrouve `I:R1`/`I(R1)`. Une tension `V(net_x)` n’est pas associée artificiellement
+  à un composant ou à un nom de réseau. Aucun raccordement supplémentaire n’est
+  nécessaire pour la livraison actuelle. Pour enrichir ultérieurement ces noms,
+  le pilote devra fournir un contexte explicite par identifiant de courbe,
+  correspondant à la même empreinte électrique que la série, y compris pour les
+  mesures précédentes ; ne pas appliquer les noms du nouveau circuit à un ancien
+  résultat. Aucun contexte de ce type n’est inventé ou ajouté ici.
+- `stale` reste le contrat de provenance fourni par l’application ; la cause
+  exacte (édition/échec/en cours) n’est pas déduite du dernier succès.
+- Les couleurs sont cohérentes entre les zones pour un catalogue donné ; la
+  palette existante est conservée. Les choix sont mémorisés pendant le montage
+  du composant et réconciliés par identifiant, sans nouveau stockage persistant.
+- UX-01 en dehors du sélecteur/légendes et UX-03 au survol du graphe restent des
+  sujets du pilote ; aucun changement de `main.tsx` ou du contrôleur n’est proposé.
+- Revue visuelle restante : application desktop complète à 1366×768 et 1440×900,
+  densité, contraste, libellés longs et vrai parcours Tab/Espace/Entrée. Pas de
+  capture fabriquée, pas de travail mobile, pas de parité Tinkercad revendiquée.
+
+Publications fonctionnelles vérifiées sur GitHub : `2a515d7` (A), `c1ccc98` (B/C),
+`4879349` (D), `35059ba` (F). Le dernier point finalise le clavier et clôt E ; son commit
+identifie le bilan final. Les services QA 8785 et Vite 8882 ont été arrêtés ; le
+lien temporaire de dépendances est retiré. Contrôle de fusion sans mutation avec
+`work` à `511578b` : aucun conflit détecté ; les modifications du pilote ne sont
+pas reprises dans les changements de cette branche. Aucun push direct sur
+`work`/`main`, aucune fusion et
+aucune réécriture d’historique. La PR UX-06 #1 est restée séparée.

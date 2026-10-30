@@ -490,6 +490,27 @@ const cases: [
             0,
             `Le gestionnaire d’édition extérieur ne reçoit pas ${type}`,
           );
+        const composingEscape = new KeyboardEvent("keydown", {
+          key: "Escape",
+          isComposing: true,
+          bubbles: true,
+          cancelable: true,
+        });
+        await act(async () => search.dispatchEvent(composingEscape));
+        equal(
+          composingEscape.defaultPrevented,
+          false,
+          "Échap de composition reste natif",
+        );
+        ok(
+          f.container.querySelector(".measurement-catalog"),
+          "Une composition de texte ne ferme pas le catalogue",
+        );
+        equal(
+          document.activeElement,
+          search,
+          "La saisie conserve le focus pendant la composition",
+        );
         const escape = new KeyboardEvent("keydown", {
           key: "Escape",
           bubbles: true,
