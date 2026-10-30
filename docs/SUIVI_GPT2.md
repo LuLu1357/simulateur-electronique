@@ -41,8 +41,8 @@ pédagogiques. Aucun travail mobile.
 | B — Lecture | Vérifié en DOM | Couleurs identiques aux tracés, légendes V/A et libellés complets ; revue visuelle ouverte |
 | C — Clavier | Vérifié en DOM | Contrôles natifs nommés, focus et événements isolés localement ; vrai parcours Tab restant à vérifier |
 | D — Robustesse | Vérifié | Quatorze scénarios couvrent absents/OP/TRAN, une valeur, mesures manquantes, disparitions et données précédentes |
-| E — Validation | En cours | Scénario versionné avec quatorze cas React/DOM réussis ; contrôles finaux après F |
-| F — Finition | À faire | Corriger les défauts observés dans le sélecteur, puis livrer un bilan complet dans la PR |
+| E — Validation | Contrôles terminés | Dix-huit scénarios DOM, 218 tests Node, TypeScript et build réussis ; instructions finales à consigner |
+| F — Finition | Vérifié en DOM | Focus après disparition, pagination mémorisée bornée, choix plus compacts et action pour vider le graphe |
 
 ## Décisions et limites de données
 
@@ -157,3 +157,35 @@ pédagogiques. Aucun travail mobile.
   composant versionné fournit la reproduction autonome sans service API.
 - Prochaine action : finition locale (F), instructions de reproduction et contrôle
   complet final (E), puis actualisation finale de la PR #2 sans fusion.
+
+### F — Finition sur les défauts du nouveau sélecteur
+
+- Responsable : GPT #2 ; revue indépendante par `measurement_boundary_review`,
+  compléments du scénario par `measurement_dom_scenarios`.
+- Défaut reproduit : après disparition de la ligne focalisée, le focus retombait
+  sur `BODY`, hors de la protection locale. Les références de contrôles rendent
+  maintenant le focus à une commande encore présente avant leur retrait du DOM.
+  Même vérification pour un bouton de retrait, la pagination et une légende dont
+  le groupe disparaît. Un rafraîchissement compatible ne vole pas le focus.
+- Le numéro de page mémorisé est borné uniquement lorsque le catalogue rétrécit :
+  le retour à 270 canaux ne ressuscite plus une ancienne page 13 après la page 1.
+- Action explicite **Vider le graphe** : garde les mesures dans le catalogue,
+  conserve la sélection vide au prochain résultat compatible et rend le focus.
+  Les choix utilisent une grille compacte avec libellés complets, sans nouvelle
+  règle mobile et sans masquer des données.
+- Fichiers : sélecteur, légende, styles, raccordement du seul vidage de sélection
+  dans `Oscilloscope.tsx`, deux fichiers du scénario.
+- Contrôles finaux : **18/18 scénarios React/DOM**, **11/11 tests ciblés**,
+  **218/218 tests frontend**, TypeScript application et scénario strict, build et
+  `git diff --check` réussis ; aucun test Node ignoré. Le dernier essai App/API
+  reprend aussi le vidage du graphe : zéro écriture et aucun changement du projet,
+  de la sélection partagée, des connexions, de l’historique ou des résultats.
+- Contrôle de périmètre : comparaison syntaxique de quinze déclarations de
+  l’oscilloscope avec `f6cb3ad` : curseur/temps, tracés, zoom, statistiques et CSV
+  inchangés. Aucun fichier réservé au pilote modifié.
+- Limite : la compacité est implémentée et les comportements sont vérifiés en
+  DOM ; rendu, contraste et parcours Tab réels restent à examiner dans un navigateur.
+- Publications A/B-C/D vérifiées : `2a515d7`, `c1ccc98`, `4879349`. Publication F :
+  commit portant cette entrée, avec vérification du SHA distant après push.
+- Prochaine action : consigner la reproduction autonome, fermer E et publier le
+  bilan final de la PR, en gardant le volet visuel explicitement ouvert.

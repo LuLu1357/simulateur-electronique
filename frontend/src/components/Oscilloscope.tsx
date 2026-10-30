@@ -285,6 +285,7 @@ export function Oscilloscope({
           <MeasurementChannelSelector
             curves={curves}
             selectedIds={visible}
+            onClear={() => setVisible([])}
             onToggle={(id) =>
               setVisible((current) =>
                 current.includes(id)

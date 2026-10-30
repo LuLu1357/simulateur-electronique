@@ -1,4 +1,11 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
 import { colors } from "../types";
 import type { ScopeCurve } from "../scope";
@@ -18,10 +25,12 @@ export function MeasurementChannelSelector({
   curves,
   selectedIds,
   onToggle,
+  onClear,
 }: {
   curves: readonly ScopeCurve[];
   selectedIds: readonly string[];
   onToggle: (id: string) => void;
+  onClear: () => void;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -30,6 +39,18 @@ export function MeasurementChannelSelector({
   const [page, setPage] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
+  const regionRef = useRef<HTMLElement>(null);
+  // React nettoie la ref avant de retirer le contrôle : garder le focus dans
+  // l'instrument quand un nouveau résultat fait disparaître sa ligne ou sa page.
+  const preserveFocus = useCallback((element: HTMLElement | null) => {
+    if (!element) return;
+    return () => {
+      if (document.activeElement !== element) return;
+      const opener = openerRef.current;
+      const fallback = opener && !opener.disabled ? opener : regionRef.current;
+      if (fallback?.isConnected) fallback.focus({ preventScroll: true });
+    };
+  }, []);
   useEffect(() => {
     if (open) searchRef.current?.focus();
   }, [open]);
@@ -42,6 +63,9 @@ export function MeasurementChannelSelector({
     [curves, query, filter],
   );
   const lastPage = Math.max(0, Math.ceil(matches.length / pageSize) - 1);
+  useEffect(() => {
+    setPage((current) => Math.min(current, lastPage));
+  }, [lastPage]);
   const currentPage = Math.min(page, lastPage);
   const start = currentPage * pageSize;
   const shown = matches.slice(start, start + pageSize);
@@ -52,6 +76,8 @@ export function MeasurementChannelSelector({
     <section
       className="measurement-channels"
       aria-labelledby={`${id}-title`}
+      ref={regionRef}
+      tabIndex={-1}
       onKeyDown={(event) => {
         // Préserver les contrôles natifs sans transmettre les raccourcis au schéma.
         event.stopPropagation();
@@ -73,6 +99,21 @@ export function MeasurementChannelSelector({
             {curves.length} disponible{curves.length > 1 ? "s" : ""}
           </p>
         </div>
+        {chosen.length > 1 && (
+          <button
+            type="button"
+            ref={preserveFocus}
+            className="measurement-clear"
+            aria-label="Retirer toutes les mesures du graphe"
+            title="Les mesures restent disponibles dans le catalogue."
+            onClick={() => {
+              openerRef.current?.focus();
+              onClear();
+            }}
+          >
+            Vider le graphe
+          </button>
+        )}
         <button
           type="button"
           ref={openerRef}
@@ -113,6 +154,7 @@ export function MeasurementChannelSelector({
               </div>
               <button
                 type="button"
+                ref={preserveFocus}
                 aria-label={`Retirer ${curve.label} [${curve.unit}] (${curve.id}) du graphe`}
                 onClick={(event) => {
                   if (document.activeElement === event.currentTarget) {
@@ -160,6 +202,7 @@ export function MeasurementChannelSelector({
               {query && (
                 <button
                   type="button"
+                  ref={preserveFocus}
                   aria-label="Effacer la recherche de mesures"
                   onClick={() => {
                     setQuery("");
@@ -190,6 +233,7 @@ export function MeasurementChannelSelector({
               <button
                 key={value}
                 type="button"
+                ref={preserveFocus}
                 aria-pressed={filter === value}
                 onClick={() => {
                   setFilter(value);
@@ -227,6 +271,7 @@ export function MeasurementChannelSelector({
                   >
                     <input
                       type="checkbox"
+                      ref={preserveFocus}
                       checked={selectedIds.includes(curve.id)}
                       onChange={() => onToggle(curve.id)}
                       aria-label={`Afficher ${curve.label} [${curve.unit}] (${curve.id})`}
@@ -254,6 +299,7 @@ export function MeasurementChannelSelector({
             >
               <button
                 type="button"
+                ref={preserveFocus}
                 disabled={currentPage === 0}
                 onClick={() => setPage(currentPage - 1)}
               >
@@ -264,6 +310,7 @@ export function MeasurementChannelSelector({
               </span>
               <button
                 type="button"
+                ref={preserveFocus}
                 disabled={currentPage === lastPage}
                 onClick={() => setPage(currentPage + 1)}
               >

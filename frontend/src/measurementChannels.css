@@ -14,6 +14,10 @@
   flex-wrap: wrap;
   gap: 12px;
 }
+.measurement-channels-heading > div {
+  flex: 1;
+  min-width: 140px;
+}
 .measurement-channels h4 {
   margin: 0;
   font-size: 13px;
@@ -50,8 +54,8 @@
   padding: 0;
 }
 .measurement-chosen {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
   gap: 7px;
   max-height: 220px;
   overflow-y: auto;
@@ -229,6 +233,10 @@
 .measurement-pages > span {
   color: #c3d2b6;
   font-size: 11px;
+}
+.measurement-channels:focus-visible {
+  outline: 2px solid #eac06c;
+  outline-offset: 3px;
 }
 
 .measurement-legend {

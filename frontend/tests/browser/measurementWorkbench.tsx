@@ -827,6 +827,249 @@ const cases: [
     },
   ],
   [
+    "Vider six mesures choisies conserve les 270 canaux du catalogue et le choix vide au prochain résultat compatible",
+    async (f) => {
+      const catalog = [
+        ...smallCurves(),
+        curve("I:EX", "Courant complémentaire", "A"),
+        curve("P:TEST", "Mesure de puissance", "W"),
+        ...Array.from({ length: 264 }, (_, index) =>
+          curve(`I:EX${index}`, `Mesure supplémentaire ${index}`, "A"),
+        ),
+      ];
+      await f.render(simulation(catalog));
+      await f.open();
+      for (const id of ["I:Q1.b", "I:EX", "P:TEST"]) {
+        await f.search(id);
+        await f.click(f.checkbox(id));
+      }
+      equal(
+        f.chosen().length,
+        6,
+        "Six mesures choisies avant le retrait collectif",
+      );
+      const powerLabel = f.query(
+        '.lab-scope-readout [title="Mesure de puissance · P:TEST"]',
+      );
+      equal(
+        powerLabel.closest("div")?.querySelector("small")?.textContent,
+        "Mesure calculée",
+        "Une unité supplémentaire n’est pas appelée courant",
+      );
+      await f.search("");
+      const clear = f.query<HTMLButtonElement>(
+        '[aria-label="Retirer toutes les mesures du graphe"]',
+      );
+      clear.focus();
+      await f.click(clear);
+      equal(f.chosen().length, 0, "Tous les choix retirés explicitement");
+      equal(
+        document.activeElement,
+        f.query(".measurement-catalog-toggle"),
+        "Focus rendu à la commande de catalogue",
+      );
+      ok(
+        f
+          .query(".measurement-match-count")
+          .textContent?.includes("270 résultats sur 270"),
+        "Le catalogue complet reste disponible",
+      );
+      equal(
+        f.container.querySelectorAll(".measurement-results input:checked")
+          .length,
+        0,
+        "Aucune case de mesure toujours cochée",
+      );
+      equal(
+        f.container.querySelector(".lab-scope-chart"),
+        null,
+        "Le graphe est vide après le choix explicite",
+      );
+      await f.render(simulation(catalog, "8".repeat(32)));
+      equal(
+        f.chosen().length,
+        0,
+        "Le nouveau calcul ne réinjecte pas de choix par défaut",
+      );
+      ok(
+        f
+          .query(".measurement-match-count")
+          .textContent?.includes("270 résultats sur 270"),
+        "Aucun canal supprimé après le nouveau calcul",
+      );
+      f.unchanged();
+    },
+  ],
+  [
+    "Un contrôle focalisé disparu au remplacement du catalogue rend le focus au sélecteur sans détourner celui de la recherche",
+    async (f) => {
+      await f.open();
+      await f.search("net_reference");
+      const checkbox = f.checkbox("net_reference");
+      checkbox.focus();
+      await f.render(
+        simulation(
+          [
+            smallCurves()[0],
+            smallCurves()[2],
+            smallCurves()[3],
+            curve("nouvelle", "Nouvelle tension", "V"),
+          ],
+          "9".repeat(32),
+        ),
+      );
+      equal(
+        checkbox.isConnected,
+        false,
+        "La case de la courbe disparue a été retirée",
+      );
+      equal(
+        document.activeElement,
+        f.query(".measurement-catalog-toggle"),
+        "Repli du focus de la case disparue",
+      );
+      await f.search("");
+      const remove = f.query<HTMLButtonElement>(
+        '.measurement-chosen [data-channel-id="net_sortie"] button',
+      );
+      remove.focus();
+      const remaining = [
+        smallCurves()[0],
+        smallCurves()[3],
+        curve("nouvelle", "Nouvelle tension", "V"),
+      ];
+      await f.render(simulation(remaining, "a".repeat(32)));
+      equal(
+        remove.isConnected,
+        false,
+        "Le bouton de retrait disparu a été retiré",
+      );
+      equal(
+        document.activeElement,
+        f.query(".measurement-catalog-toggle"),
+        "Repli du focus du bouton disparu",
+      );
+      const search = f.query<HTMLInputElement>('input[type="search"]');
+      search.focus();
+      await f.search("nouvelle");
+      await f.render(simulation(remaining, "b".repeat(32)));
+      equal(
+        document.activeElement,
+        search,
+        "Un rafraîchissement compatible ne vole pas le focus de recherche",
+      );
+      equal(search.value, "nouvelle", "La saisie reste conservée");
+      f.unchanged();
+    },
+  ],
+  [
+    "Le focus et la page mémorisée reviennent à une position valide lorsque le catalogue rétrécit puis grandit",
+    async (f) => {
+      const catalog = Array.from({ length: 270 }, (_, index) =>
+        curve(`I:PAGE${index}`, `Courant ${index}`, "A"),
+      );
+      await f.render(simulation(catalog));
+      await f.open();
+      for (let page = 0; page < 12; page++)
+        await f.click(f.button("Suivants", ".measurement-pages button"));
+      equal(
+        f.query(".measurement-pages > span").textContent,
+        "Page 13 / 14",
+        "Avant-dernière page affichée",
+      );
+      const next = f.button("Suivants", ".measurement-pages button");
+      equal(next.disabled, false, "La commande suivante est encore active");
+      next.focus();
+      await f.render(simulation(catalog.slice(0, 3), "c".repeat(32)));
+      equal(
+        next.isConnected,
+        false,
+        "La pagination devenue inutile est retirée",
+      );
+      equal(
+        document.activeElement,
+        f.query(".measurement-catalog-toggle"),
+        "Repli du focus de la pagination disparue",
+      );
+      ok(
+        f.query(".measurement-match-count").textContent?.includes("1–3"),
+        "Page bornée aux trois résultats actuels",
+      );
+      await f.render(simulation(catalog, "d".repeat(32)));
+      equal(
+        f.query(".measurement-pages > span").textContent,
+        "Page 1 / 14",
+        "Le retour de canaux ne restaure pas une ancienne page devenue invalide",
+      );
+      f.checkbox("I:PAGE0");
+      equal(
+        f.container.querySelectorAll(
+          '.measurement-results input[type="checkbox"]',
+        ).length,
+        20,
+        "Première page complète conservée",
+      );
+      f.unchanged();
+    },
+  ],
+  [
+    "Une légende focalisée dont le groupe disparaît retrouve un contexte de sélection protégeant toujours le clavier et le presse-papiers",
+    async (f) => {
+      await f.open();
+      await f.search("I:Q1.b");
+      await f.click(f.checkbox("I:Q1.b"));
+      const legend = f.query<HTMLElement>(
+        '[aria-label="Légende des courants"]',
+      );
+      legend.focus();
+      await f.render(simulation(smallCurves().slice(0, 3), "e".repeat(32)));
+      equal(
+        legend.isConnected,
+        false,
+        "Le groupe de courants disparu est retiré",
+      );
+      const opener = f.query<HTMLButtonElement>(".measurement-catalog-toggle");
+      equal(
+        document.activeElement,
+        opener,
+        "La légende ne laisse pas le focus sur le document",
+      );
+      equal(
+        f.chosen().length,
+        3,
+        "Les tensions encore présentes restent choisies",
+      );
+      let editorEvents = 0;
+      const editor = () => {
+        editorEvents++;
+      };
+      window.addEventListener("keydown", editor);
+      window.addEventListener("paste", editor);
+      try {
+        for (const event of [
+          new KeyboardEvent("keydown", {
+            key: "Delete",
+            bubbles: true,
+            cancelable: true,
+          }),
+          new Event("paste", { bubbles: true, cancelable: true }),
+        ]) {
+          await act(async () => opener.dispatchEvent(event));
+          equal(
+            event.defaultPrevented,
+            false,
+            "Comportement natif préservé après le repli",
+          );
+        }
+        equal(editorEvents, 0, "Le repli conserve le contexte local protégé");
+      } finally {
+        window.removeEventListener("keydown", editor);
+        window.removeEventListener("paste", editor);
+      }
+      f.unchanged();
+    },
+  ],
+  [
     "Recherche et sélection conservent le curseur, le zoom, les statistiques et le CSV complet",
     async (f) => {
       await f.click(f.query('[aria-label="Agrandir autour du curseur"]'));
