@@ -38,10 +38,10 @@ pédagogiques. Aucun travail mobile.
 | Jalon | État | Livraison / prochaine action |
 | --- | --- | --- |
 | A — Sélection | Vérifié | Recherche, filtres, catalogue de 20 lignes par page sans perte de courbes, mesures choisies conservées à part |
-| B — Lecture | À faire | Cohérence des couleurs avec les tracés, légende et libellés complets, conservation des choix |
-| C — Clavier | À faire | Contrôles natifs nommés, focus et navigation prévisibles, protection locale contre les raccourcis d’édition |
-| D — Robustesse | À faire | Résultats absents/OP/TRAN, 270 canaux, remplacements, données précédentes et mesures manquantes |
-| E — Validation | À faire | Scénario React/DOM versionné, commandes de contrôle et instructions depuis un clone |
+| B — Lecture | Vérifié en DOM | Couleurs identiques aux tracés, légendes V/A et libellés complets ; revue visuelle ouverte |
+| C — Clavier | Vérifié en DOM | Contrôles natifs nommés, focus et événements isolés localement ; vrai parcours Tab restant à vérifier |
+| D — Robustesse | En cours | Cas absents/OP/TRAN et résultats précédents à compléter ; essai du vrai soustracteur réussi |
+| E — Validation | En cours | Scénario versionné avec neuf cas React/DOM réussis ; contrôles finaux après D/F |
 | F — Finition | À faire | Corriger les défauts observés dans le sélecteur, puis livrer un bilan complet dans la PR |
 
 ## Décisions et limites de données
@@ -92,3 +92,39 @@ pédagogiques. Aucun travail mobile.
   à vérifier après push. Aucun contenu de la PR #1 repris.
 - Prochaine action : légende et relation entre couleurs/libellés/tracés (B),
   puis isolation locale du clavier et des événements de presse-papiers (C).
+
+### B/C — Légendes, couleurs et commandes locales
+
+- Responsable : GPT #2 ; scénario versionné par `measurement_dom_scenarios`.
+- Fichiers : nouveau `MeasurementLegend.tsx`, sélecteur, styles et uniquement
+  présentation de l’oscilloscope ; nouveaux `tests/browser/measurementWorkbench.html`
+  et `.tsx`, réexécutables après installation normale du projet.
+- Couleur issue de l’ordre du catalogue source dans les quatre zones : catalogue,
+  choix, légende et tracé. Une recherche, une pagination ou un retrait ne change
+  pas ce lien. Après un nouvel ordre source, les quatre zones restent cohérentes.
+- Les libellés complets, identifiants et unités sont consultables dans les choix
+  et légendes, avec retours à la ligne et titres explicites. V/A gardent leurs
+  graphes et légendes distincts. Les tableaux et valeurs ne sont pas réécrits.
+- Ouverture : focus sur la recherche. Échap : fermeture et retour au bouton.
+  Retrait focalisé : focus sur une commande voisine ou sur Ajouter une mesure.
+  Aucun reset de requête ou de focus sur un rafraîchissement compatible.
+- Clavier et copy/cut/paste sont contenus dans le nouveau sélecteur et ses
+  légendes, sans `preventDefault` sauf Échap. Les actions natives restent possibles ;
+  elles ne déclenchent plus les handlers d’édition du schéma depuis cette zone.
+  **UX-01 reste ouvert ailleurs** : les listeners globaux dans `main.tsx`
+  (`handleEditorKey`, écoute copy/paste de `.studio`) relèvent toujours du pilote.
+- Contrôles : TypeScript, build et **neuf scénarios React/DOM réussis**, dont couleurs,
+  libellés longs, focus et événements locaux. Le scénario vérifie aussi les
+  270 accès paginés, StrictMode, désélection totale, disparitions, curseur,
+  zoom, statistiques et CSV avec tous les points. Réseau interdit dans ce test.
+- Essai supplémentaire App/HTTP/ngspice isolé sur 8785 : vrai soustracteur,
+  106 composants et 270 courbes ; recherche du courant de base `I:N20_QB.b`,
+  choix de la mesure, flèches/Suppr/copy/paste dans le sélecteur : **zéro écriture**,
+  projet, sélection, topologie, historique et simulation strictement identiques.
+- Limites : jsdom ne prouve ni rendu ni Tab natif ; les neuf scénarios ne sont
+  pas annoncés comme une revue navigateur. Les sélections restent en mémoire
+  pendant le montage du composant, comme auparavant ; aucun stockage ajouté.
+- Publication A vérifiée : `2a515d7`, PR [#2](https://github.com/LuLu1357/simulateur-electronique/pull/2)
+  en brouillon. Publication B/C : commit portant cette entrée, à pousser puis vérifier.
+- Prochaine action : compléter les cas de résultat absent, OP, indisponible et
+  précédent (D), puis contrôles finaux/reproduction (E) et finition (F).

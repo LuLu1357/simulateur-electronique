@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
 import { colors } from "../types";
 import type { ScopeCurve } from "../scope";
@@ -29,6 +29,10 @@ export function MeasurementChannelSelector({
   const [filter, setFilter] = useState<ChannelFilter>("all");
   const [page, setPage] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
+  const openerRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
   const chosen = useMemo(
     () => curves.filter((curve) => selectedIds.includes(curve.id)),
     [curves, selectedIds],
@@ -45,7 +49,22 @@ export function MeasurementChannelSelector({
     colors[curves.indexOf(curve) % colors.length];
 
   return (
-    <section className="measurement-channels" aria-labelledby={`${id}-title`}>
+    <section
+      className="measurement-channels"
+      aria-labelledby={`${id}-title`}
+      onKeyDown={(event) => {
+        // Préserver les contrôles natifs sans transmettre les raccourcis au schéma.
+        event.stopPropagation();
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          setOpen(false);
+          openerRef.current?.focus();
+        }
+      }}
+      onCopy={(event) => event.stopPropagation()}
+      onCut={(event) => event.stopPropagation()}
+      onPaste={(event) => event.stopPropagation()}
+    >
       <div className="measurement-channels-heading">
         <div>
           <h4 id={`${id}-title`}>Mesures affichées</h4>
@@ -56,11 +75,15 @@ export function MeasurementChannelSelector({
         </div>
         <button
           type="button"
+          ref={openerRef}
           className="measurement-catalog-toggle"
           aria-expanded={open}
           aria-controls={`${id}-catalog`}
           disabled={!curves.length}
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => {
+            setOpen((current) => !current);
+            if (open) openerRef.current?.focus();
+          }}
         >
           {open ? <X size={14} /> : <Plus size={14} />}
           {open ? "Masquer le catalogue" : "Ajouter une mesure"}
@@ -74,6 +97,7 @@ export function MeasurementChannelSelector({
           {chosen.map((curve) => (
             <li
               key={curve.id}
+              data-channel-id={curve.id}
               style={
                 { "--measurement-color": color(curve) } as React.CSSProperties
               }
@@ -90,7 +114,17 @@ export function MeasurementChannelSelector({
               <button
                 type="button"
                 aria-label={`Retirer ${curve.label} [${curve.unit}] (${curve.id}) du graphe`}
-                onClick={() => onToggle(curve.id)}
+                onClick={(event) => {
+                  if (document.activeElement === event.currentTarget) {
+                    const row = event.currentTarget.closest("li");
+                    const neighbor =
+                      row?.nextElementSibling || row?.previousElementSibling;
+                    const next =
+                      neighbor?.querySelector<HTMLButtonElement>("button");
+                    (next || openerRef.current)?.focus();
+                  }
+                  onToggle(curve.id);
+                }}
               >
                 <X size={14} aria-hidden="true" />
               </button>
@@ -106,8 +140,8 @@ export function MeasurementChannelSelector({
       )}
       {open && (
         <div id={`${id}-catalog`} className="measurement-catalog">
-          <label className="measurement-search" htmlFor={`${id}-search`}>
-            <span>Rechercher une mesure</span>
+          <div className="measurement-search">
+            <label htmlFor={`${id}-search`}>Rechercher une mesure</label>
             <div>
               <Search size={15} aria-hidden="true" />
               <input
@@ -117,6 +151,7 @@ export function MeasurementChannelSelector({
                 value={query}
                 placeholder="Identifiant, libellé, composant ou unité…"
                 autoComplete="off"
+                aria-describedby={`${id}-search-help`}
                 onChange={(event) => {
                   setQuery(event.target.value);
                   setPage(0);
@@ -136,7 +171,10 @@ export function MeasurementChannelSelector({
                 </button>
               )}
             </div>
-          </label>
+          </div>
+          <p className="measurement-search-help" id={`${id}-search-help`}>
+            Exemples : R1, I:Q1.b, tension, ampère. Échap ferme le catalogue.
+          </p>
           <div
             className="measurement-filters"
             role="group"
@@ -178,7 +216,7 @@ export function MeasurementChannelSelector({
               aria-label="Catalogue des mesures"
             >
               {shown.map((curve) => (
-                <li key={curve.id}>
+                <li key={curve.id} data-channel-id={curve.id}>
                   <label
                     className="measurement-result"
                     style={

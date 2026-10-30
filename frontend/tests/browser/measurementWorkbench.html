@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Validation du sélecteur de mesures</title>
+    <style>
+      body {
+        max-width: 1100px;
+        margin: 28px auto;
+        padding: 0 24px;
+        font: 15px/1.6 system-ui;
+        background: #142131;
+        color: #e6edf4;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      li {
+        margin: 7px 0;
+      }
+      .pass {
+        color: #85e0b7;
+      }
+      .fail {
+        color: #ffb4b4;
+      }
+      code,
+      pre {
+        font-size: 12px;
+      }
+      pre {
+        white-space: pre-wrap;
+      }
+      #probe {
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app" data-run-status="running">
+      <h1>Mesures : recherche, sélection et conservation des données</h1>
+      <p>
+        Le vrai composant Oscilloscope utilise des séries de test indépendantes
+        et figées. Tout appel réseau est interdit ; aucun projet utilisateur
+        n’est sollicité.
+      </p>
+      <p>
+        Depuis un clone installé :
+        <code>npm run dev --prefix frontend -- --port 8882 --strictPort</code>,
+        puis ouvrir <code>/tests/browser/measurementWorkbench.html</code>.
+        Recharger rejoue les contrôles.
+      </p>
+      <p>
+        Les événements clavier et de presse-papiers sont synthétiques : ils
+        vérifient les gardes et le focus explicite, pas l’ordre de tabulation
+        natif ni la qualité visuelle du rendu.
+      </p>
+      <p id="summary" role="status" data-run-status="running">
+        Vérifications en cours…
+      </p>
+      <ol id="results"></ol>
+      <div id="probe"></div>
+    </main>
+    <script type="module" src="./measurementWorkbench.tsx"></script>
+  </body>
+</html>

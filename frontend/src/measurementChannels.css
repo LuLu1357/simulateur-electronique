@@ -119,7 +119,7 @@
   color: #cbd9bf;
   font-size: 11px;
 }
-.measurement-search > span {
+.measurement-search > label {
   display: block;
   margin-bottom: 7px;
 }
@@ -150,6 +150,12 @@
   padding: 4px;
   border: 0;
   background: transparent;
+}
+.measurement-search-help {
+  margin: 7px 0 0;
+  font-size: 10px;
+  color: #a8bba0;
+  line-height: 1.6;
 }
 .measurement-filters {
   display: flex;
@@ -223,4 +229,49 @@
 .measurement-pages > span {
   color: #c3d2b6;
   font-size: 11px;
+}
+
+.measurement-legend {
+  margin: 9px 16px 5px;
+  padding: 5px;
+  max-height: 140px;
+  overflow-y: auto;
+  border: 1px solid #344b35;
+  border-radius: 6px;
+}
+.measurement-legend:focus-visible {
+  outline: 2px solid #eac06c;
+  outline-offset: 3px;
+}
+.measurement-legend ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 15px;
+  margin: 0;
+  padding: 0;
+}
+.measurement-legend li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 11px;
+  color: #d2dfc6;
+  line-height: 1.6;
+}
+.measurement-legend li > i {
+  width: 22px;
+  height: 3px;
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+.measurement-legend span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.measurement-legend small {
+  color: #a6b89b;
+  font-size: 10px;
 }

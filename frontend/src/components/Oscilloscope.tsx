@@ -25,6 +25,7 @@ import {
   reconcileMeasurementSelection,
 } from "../measurementChannels";
 import { MeasurementChannelSelector } from "./MeasurementChannelSelector";
+import { MeasurementLegend } from "./MeasurementLegend";
 import "../oscilloscope.css";
 
 const width = 880,
@@ -342,6 +343,11 @@ export function Oscilloscope({
                         ? "COURANTS"
                         : unit}
                   </span>
+                  <MeasurementLegend
+                    curves={plotted}
+                    catalog={curves}
+                    unit={unit}
+                  />
                   <svg
                     viewBox={`0 0 ${width} ${height}`}
                     preserveAspectRatio="xMidYMid meet"
@@ -417,14 +423,18 @@ export function Oscilloscope({
                       const color =
                         colors[curves.indexOf(curve) % colors.length];
                       return (
-                        <g key={curve.id}>
+                        <g key={curve.id} data-channel-id={curve.id}>
                           <path
                             d={paths.get(curve.id)}
                             fill="none"
                             stroke={color}
                             strokeWidth="1.8"
                             vectorEffect="non-scaling-stroke"
-                          />
+                          >
+                            <title>
+                              {curve.label} [{curve.unit}] · {curve.id}
+                            </title>
+                          </path>
                           {cursorInView &&
                             Number.isFinite(curve.values[cursor]) && (
                               <circle
@@ -474,7 +484,9 @@ export function Oscilloscope({
                 >
                   <span>
                     <i />
-                    {curve.label}
+                    <span title={`${curve.label} · ${curve.id}`}>
+                      {curve.label}
+                    </span>
                   </span>
                   <strong>{format(curve.values[cursor], curve.unit)}</strong>
                   <small>
