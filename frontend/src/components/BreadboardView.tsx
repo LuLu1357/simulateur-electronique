@@ -36,6 +36,7 @@ import {
   translateFootprint,
 } from "../breadboard";
 import type { BoardPoint, PlacementProposal } from "../breadboard";
+import { pinLocation } from "../breadboardLocations";
 import "../breadboard.css";
 
 export type BreadboardViewProps = {
@@ -1239,16 +1240,46 @@ export function BreadboardView(props: BreadboardViewProps) {
               <output>{Math.round(potDraft * 100)} %</output>
             </label>
           )}
-          {orderedPins(activeComponent).map(([name, terminal]) => (
-            <button
-              key={terminal}
-              disabled={disabled}
-              className={activePin === terminal ? "active" : ""}
-              onClick={() => activatePin(activeComponent, terminal)}
-            >
-              {name.toUpperCase()} · {placements[terminal] || "hors plaque"}
-            </button>
-          ))}
+          {orderedPins(activeComponent).map(([name, terminal]) => {
+            const location = pinLocation(allPlacements, terminal, activeBoard);
+            return (
+              <div
+                key={terminal}
+                role="group"
+                aria-label={`Emplacement de ${terminal}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={disabled}
+                  className={activePin === terminal ? "active" : ""}
+                  aria-label={`${terminal} · ${location.label} · Choisir la patte à déplacer`}
+                  onClick={() => activatePin(activeComponent, terminal)}
+                >
+                  {name.toUpperCase()} · {location.label}
+                </button>
+                {location.status === "other" && (
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    aria-label={`Voir la plaque ${location.board} pour ${terminal}, trou ${location.hole}`}
+                    onClick={() => {
+                      setActiveBoard(location.board);
+                      svgRef.current?.focus({ preventScroll: true });
+                    }}
+                  >
+                    <CircuitBoard size={14} />
+                    Voir la plaque {location.board}
+                  </button>
+                )}
+              </div>
+            );
+          })}
           {Object.values(activeComponent.pins).some(
             (pin) => placements[pin],
           ) && (
@@ -1792,7 +1823,8 @@ export function BreadboardView(props: BreadboardViewProps) {
                       disabled={disabled}
                       onClick={() => activatePin(c, pin)}
                     >
-                      {name.toUpperCase()} · {placements[pin] || "hors plaque"}
+                      {name.toUpperCase()} ·{" "}
+                      {pinLocation(allPlacements, pin, activeBoard).label}
                     </button>
                   ))}
                 </div>
