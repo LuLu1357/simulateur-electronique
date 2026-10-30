@@ -557,6 +557,14 @@ button.run:not(:disabled):hover {
 .component-value {
   fill: #b2c69e;
 }
+.component-label,
+.component-value {
+  paint-order: stroke fill;
+  stroke: #142216;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
 .terminal {
   fill: #132015;
   stroke: #a0b68c;

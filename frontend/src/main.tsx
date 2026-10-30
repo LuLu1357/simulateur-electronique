@@ -70,6 +70,7 @@ import { handleEditorKey, isEditingTarget } from "./interactions";
 import { readPreferences, writePreferences } from "./preferences";
 import type { DisplayPreferences, PreferencesStorage } from "./preferences";
 import { voltageColor, fitCircuitView } from "./visuals";
+import { schematicLabels, schematicLabelBounds, schematicLabelFitPoints } from "./schematicLabels";
 import { FlowParticles } from "./components/FlowParticles";
 import { BreadboardView } from "./components/BreadboardView";
 import { ExperimentGallery } from "./components/ExperimentGallery";
@@ -273,6 +274,14 @@ function Symbol({ c }: { c: Component }) {
     </g>
   );
 }
+function componentValueLabel(c: Component, unit: string): string {
+  if (["ground", "voltage_probe", "current_probe"].includes(c.kind)) return "";
+  if (c.kind === "switch" || c.kind === "button") return c.value ? "Fermé" : "Ouvert";
+  if (["npn", "pnp", "diode", "led"].includes(c.kind)) return c.model || "Générique";
+  if (c.kind === "voltage_source" && c.waveform)
+    return `${format(c.waveform.low, "V")} ↔ ${format(c.waveform.high, "V")} · ${format(1 / c.waveform.period, "Hz")}`;
+  return format(c.value, unit);
+}
 function CurrentArrow({
   c,
   current,
@@ -282,9 +291,10 @@ function CurrentArrow({
   current: number;
   rotation?: number;
 }) {
+  const label = schematicLabels(c.kind, rotation).current;
   if (c.kind === "potentiometer")
     return (
-      <text className="current-label" x="0" y="65" textAnchor="middle">
+      <text className="current-label" {...label}>
         I(P) = {format(current, "A")}
       </text>
     );
@@ -313,9 +323,7 @@ function CurrentArrow({
       />
       <text
         className="current-label"
-        x={pins.length === 3 ? 86 : 0}
-        y={pins.length === 3 ? 5 : 66}
-        textAnchor="middle"
+        {...label}
       >
         {format(Math.abs(current), "A")}
       </text>
@@ -545,6 +553,15 @@ function App() {
     const view = fitCircuitView([
       ...Object.values(project?.schematic || {}),
       ...(project?.junctions || []),
+      ...(project?.components.flatMap((component) => {
+        const position = project.schematic[component.id];
+        if (!position) return [];
+        const labels = schematicLabels(component.kind, position.rotation);
+        return schematicLabelFitPoints(position, schematicLabelBounds(labels, {
+          name: component.label || component.id,
+          value: componentValueLabel(component, stateRef.current?.catalog[component.kind]?.unit || ""),
+        }));
+      }) || []),
     ]);
     setZoom(view.zoom);
     setPan(view.pan);
@@ -2946,6 +2963,15 @@ function App() {
                         const isSel =
                           selected.includes(c.id) || highlights.includes(c.id);
                         const unit = state?.catalog[c.kind]?.unit || "";
+                        const labels = schematicLabels(c.kind, originalPos.rotation);
+                        const valueLabel = componentValueLabel(c, unit);
+                        const labelBounds = schematicLabelBounds(labels, {
+                          name: c.label || c.id,
+                          value: valueLabel,
+                          current: showCurrent && sim?.currents[c.id] !== undefined
+                            ? `${c.kind === "potentiometer" ? "I(P) = " : ""}${format(Math.abs(sim.currents[c.id]), "A")}`
+                            : "",
+                        });
                         return (
                           <g
                             key={c.id}
@@ -2986,10 +3012,7 @@ function App() {
                           >
                             <rect
                               className="selection-box"
-                              x="-60"
-                              y="-54"
-                              width="120"
-                              height="108"
+                              {...labelBounds}
                               rx="10"
                             />
                             <g
@@ -3124,41 +3147,15 @@ function App() {
                             </g>
                             <text
                               className="component-label"
-                              x="0"
-                              y={
-                                c.kind === "ground"
-                                  ? -66
-                                  : c.kind === "npn" || c.kind === "pnp"
-                                    ? -66
-                                    : -42
-                              }
-                              textAnchor="middle"
+                              {...labels.name}
                             >
                               {c.label || c.id}
                             </text>
                             <text
                               className="component-value"
-                              x="0"
-                              y="47"
-                              textAnchor="middle"
+                              {...labels.value}
                             >
-                              {[
-                                "ground",
-                                "voltage_probe",
-                                "current_probe",
-                              ].includes(c.kind)
-                                ? ""
-                                : c.kind === "switch" || c.kind === "button"
-                                  ? c.value
-                                    ? "Fermé"
-                                    : "Ouvert"
-                                  : ["npn", "pnp", "diode", "led"].includes(
-                                        c.kind,
-                                      )
-                                    ? c.model || "Générique"
-                                    : c.kind === "voltage_source" && c.waveform
-                                      ? `${format(c.waveform.low, "V")} ↔ ${format(c.waveform.high, "V")} · ${format(1 / c.waveform.period, "Hz")}`
-                                      : format(c.value, unit)}
+                              {valueLabel}
                             </text>
                             {showCurrent &&
                               sim?.currents[c.id] !== undefined && (

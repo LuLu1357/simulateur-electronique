@@ -1,5 +1,11 @@
 # Prompt à transmettre à l’autre ChatGPT
 
+**Lot visuel V1/V2 livré :** les libellés du schéma tourné et les composants
+serrés près des rails ont été corrigés et vérifiés dans le navigateur ; 218 tests
+Node passent. Voir SUIVI pour les responsables et résultats. Reprendre ensuite
+les vérifications temporelles encore ouvertes, sans changer l’électricité pour
+résoudre une collision visuelle.
+
 **Actualisation du 30 octobre :** lire d’abord les sections actives de SUIVI et
 REPRISE. Les tests passent désormais à 207 Node / 342 Python + 106 sous-tests et
 le nouveau MCP stdio a été validé. Finir les vérifications visuelles restantes de

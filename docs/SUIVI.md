@@ -4,6 +4,45 @@ Mis à jour le **30 octobre 2026**, reprise active après récupération de `wor
 
 ## Coordination active — 30 octobre 2026
 
+### Correctif visuel demandé après ouverture de la version courante
+
+L’utilisateur signale deux chevauchements sur captures : « 5 V » traverse la
+borne d’une source verticale ; V1/R1/G1 et leurs valeurs se superposent près des
+rails de la plaque. Cette demande précise devient le lot actif, avant de
+reprendre les vérifications temporelles encore ouvertes ci-dessous.
+
+| Lot | Responsable effectif | Fichiers réservés / contrôle prévu | État |
+| --- | --- | --- | --- |
+| V1 — Libellés du schéma | Pilote `/root`, revue `/root/label_review` | `main.tsx`, `schematicLabels.ts`, `workbench.css` et tests ; rotations, bornes et cadrage | Implémenté et vérifié dans le navigateur : noms/valeurs hors des bornes, y compris source et résistance verticales |
+| V2 — Lisibilité de la plaque | Agent `/root/board_legibility`, QA pilote | `BreadboardView.tsx`, `breadboard.css`, `boardLabels.ts` et tests ; implantations anciennes serrées | Implémenté et vérifié sur la copie du circuit signalé : V1/R1/G1 ont trois cartouches distincts |
+
+Corrections uniquement visuelles : positions, trous, connexions, mesures et
+synchronisation conservés. Les textes du schéma restent droits et quittent
+l’axe des bornes lorsque le symbole tourne. Nom, valeur et courant ont des
+lignes distinctes ; les textes longs participent au cadrage. Le potentiomètre,
+les DEL et BJT disposent aussi d’un espace hors de leurs bornes et symboles.
+
+Sur la plaque, les raccordements externes et légendes serrées passent dans un
+bandeau de cartouches, reliés par des repères fins pointillés sans bus commun.
+Les composants espacés gardent leur légende locale. Les bornes compactes ne
+portent plus de lettres superposées au corps : noms et trous restent dans les
+cartouches, titres, contrôles et noms accessibles. La masse à une borne est une
+bague simple ; aucun texte `0V` n’est dessiné sous sa pastille.
+
+Validation du lot V1/V2 : **218 tests Node réussis**, dont 11 nouveaux tests de
+géométrie/étiquettes ; `npm run check`, build TypeScript/Vite et `git diff --check`
+réussis. Revue dans un vrai navigateur sur le service isolé 8877, avec une copie
+du circuit utilisateur (source 270°, R1 tournée à 90° uniquement dans la copie).
+Les rectangles réels des noms/valeurs V1/R1/G1 ne croisent aucune cible de borne.
+Les trois cartouches et la masse sans texte sous la pastille ont été observés.
+Le glisser du corps de R1 a aussi été vérifié sur la copie : ses deux bornes
+passent ensemble des rails colonne 2 à la colonne 4 et les fils les suivent.
+Le backend n’a pas changé ; sa suite Python n’est pas relancée pour ce lot frontend.
+
+Coordination parallèle : une nouvelle branche GPT #2 `codex/ux-board-locations`
+(`7f46295`) clarifie les bornes implantées sur une autre plaque. Elle est conservée
+séparément pour intégration ultérieure ; ce lot V1/V2 ne l’écrase pas.
+
 Le pilote local reprend R1 à R5. Les tests de validation sont de nouveau demandés
 par l’utilisateur. Le circuit et le service utilisateur sur 8765 sont préservés :
 les essais mutables utilisent des runtimes et services isolés.

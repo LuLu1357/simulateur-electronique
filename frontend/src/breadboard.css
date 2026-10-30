@@ -297,6 +297,48 @@
   font-weight: 500;
   fill: #39574f;
 }
+.bb-caption-leader {
+  fill: none;
+  stroke: #70847b;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
+.bb-caption-card {
+  fill: #f5f8f1;
+  stroke: #8fa496;
+  stroke-width: 1;
+}
+.bb-component.selected .bb-caption-card,
+.bb-component:focus-visible .bb-caption-card {
+  stroke: #26724c;
+  stroke-width: 2;
+}
+.bb-caption-name,
+.bb-caption-value,
+.bb-caption-pins,
+.bb-caption-heading {
+  fill: #203e38;
+  font:
+    12px "DM Sans",
+    sans-serif;
+  pointer-events: none;
+}
+.bb-caption-name {
+  font-size: 13px;
+  font-weight: 750;
+}
+.bb-caption-value {
+  font-size: 11px;
+}
+.bb-caption-pins {
+  font-size: 10px;
+  fill: #456053;
+}
+.bb-caption-heading {
+  font-size: 11px;
+  fill: #456053;
+}
 .bb-pin {
   cursor: crosshair;
   touch-action: none;
@@ -336,6 +378,11 @@
   stroke: #52757b;
   stroke-width: 1;
   stroke-dasharray: 3 2;
+}
+.bb-external-ring {
+  fill: none;
+  stroke: #52757b;
+  stroke-width: 1.5;
 }
 .bb-external-symbol text {
   fill: #28585a;

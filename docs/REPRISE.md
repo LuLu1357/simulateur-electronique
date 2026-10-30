@@ -2,6 +2,13 @@
 
 ## Mise à jour active — 30 octobre 2026
 
+Après ce jalon temporel, l’utilisateur a signalé des textes sur les bornes du
+schéma tourné et des composants illisibles près des rails. Le lot V1/V2 corrige
+ces deux cas sans déplacer aucune connexion : libellés latéraux adaptés à la
+rotation et cartouches de repérage pour les composants serrés. Revue réelle
+sur une copie isolée du circuit et **218 tests Node réussis**, TypeScript et
+build. Le backend et ses rapports restent inchangés. Voir SUIVI pour les détails.
+
 Le pilote local a repris R1–R5 avec trois agents ; responsables et résultats dans
 [SUIVI.md](SUIVI.md). Le jalon de synchronisation/provenance passe **207 tests Node,
 342 tests Python et 106 sous-tests**, TypeScript et build. Le MCP stdio à 28 outils

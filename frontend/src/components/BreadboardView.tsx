@@ -36,6 +36,11 @@ import {
   translateFootprint,
 } from "../breadboard";
 import type { BoardPoint, PlacementProposal } from "../breadboard";
+import {
+  boardHoleCaption,
+  boardLabelExcerpt,
+  layoutBoardLabels,
+} from "../boardLabels";
 import "../breadboard.css";
 
 export type BreadboardViewProps = {
@@ -183,6 +188,39 @@ export function BreadboardView(props: BreadboardViewProps) {
     (id): id is string => typeof id === "string",
   );
   const activePin = pending || pinToPlace || "";
+  const captionLayout = layoutBoardLabels(
+    project.components.flatMap((component) => {
+      const points = Object.values(component.pins).flatMap((pin) => {
+        const point = boardHolePoint(placements[pin] || "");
+        return point ? [point] : [];
+      });
+      if (!points.length) return [];
+      const minX = Math.min(...points.map((point) => point[0]));
+      const maxX = Math.max(...points.map((point) => point[0]));
+      const minY = Math.min(...points.map((point) => point[1]));
+      const maxY = Math.max(...points.map((point) => point[1]));
+      const raised =
+        component.kind === "potentiometer"
+          ? 65
+          : ["npn", "pnp", "led"].includes(component.kind)
+            ? 51
+            : 24;
+      const detailLength =
+        component.kind === "led" ? 30 : component.waveform ? 24 : 12;
+      return [
+        {
+          id: component.id,
+          x: (minX + maxX) / 2,
+          y: minY - raised,
+          width: Math.max(
+            64,
+            ((component.label || component.id).length + detailLength) * 6.5,
+          ),
+          callout: externalComponent(component) || minY < 90 || maxY > 430,
+        },
+      ];
+    }),
+  );
   const activeComponent = project.components.find((c) =>
     selected.includes(c.id),
   );
@@ -569,8 +607,11 @@ export function BreadboardView(props: BreadboardViewProps) {
       b = entries[1]?.xy || a;
     const angle = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
     const distance = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const bodyLength = Math.max(22, Math.min(52, distance - 20));
+    const bodyLength = Math.max(8, Math.min(52, distance - 20));
     const labelY = isPot ? minY - 65 : bipolar || isLed ? minY - 51 : minY - 24;
+    const caption = !isGhost ? captionLayout.labels.get(c.id) : undefined;
+    const hasCallout = caption?.mode === "callout";
+    const compact = isExternal || distance < BOARD.pitch * 2;
     const detail =
       c.kind === "resistor" || isPot
         ? format(c.value, "Ω")
@@ -662,9 +703,9 @@ export function BreadboardView(props: BreadboardViewProps) {
         <rect
           className="bb-selection"
           x={minX - 17}
-          y={labelY - 15}
+          y={hasCallout ? minY - 17 : labelY - 15}
           width={Math.max(44, maxX - minX + 34)}
-          height={maxY - labelY + 40}
+          height={hasCallout ? maxY - minY + 42 : maxY - labelY + 40}
           rx="4"
         />
         {!partial && !isExternal && !bipolar && !isLed && !isPot && (
@@ -677,7 +718,7 @@ export function BreadboardView(props: BreadboardViewProps) {
               <circle
                 cx={distance / 2}
                 cy="0"
-                r="16"
+                r={Math.max(6, Math.min(16, distance / 2 - 8))}
                 className="bb-capacitor"
               />
             ) : c.kind === "inductor" ? (
@@ -861,42 +902,106 @@ export function BreadboardView(props: BreadboardViewProps) {
         )}
         {!partial && isExternal && (
           <g className="bb-external-symbol">
-            {entries.map(({ xy, name }) => (
-              <line
-                key={name}
-                x1={xy[0]}
-                y1={xy[1]}
-                x2={cx}
-                y2={cy}
-                className="bb-external-lead"
-              />
-            ))}
-            <rect
-              x={cx - 15}
-              y={cy - 11}
-              width="30"
-              height="22"
-              rx="2"
-              className="bb-external-box"
-            />
-            <text x={cx} y={cy + 5} textAnchor="middle">
-              {c.kind === "voltage_source"
-                ? "+/−"
-                : c.kind === "ground"
-                  ? "0V"
-                  : c.kind === "voltage_probe"
-                    ? "V"
-                    : "A"}
-            </text>
+            {entries.length === 1 ? (
+              // Un raccordement de masse occupe un seul trou : son identité
+              // est dans le cartouche, jamais sous la pastille de sa borne.
+              <circle cx={cx} cy={cy} r="9" className="bb-external-ring" />
+            ) : (
+              <>
+                {entries.map(({ xy, name }) => (
+                  <line
+                    key={name}
+                    x1={xy[0]}
+                    y1={xy[1]}
+                    x2={cx}
+                    y2={cy}
+                    className="bb-external-lead"
+                  />
+                ))}
+                <rect
+                  x={cx - 15}
+                  y={cy - 11}
+                  width="30"
+                  height="22"
+                  rx="2"
+                  className="bb-external-box"
+                />
+                <text x={cx} y={cy + 5} textAnchor="middle">
+                  {c.kind === "voltage_source"
+                    ? "+/−"
+                    : c.kind === "voltage_probe"
+                      ? "V"
+                      : "A"}
+                </text>
+              </>
+            )}
           </g>
         )}
-        <text x={cx} y={labelY} textAnchor="middle" className="bb-part-label">
-          {c.label || c.id}
-          <tspan className="bb-part-value">
-            {" "}
-            · {partial ? "à compléter" : isLed ? lightDescription : detail}
-          </tspan>
-        </text>
+        {hasCallout && caption ? (
+          <g className="bb-caption" data-caption-for={c.id}>
+            <path
+              className="bb-caption-leader"
+              d={`M${caption.x + caption.width / 2} ${caption.y + caption.height}L${cx} ${minY - 9}`}
+            />
+            <rect
+              className="bb-caption-card"
+              x={caption.x}
+              y={caption.y}
+              width={caption.width}
+              height={caption.height}
+              rx="5"
+            />
+            <text
+              className="bb-caption-name"
+              x={caption.x + 10}
+              y={caption.y + 17}
+            >
+              {boardLabelExcerpt(c.label || c.id, 18)}
+            </text>
+            <text
+              className="bb-caption-value"
+              x={caption.x + 10}
+              y={caption.y + 34}
+            >
+              {boardLabelExcerpt(
+                partial ? "à compléter" : isLed ? lightDescription : detail,
+                24,
+              )}
+            </text>
+            <text
+              className="bb-caption-pins"
+              x={caption.x + 10}
+              y={caption.y + 49}
+            >
+              {boardLabelExcerpt(
+                entries
+                  .map(
+                    ({ name, terminal }) =>
+                      `${name.toUpperCase()}: ${boardHoleCaption(locations[terminal])}`,
+                  )
+                  .join(" · "),
+                25,
+              )}
+            </text>
+            <title>
+              {c.label || c.id} · {detail} ·{" "}
+              {entries
+                .map(
+                  ({ name, terminal }) =>
+                    `${name.toUpperCase()}: ${locations[terminal]}`,
+                )
+                .join(" · ")}
+            </title>
+          </g>
+        ) : (
+          <text x={cx} y={labelY} textAnchor="middle" className="bb-part-label">
+            {c.label || c.id}
+            <tspan className="bb-part-value">
+              {" "}
+              · {partial ? "à compléter" : isLed ? lightDescription : detail}
+            </tspan>
+          </text>
+        )}
         {entries.map(({ name, terminal, xy }) => (
           <g
             key={terminal}
@@ -933,14 +1038,16 @@ export function BreadboardView(props: BreadboardViewProps) {
           >
             <circle cx={xy[0]} cy={xy[1]} r="8" fill="transparent" />
             <circle cx={xy[0]} cy={xy[1]} r="4.8" className="bb-pin-metal" />
-            <text
-              x={xy[0]}
-              y={xy[1] + 18}
-              textAnchor="middle"
-              className="bb-pin-label"
-            >
-              {name.toUpperCase()}
-            </text>
+            {!compact && (
+              <text
+                x={xy[0]}
+                y={xy[1] + 18}
+                textAnchor="middle"
+                className="bb-pin-label"
+              >
+                {name.toUpperCase()}
+              </text>
+            )}
             <title>
               {terminal} ·{" "}
               {state.catalog[c.kind]?.pins.find((p) => p.name === name)?.role} ·{" "}
@@ -1318,7 +1425,7 @@ export function BreadboardView(props: BreadboardViewProps) {
         <svg
           ref={svgRef}
           className={`bb-board ${paletteOver ? "bb-palette-over" : ""}`}
-          viewBox={`0 0 ${BOARD.width} ${BOARD.height}`}
+          viewBox={`0 ${-captionLayout.headerHeight} ${BOARD.width} ${BOARD.height + captionLayout.headerHeight}`}
           aria-label="Breadboard plane, groupes A–E et F–J, rails séparés"
           aria-describedby="bb-board-instructions"
           tabIndex={disabled ? -1 : 0}
@@ -1648,6 +1755,16 @@ export function BreadboardView(props: BreadboardViewProps) {
               );
             })}
           </g>
+          {captionLayout.headerHeight > 0 && (
+            <text
+              x="24"
+              y={-captionLayout.headerHeight + 14}
+              className="bb-caption-heading"
+            >
+              Repères des composants · les traits fins indiquent leur
+              emplacement
+            </text>
+          )}
           {project.components.map((component) =>
             renderComponent(component, placements),
           )}
