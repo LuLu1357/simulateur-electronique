@@ -20,6 +20,11 @@ import {
 } from "../scope";
 import type { ScopeCurve, ScopeRange } from "../scope";
 import { measureScopeCurve } from "../scopeMeasurements";
+import {
+  initialMeasurementSelection,
+  reconcileMeasurementSelection,
+} from "../measurementChannels";
+import { MeasurementChannelSelector } from "./MeasurementChannelSelector";
 import "../oscilloscope.css";
 
 const width = 880,
@@ -86,17 +91,14 @@ export function Oscilloscope({
   };
   const full = useMemo(() => timeRange(time), [time]);
   useEffect(() => {
-    setVisible((current) => {
-      const retained = current.filter((id) =>
-        curves.some((curve) => curve.id === id),
-      );
-      if (initialized.current && retained.length) return retained;
-      initialized.current = true;
-      const voltages = curves.filter((curve) => curve.unit === "V");
-      return (voltages.length ? voltages : curves)
-        .slice(0, 3)
-        .map((curve) => curve.id);
-    });
+    if (!curves.length && !initialized.current) return;
+    const first = !initialized.current;
+    initialized.current = true;
+    setVisible((current) =>
+      first
+        ? initialMeasurementSelection(curves)
+        : reconcileMeasurementSelection(current, curves),
+    );
   }, [signature]);
   useEffect(() => {
     setWindowRange(null);
@@ -279,34 +281,17 @@ export function Oscilloscope({
         </div>
       ) : (
         <>
-          <div
-            className="lab-scope-curves"
-            role="group"
-            aria-label="Courbes affichées"
-          >
-            {curves.map((curve, index) => (
-              <button
-                key={curve.id}
-                aria-pressed={visible.includes(curve.id)}
-                onClick={() =>
-                  setVisible((current) =>
-                    current.includes(curve.id)
-                      ? current.filter((id) => id !== curve.id)
-                      : [...current, curve.id],
-                  )
-                }
-                style={
-                  {
-                    "--scope-curve": colors[index % colors.length],
-                  } as React.CSSProperties
-                }
-              >
-                <i />
-                {curve.label}
-                <small>{curve.unit}</small>
-              </button>
-            ))}
-          </div>
+          <MeasurementChannelSelector
+            curves={curves}
+            selectedIds={visible}
+            onToggle={(id) =>
+              setVisible((current) =>
+                current.includes(id)
+                  ? current.filter((selectedId) => selectedId !== id)
+                  : [...current, id],
+              )
+            }
+          />
           <div className="lab-scope-controls">
             <span>
               <MoveHorizontal size={14} /> Survole pour mesurer · ← → pour
