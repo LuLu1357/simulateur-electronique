@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Validation du maintien de la vue pendant une édition</title>
+    <style>
+      html { overflow-anchor: none; scroll-behavior: auto; }
+      body { margin: 24px; background: #142131; color: #edf3f8; font: 16px/1.5 system-ui; }
+      #report { max-width: 940px; } h1 { font-size: 24px; }
+      li { margin: 7px 0; } .pass { color: #85e0b7; } .fail { color: #ffb4b4; }
+      pre { white-space: pre-wrap; font-size: 13px; }
+      .probe { width: 1450px; } .spacer-before { height: 950px; }
+      .context-controls { height: 140px; background: #2d455c; }
+      .schematic-scroll { height: 260px; overflow: auto; border: 2px solid #80b8d8; }
+      .between { height: 180px; } .placement-form { height: 117px; background: #3a516a; }
+      .bb-board-scroll { width: 900px; height: 420px; overflow: auto; border: 2px solid #80ccb3; }
+      .wide-board { width: 1800px; height: 380px; background: repeating-linear-gradient(90deg, #325a58 0 22px, #1a3338 22px 26px); }
+      #simulation-results { height: 500px; background: #29394c; }
+      .spacer-after { height: 1700px; }
+    </style>
+  </head>
+  <body>
+    <section id="report">
+      <h1>Maintien de la vue : vrai React et vraie géométrie navigateur</h1>
+      <p>Le hook réel est monté sur des panneaux de test. Aucun appel à l’API ou au circuit utilisateur.
+        L’ancrage automatique natif est désactivé pour isoler la correction ; les défilements restent réels.</p>
+      <p id="summary" role="status" data-run-status="running">Vérifications en cours…</p>
+      <ol id="results"></ol>
+    </section>
+    <div id="fixture"></div>
+    <script type="module" src="./workViewport.tsx"></script>
+  </body>
+</html>

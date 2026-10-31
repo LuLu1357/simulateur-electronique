@@ -1,5 +1,10 @@
 # Prompt à transmettre à l’autre ChatGPT
 
+**Dernier lot validé, 31 octobre :** S1 corrige les sauts de page à l’édition et
+à la suppression. 231 tests Node et 10 scénarios navigateur passent, TypeScript
+et build réussis. Voir SUIVI et `frontend/tests/browser/workViewport.README.md`.
+Les branches UX parallèles restent à intégrer explicitement après revue.
+
 **Lot visuel V1/V2 livré :** les libellés du schéma tourné et les composants
 serrés près des rails ont été corrigés et vérifiés dans le navigateur ; 218 tests
 Node passent. Voir SUIVI pour les responsables et résultats. Reprendre ensuite

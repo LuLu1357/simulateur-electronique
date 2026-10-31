@@ -1,8 +1,40 @@
 # Progrès et répartition des tâches
 
-Mis à jour le **30 octobre 2026**, reprise active après récupération de `work` (`c6ff77e`).
+Mis à jour le **31 octobre 2026**, après validation du maintien de la vue pendant l’édition.
 
 ## Coordination active — 30 octobre 2026
+
+### Lot S1 — Saut de page pendant l’édition : terminé
+
+L’utilisateur constate une remontée automatique à la modification/suppression
+d’un élément dans le schéma ou la breadboard. Pilote `/root` : reproduction sur
+une copie isolée (8877), correction et tests ; agent `/root/scroll_audit` : audit
+en lecture seule du focus, des remontages et des variations de disposition.
+Correction intégrée par le pilote dans `main.tsx`, `workViewport.ts` et
+`useWorkViewport.ts`. L’agent a livré les tests purs et le scénario React/DOM
+reproductible `frontend/tests/browser/workViewport.html` (README associé).
+
+Cause reproduite : une suppression raccourcit l’inspecteur et retire les
+commandes/formulaires en deux rendus ; une édition électrique peut aussi retirer
+le panneau de relecture situé au-dessus des vues. L’ancrage du navigateur déplace
+alors la page, sans rechargement du document.
+
+La correction conserve la zone visible juste avant la publication de l’édition,
+puis la restaure avant peinture durant les deux étapes de nettoyage. Pour une
+plaque, la surface physique est l’ancre : même le retrait d’une ligne de
+cartouches conserve les trous au même endroit. Les défilements horizontaux sont
+préservés ; une nouvelle action utilisateur libère immédiatement la stabilisation.
+Un sondage de même révision ou une navigation vers un autre projet/vue ne ramène
+pas la page à une ancienne position. Aucun blocage permanent du défilement.
+
+Validation : **231 tests Node réussis**, TypeScript, build et `git diff --check`
+réussis ; **10/10 scénarios dans un vrai navigateur**, sans appel API. Reproduction
+complète isolée sur 8877 : suppression de C1 sur plaque (écart visuel <0,2 px),
+suppression sur schéma après TRAN réel et disparition de la relecture (<0,1 px),
+changement de valeur et retrait de la dernière ligne de cartouches (<0,02 px
+sur la surface physique). Le circuit utilisateur n’est pas utilisé pour ces
+mutations. Backend et rapports historiques inchangés.
+Statut : vérifié et prêt à publier/lancer sur `work` le 31 octobre 2026.
 
 ### Correctif visuel demandé après ouverture de la version courante
 

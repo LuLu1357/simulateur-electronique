@@ -58,6 +58,7 @@ import { parseEngineeringValue } from "./units";
 import { downloadSvgView, svgMeasurementProvenance } from "./svgExport";
 import { createSimulationController } from "./simulationController";
 import { useSimulationPlayback } from "./useSimulationPlayback";
+import { useWorkViewport } from "./useWorkViewport";
 import {
   withMeasurements,
   publishSimulationState,
@@ -456,6 +457,7 @@ function App() {
     importRef = useRef<HTMLInputElement>(null),
     stateRef = useRef<State | null>(null);
   stateRef.current = state;
+  const rememberWorkViewport = useWorkViewport();
   const controlRef = useRef<ReturnType<
     typeof createSimulationController
   > | null>(null);
@@ -471,12 +473,13 @@ function App() {
       const next = await api<State>("state");
       if (!isCurrentProjectRevision(stateRef.current, next)) return;
       if (!control.acceptPoll(ticket, !!next.running)) return;
+      rememberWorkViewport(stateRef.current, next);
       stateRef.current = next;
       setState((current) => publishProjectState(current, next));
     } catch (e) {
       setError(String(e));
     }
-  }, []);
+  }, [rememberWorkViewport]);
   useEffect(() => {
     refresh();
     api<
@@ -496,6 +499,7 @@ function App() {
         return published;
       }
       control.invalidatePolls();
+      rememberWorkViewport(stateRef.current, published);
       stateRef.current = published;
       setState((current) => publishProjectState(current, published));
       return published;

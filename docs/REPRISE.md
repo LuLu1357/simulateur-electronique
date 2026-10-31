@@ -1,5 +1,15 @@
 # Reprendre Atelier Électronique
 
+## Dernier correctif validé — 31 octobre 2026
+
+S1 corrige la remontée de page pendant une modification/suppression. La zone
+regardée est conservée lors de la mise à jour et de ses nettoyages successifs,
+sans empêcher le défilement manuel ni une navigation explicitement demandée.
+**231 tests Node**, TypeScript et build passent ; le scénario React/DOM versionné
+`frontend/tests/browser/workViewport.html` passe **10/10** dans un vrai navigateur.
+Les suppressions sur plaque et schéma ainsi qu’une modification de valeur ont
+été vérifiées sur un service isolé. Détails et limites historiques dans SUIVI.
+
 ## Mise à jour active — 30 octobre 2026
 
 Après ce jalon temporel, l’utilisateur a signalé des textes sur les bornes du
