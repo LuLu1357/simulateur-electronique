@@ -20,6 +20,12 @@ import {
 } from "../scope";
 import type { ScopeCurve, ScopeRange } from "../scope";
 import { measureScopeCurve } from "../scopeMeasurements";
+import {
+  initialMeasurementSelection,
+  reconcileMeasurementSelection,
+} from "../measurementChannels";
+import { MeasurementChannelSelector } from "./MeasurementChannelSelector";
+import { MeasurementLegend } from "./MeasurementLegend";
 import "../oscilloscope.css";
 
 const width = 880,
@@ -86,17 +92,14 @@ export function Oscilloscope({
   };
   const full = useMemo(() => timeRange(time), [time]);
   useEffect(() => {
-    setVisible((current) => {
-      const retained = current.filter((id) =>
-        curves.some((curve) => curve.id === id),
-      );
-      if (initialized.current && retained.length) return retained;
-      initialized.current = true;
-      const voltages = curves.filter((curve) => curve.unit === "V");
-      return (voltages.length ? voltages : curves)
-        .slice(0, 3)
-        .map((curve) => curve.id);
-    });
+    if (!curves.length && !initialized.current) return;
+    const first = !initialized.current;
+    initialized.current = true;
+    setVisible((current) =>
+      first
+        ? initialMeasurementSelection(curves)
+        : reconcileMeasurementSelection(current, curves),
+    );
   }, [signature]);
   useEffect(() => {
     setWindowRange(null);
@@ -279,34 +282,18 @@ export function Oscilloscope({
         </div>
       ) : (
         <>
-          <div
-            className="lab-scope-curves"
-            role="group"
-            aria-label="Courbes affichées"
-          >
-            {curves.map((curve, index) => (
-              <button
-                key={curve.id}
-                aria-pressed={visible.includes(curve.id)}
-                onClick={() =>
-                  setVisible((current) =>
-                    current.includes(curve.id)
-                      ? current.filter((id) => id !== curve.id)
-                      : [...current, curve.id],
-                  )
-                }
-                style={
-                  {
-                    "--scope-curve": colors[index % colors.length],
-                  } as React.CSSProperties
-                }
-              >
-                <i />
-                {curve.label}
-                <small>{curve.unit}</small>
-              </button>
-            ))}
-          </div>
+          <MeasurementChannelSelector
+            curves={curves}
+            selectedIds={visible}
+            onClear={() => setVisible([])}
+            onToggle={(id) =>
+              setVisible((current) =>
+                current.includes(id)
+                  ? current.filter((selectedId) => selectedId !== id)
+                  : [...current, id],
+              )
+            }
+          />
           <div className="lab-scope-controls">
             <span>
               <MoveHorizontal size={14} /> Survole pour mesurer · ← → pour
@@ -357,6 +344,11 @@ export function Oscilloscope({
                         ? "COURANTS"
                         : unit}
                   </span>
+                  <MeasurementLegend
+                    curves={plotted}
+                    catalog={curves}
+                    unit={unit}
+                  />
                   <svg
                     viewBox={`0 0 ${width} ${height}`}
                     preserveAspectRatio="xMidYMid meet"
@@ -432,14 +424,18 @@ export function Oscilloscope({
                       const color =
                         colors[curves.indexOf(curve) % colors.length];
                       return (
-                        <g key={curve.id}>
+                        <g key={curve.id} data-channel-id={curve.id}>
                           <path
                             d={paths.get(curve.id)}
                             fill="none"
                             stroke={color}
                             strokeWidth="1.8"
                             vectorEffect="non-scaling-stroke"
-                          />
+                          >
+                            <title>
+                              {curve.label} [{curve.unit}] · {curve.id}
+                            </title>
+                          </path>
                           {cursorInView &&
                             Number.isFinite(curve.values[cursor]) && (
                               <circle
@@ -489,12 +485,17 @@ export function Oscilloscope({
                 >
                   <span>
                     <i />
-                    {curve.label}
+                    <span title={`${curve.label} · ${curve.id}`}>
+                      {curve.label}
+                    </span>
                   </span>
                   <strong>{format(curve.values[cursor], curve.unit)}</strong>
                   <small>
-                    {curve.unit === "V" ? "Tension" : "Courant"} calculé
-                    {curve.unit === "V" ? "e" : ""}
+                    {curve.unit === "V"
+                      ? "Tension calculée"
+                      : curve.unit === "A"
+                        ? "Courant calculé"
+                        : "Mesure calculée"}
                   </small>
                 </div>
               ))}
